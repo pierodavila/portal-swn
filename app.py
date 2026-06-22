@@ -457,6 +457,209 @@ AVAL_VER_HTML = r"""
 
 
 # ----------------------------------------------------------------------------
+# Advertências / Disciplina — helpers, termo juridicamente correto e templates (Fase 3.3)
+# ----------------------------------------------------------------------------
+ADV_TIPOS = [("verbal", "Advertência verbal (registro interno)"),
+             ("escrita", "Advertência escrita"),
+             ("suspensao", "Suspensão disciplinar")]
+ADV_TIPO_LABEL = {k: v for k, v in ADV_TIPOS}
+
+
+def _fmt_data_br(s):
+    d = _parse_date(s)
+    return d.strftime("%d/%m/%Y") if d else (s or "__/__/____")
+
+
+def _termo_advertencia(adv, colab_nome, loja_nome):
+    """Reproduz o texto-modelo do corpo da advertência, com as correções jurídicas
+    (gradação só cita justa causa/art.482 em suspensão ou reincidência; verbal = registro interno)."""
+    loja = loja_nome or "____________"
+    nome = colab_nome or "____________"
+    cargo = adv.get("cargo") or "____________"
+    dtf = _fmt_data_br(adv.get("data_fato"))
+    hr = adv.get("hora_fato") or "__:__"
+    local = adv.get("local") or "____________"
+    desc = adv.get("descricao") or "(descrever o ocorrido)"
+    tipo = adv.get("tipo")
+    is_verbal = tipo == "verbal"
+    reincid = bool((adv.get("antecedentes") or "").strip())
+    if is_verbal:
+        medida = "advertência verbal"
+    elif tipo == "suspensao":
+        dias = adv.get("sus_dias") or "__"
+        medida = "suspensão disciplinar de %s dia(s) (art. 474 CLT)" % dias
+    else:
+        medida = "advertência escrita"
+    if tipo == "suspensao" or reincid:
+        escalon = ("Fica o(a) colaborador(a) ciente de que a reincidência ou a prática de nova falta "
+                   "poderá ensejar medida disciplinar mais grave, inclusive a rescisão do contrato por "
+                   "justa causa (art. 482 da CLT).")
+    else:
+        escalon = ("Esta medida tem caráter estritamente pedagógico. A repetição da conduta poderá "
+                   "ensejar medida disciplinar mais grave.")
+    if is_verbal:
+        return ("REGISTRO INTERNO DE ADVERTÊNCIA VERBAL — uso interno de gestão "
+                "(não requer assinatura do colaborador).\n\n"
+                "Unidade %s. Colaborador(a) %s, função %s.\n"
+                "No dia %s, por volta das %s, no local %s, ocorreu: %s\n\n"
+                "Foi feita orientação verbal ao(à) colaborador(a) sobre a conduta. %s\n\n"
+                "Registrado por: ____________________ (gestor/RH) em ___/___/_____."
+                % (loja, nome, cargo, dtf, hr, local, desc, escalon))
+    return ("A SWN · Premium Outlets, por meio da unidade %s, comunica ao(à) colaborador(a) %s, "
+            "na função de %s, a aplicação de %s em razão do fato a seguir:\n\n"
+            "No dia %s, por volta das %s, no local %s, ocorreu: %s\n\n"
+            "A conduta contraria a(s) regra(s) interna(s) da empresa e/ou dispositivo da CLT. %s\n\n"
+            "Solicitamos a ciência abaixo. A assinatura atesta apenas o recebimento, não significando "
+            "concordância com o teor."
+            % (loja, nome, cargo, medida, dtf, hr, local, desc, escalon))
+
+
+DISCIPLINA_HTML = r"""
+{% extends "base.html" %}
+{% block title %}Advertências & Disciplina{% endblock %}
+{% block body %}
+<style>
+  .d-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+  .d-kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .d-kpi b{display:block;font-size:26px;color:var(--brand2);line-height:1.1}
+  .d-kpi span{font-size:12px;color:var(--muted)}
+  table.d{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  table.d th,table.d td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left}
+  table.d th{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px}
+  .tag{font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px}
+  .tag.verbal{background:rgba(241,196,15,.15);color:#f3d35e}
+  .tag.escrita{background:rgba(230,126,34,.18);color:#f0a868}
+  .tag.suspensao{background:rgba(231,76,60,.15);color:#f29a90}
+  .d-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:12px}
+  .d-form .f{display:flex;flex-direction:column;gap:4px}
+  .d-form label{font-size:11px;color:var(--muted);font-weight:600}
+  .d-form input,.d-form select,.d-form textarea{padding:8px 10px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--txt);font-size:14px;font-family:inherit}
+  .d-form textarea{min-height:60px;resize:vertical}
+  .g-btn{padding:9px 16px;border-radius:9px;border:0;background:var(--brand);color:#13270a;font-weight:800;cursor:pointer;font-size:14px}
+  .full{grid-column:1/-1}
+  .msg{padding:10px 12px;border-radius:10px;margin-bottom:12px;font-size:13.5px}
+  .msg.ok{background:rgba(46,204,113,.12);color:#7ee2a8;border:1px solid rgba(46,204,113,.3)}
+  .aviso{background:linear-gradient(135deg,rgba(241,196,15,.08),rgba(231,76,60,.10));
+    border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--muted);font-size:13px;margin-bottom:18px}
+</style>
+
+<div class="card">
+  <h1>Advertências & Disciplina</h1>
+  <p class="muted">Registro de medidas disciplinares salvo no banco, com histórico por colaborador e termo pronto para impressão.
+    <a href="{{ url_for('disciplina_csv') }}">⬇ Exportar CSV</a></p>
+</div>
+
+<div class="aviso">⚠️ <b>Modelo-base.</b> Advertência e suspensão devem respeitar a <b>CLT</b> e a <b>Convenção Coletiva (CCT)</b> da base de cada loja — confirme com a contabilidade/jurídico. A ciência do colaborador atesta apenas o recebimento, não concordância.</div>
+
+{% if ok %}<div class="msg ok">{{ ok }}</div>{% endif %}
+
+<div class="d-kpis">
+  <div class="d-kpi"><b>{{ advs|length }}</b><span>registros</span></div>
+  <div class="d-kpi"><b>{{ n_verbais }}</b><span>verbais</span></div>
+  <div class="d-kpi"><b>{{ n_escritas }}</b><span>escritas</span></div>
+  <div class="d-kpi"><b>{{ n_susp }}</b><span>suspensões</span></div>
+</div>
+
+<div class="card">
+  <h2>Histórico</h2>
+  <table class="d">
+    <thead><tr><th>Colaborador</th><th>Data do fato</th><th>Tipo</th><th>Motivo</th><th></th></tr></thead>
+    <tbody>
+    {% for a in advs %}
+      <tr>
+        <td><b>{{ a.colab_nome or '—' }}</b><br><span class="muted" style="font-size:12px">{{ a.loja_nome or '' }}</span></td>
+        <td>{{ a.data_fato_br }}</td>
+        <td><span class="tag {{ a.tipo }}">{{ a.tipo_label }}</span></td>
+        <td>{{ (a.descricao or '')[:60] }}{% if a.descricao and a.descricao|length > 60 %}…{% endif %}</td>
+        <td><a href="{{ url_for('disciplina_ver', aid=a.id) }}">ver termo</a></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" class="muted">Nenhum registro ainda.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2 id="nova">➕ Novo registro disciplinar</h2>
+  {% if colabs %}
+  <form method="post" action="{{ url_for('disciplina_nova') }}">
+    <div class="d-form">
+      <div class="f"><label>Colaborador *</label>
+        <select name="colaborador_id" required>
+          <option value="">—</option>
+          {% for c in colabs %}<option value="{{ c.id }}">{{ c.nome }}{% if c.loja_nome %} · {{ c.loja_nome }}{% endif %}</option>{% endfor %}
+        </select></div>
+      <div class="f"><label>Tipo *</label>
+        <select name="tipo" required>{% for k, lbl in tipos %}<option value="{{ k }}">{{ lbl }}</option>{% endfor %}</select></div>
+      <div class="f"><label>Dias de suspensão (só p/ suspensão)</label><input name="sus_dias" inputmode="numeric" placeholder="ex: 1"></div>
+      <div class="f"><label>Data do fato *</label><input type="date" name="data_fato" required></div>
+      <div class="f"><label>Hora do fato</label><input name="hora_fato" placeholder="ex: 14:30"></div>
+      <div class="f"><label>Local</label><input name="local" placeholder="ex: caixa da loja"></div>
+    </div>
+    <div class="d-form" style="margin-top:12px">
+      <div class="f full"><label>Descrição do fato *</label><textarea name="descricao" required placeholder="O que ocorreu, com data/hora e a regra interna ou dispositivo da CLT violado."></textarea></div>
+      <div class="f full"><label>Regra interna / dispositivo violado</label><input name="regra" placeholder="ex.: item X do Manual de Caixa / art. 482 CLT"></div>
+      <div class="f full"><label>Antecedentes (se reincidência: citar advertência anterior e data)</label><textarea name="antecedentes" placeholder="ex.: Advertência verbal em ../../.. pelo mesmo tipo de conduta."></textarea></div>
+    </div>
+    <div class="d-form" style="margin-top:12px">
+      <div class="f"><label>Ciência (medida formal)</label>
+        <select name="ciencia">
+          <option value="">—</option>
+          <option value="assinou">Deu ciência e assinou</option>
+          <option value="recusou">Recusou-se a assinar (2 testemunhas)</option>
+        </select></div>
+      <div class="f"><label>Testemunha 1 (nome / CPF)</label><input name="testemunha1"></div>
+      <div class="f"><label>Testemunha 2 (nome / CPF)</label><input name="testemunha2"></div>
+    </div>
+    <p class="muted" style="font-size:12.5px;margin-top:10px">Na <b>verbal</b>, não se colhe assinatura — é registro interno de gestão. Suspensão e reincidência citam a possibilidade de justa causa (art. 482).</p>
+    <div style="margin-top:6px"><button class="g-btn" type="submit">Registrar</button></div>
+  </form>
+  {% else %}
+    <p class="muted">Cadastre colaboradores em <a href="/gestao#colaboradores">Gestão</a> antes de registrar.</p>
+  {% endif %}
+</div>
+{% endblock %}
+"""
+
+
+DISCIPLINA_VER_HTML = r"""
+{% extends "base.html" %}
+{% block title %}Termo — {{ a.colab_nome }}{% endblock %}
+{% block body %}
+<style>
+  .termo{background:#fff;color:#111;border-radius:12px;padding:26px 30px;white-space:pre-wrap;
+    font-size:14.5px;line-height:1.55;font-family:Georgia,'Times New Roman',serif}
+  .sign{display:flex;gap:40px;margin-top:34px;flex-wrap:wrap;color:#111}
+  .sign .line{border-top:1px solid #444;padding-top:6px;font-size:12.5px;min-width:240px}
+  .no-print{}
+  @media print{.no-print{display:none!important}.termo{box-shadow:none}}
+  .g-btn{padding:9px 16px;border-radius:9px;border:0;background:var(--brand);color:#13270a;font-weight:800;cursor:pointer;font-size:14px}
+</style>
+<div class="card no-print">
+  <p><a href="{{ url_for('disciplina') }}">← Voltar</a></p>
+  <h1>{{ a.tipo_label }} — {{ a.colab_nome or '—' }}</h1>
+  <p class="muted">{{ a.loja_nome or '' }} · fato em {{ a.data_fato_br }}</p>
+  <button class="g-btn" onclick="window.print()">🖨️ Imprimir termo</button>
+</div>
+
+<div class="termo">{{ termo }}{% if a.tipo != 'verbal' %}
+
+_______________________________________________
+{{ a.colab_nome }} — ciente em ___/___/_____
+(a ciência não implica concordância){% if a.regra %}
+
+Regra/dispositivo: {{ a.regra }}{% endif %}{% if a.ciencia == 'recusou' %}
+
+Recusa de assinatura registrada com 2 testemunhas:
+1) {{ a.testemunha1 or '____________ — CPF ____________' }}
+2) {{ a.testemunha2 or '____________ — CPF ____________' }}{% endif %}{% endif %}</div>
+{% endblock %}
+"""
+
+
+# ----------------------------------------------------------------------------
 # Factory
 # ----------------------------------------------------------------------------
 def create_app():
@@ -551,6 +754,9 @@ def create_app():
         # Avaliação de desempenho migrada para o Postgres (Fase 3.2).
         if tool_id == "avaliacao":
             return redirect("/avaliacoes")
+        # Advertências migradas para o Postgres (Fase 3.3).
+        if tool_id == "advertencia":
+            return redirect("/disciplina")
         u = current_user()
         meta = catalog.get_tool(tool_id)
         if meta is None or not meta.get("arquivo"):
@@ -841,6 +1047,92 @@ def create_app():
         return Response(
             buf.getvalue(), mimetype="text/csv; charset=utf-8",
             headers={"Content-Disposition": "attachment; filename=avaliacoes_swn.csv"},
+        )
+
+    # ------------------------------------------------- Disciplina (Fase 3.3: DB)
+    def _advs_join(where="", params=()):
+        rows = query(
+            "SELECT a.*, c.nome AS colab_nome, c.cargo AS cargo, l.nome AS loja_nome "
+            "FROM advertencias a "
+            "LEFT JOIN colaboradores c ON c.id = a.colaborador_id "
+            "LEFT JOIN lojas l ON l.id = c.loja_id "
+            + where + " ORDER BY a.id DESC", params,
+        )
+        for a in rows:
+            a["data_fato_br"] = _fmt_data_br(a.get("data_fato"))
+            a["tipo_label"] = ADV_TIPO_LABEL.get(a.get("tipo"), a.get("tipo") or "—")
+        return rows
+
+    @app.route("/disciplina")
+    @require_roles("admin", "rh", "supervisor", "gerente")
+    def disciplina():
+        advs = _advs_join()
+        n_verbais = sum(1 for a in advs if a.get("tipo") == "verbal")
+        n_escritas = sum(1 for a in advs if a.get("tipo") == "escrita")
+        n_susp = sum(1 for a in advs if a.get("tipo") == "suspensao")
+        hoje = date.today()
+        colabs = query(
+            "SELECT c.id, c.nome, c.admissao, c.desligamento, l.nome AS loja_nome "
+            "FROM colaboradores c LEFT JOIN lojas l ON l.id = c.loja_id ORDER BY c.nome"
+        )
+        colabs = [c for c in colabs if _situacao(c, hoje) != "Desligado"]
+        return render_template_string(
+            DISCIPLINA_HTML, user=current_user(), advs=advs, colabs=colabs,
+            tipos=ADV_TIPOS, n_verbais=n_verbais, n_escritas=n_escritas, n_susp=n_susp,
+            ok=request.args.get("ok"),
+        )
+
+    @app.route("/disciplina/nova", methods=["POST"])
+    @require_roles("admin", "rh", "supervisor", "gerente")
+    def disciplina_nova():
+        u = current_user()
+        cid = request.form.get("colaborador_id")
+        tipo = request.form.get("tipo") or "escrita"
+        if not cid or not (request.form.get("descricao") or "").strip():
+            return redirect("/disciplina?ok=Informe colaborador e descrição#nova")
+        execute(
+            "INSERT INTO advertencias "
+            "(colaborador_id, tipo, data_fato, hora_fato, local, descricao, regra, "
+            " antecedentes, sus_dias, ciencia, testemunha1, testemunha2, criado_em, criado_por) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (cid, tipo, request.form.get("data_fato") or "", request.form.get("hora_fato") or "",
+             request.form.get("local") or "", request.form.get("descricao") or "",
+             request.form.get("regra") or "", request.form.get("antecedentes") or "",
+             request.form.get("sus_dias") or "", request.form.get("ciencia") or "",
+             request.form.get("testemunha1") or "", request.form.get("testemunha2") or "",
+             _now(), u["id"]),
+        )
+        audit(u["id"], "disciplina_nova", "%s/%s" % (cid, tipo))
+        return redirect("/disciplina?ok=Registro disciplinar salvo")
+
+    @app.route("/disciplina/<int:aid>")
+    @require_roles("admin", "rh", "supervisor", "gerente")
+    def disciplina_ver(aid):
+        rows = _advs_join("WHERE a.id = ?", (aid,))
+        if not rows:
+            abort(404)
+        a = rows[0]
+        termo = _termo_advertencia(a, a.get("colab_nome"), a.get("loja_nome"))
+        return render_template_string(
+            DISCIPLINA_VER_HTML, user=current_user(), a=a, termo=termo,
+        )
+
+    @app.route("/disciplina.csv")
+    @require_roles("admin", "rh", "supervisor", "gerente")
+    def disciplina_csv():
+        advs = _advs_join()
+        buf = io.StringIO()
+        buf.write("﻿")
+        w = csv.writer(buf, delimiter=";")
+        w.writerow(["Colaborador", "Loja", "Tipo", "Data do fato", "Hora", "Local",
+                    "Descrição", "Regra/dispositivo", "Antecedentes", "Ciência"])
+        for a in advs:
+            w.writerow([a.get("colab_nome"), a.get("loja_nome") or "", a.get("tipo_label"),
+                        a.get("data_fato_br"), a.get("hora_fato"), a.get("local"),
+                        a.get("descricao"), a.get("regra"), a.get("antecedentes"), a.get("ciencia")])
+        return Response(
+            buf.getvalue(), mimetype="text/csv; charset=utf-8",
+            headers={"Content-Disposition": "attachment; filename=disciplina_swn.csv"},
         )
 
     # --------------------------------------------------- static (PWA assets)

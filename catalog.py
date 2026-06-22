@@ -130,7 +130,7 @@ TOOLS = [
         "nome": "Modelo de Advertência",
         "icone": "⚠️",
         "arquivo": "RH_DISCIPLINA_JORNADA_SWN.html",
-        "descricao": "Advertência verbal/escrita/suspensão (CLT).",
+        "descricao": "Advertência verbal/escrita/suspensão (CLT) — salva no banco, com histórico.",
         "papeis": ["admin", "rh", "supervisor", "gerente"],
     },
     {

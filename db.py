@@ -194,6 +194,25 @@ def _schema_statements():
             criado_por     INTEGER
         )
         """,
+        f"""
+        CREATE TABLE IF NOT EXISTS advertencias (
+            id             {pk},
+            colaborador_id INTEGER,
+            tipo           TEXT,
+            data_fato      TEXT,
+            hora_fato      TEXT,
+            local          TEXT,
+            descricao      TEXT,
+            regra          TEXT,
+            antecedentes   TEXT,
+            sus_dias       TEXT,
+            ciencia        TEXT,
+            testemunha1    TEXT,
+            testemunha2    TEXT,
+            criado_em      {ts},
+            criado_por     INTEGER
+        )
+        """,
     ]
 
 
