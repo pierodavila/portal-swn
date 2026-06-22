@@ -213,6 +213,21 @@ def _schema_statements():
             criado_por     INTEGER
         )
         """,
+        f"""
+        CREATE TABLE IF NOT EXISTS checklists (
+            id           {pk},
+            loja_id      INTEGER,
+            data         TEXT,
+            turno        TEXT,
+            itens        TEXT,
+            feitos       INTEGER,
+            total        INTEGER,
+            responsavel  TEXT,
+            obs          TEXT,
+            criado_em    {ts},
+            criado_por   INTEGER
+        )
+        """,
     ]
 
 

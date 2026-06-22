@@ -716,6 +716,8 @@ COCKPIT_HTML = r"""
       <div><b>{{ L.adv_mes }}</b><span>Advert. mês</span></div>
       <div><b>{{ L.adv_total }}</b><span>Advert. total</span></div>
       <div><b>{{ L.nota_media or '—' }}</b><span>Nota média</span></div>
+      <div><b>{{ L.chk_ab }}</b><span>Abertura hoje</span></div>
+      <div><b>{{ L.chk_fe }}</b><span>Fechamento hoje</span></div>
     </div>
     {% for a in L.alertas %}<div class="alert warn">⚠️ {{ a }}</div>{% endfor %}
     {% if not L.alertas %}<div class="alert ok">✓ Sem alertas no momento</div>{% endif %}
@@ -729,6 +731,142 @@ COCKPIT_HTML = r"""
   <div class="card"><p class="muted">Nenhuma loja cadastrada. Cadastre lojas e colaboradores em <a href="/gestao">Gestão</a> para o cockpit ganhar vida.</p></div>
   {% endfor %}
 </div>
+{% endblock %}
+"""
+
+
+# ----------------------------------------------------------------------------
+# Checklist diário — itens fixos de abertura/fechamento e templates (Fase 3.5)
+# ----------------------------------------------------------------------------
+CHK_ITENS = {
+    "abertura": [
+        "Inspecionar fachada e porta antes de entrar (sinais de arrombamento)",
+        "Desarmar o alarme e conferir câmeras funcionando",
+        "Acender luzes e ligar ar-condicionado (registrar no controle de AC)",
+        "Conferir limpeza geral: piso, provadores e banheiros",
+        "Ligar música ambiente",
+        "Ligar computadores, PDV/Almode e maquininhas de cartão",
+        "Testar Pix e máquina de cartão com um teste rápido",
+        "Conferir o fundo de troco na presença de outro responsável",
+        "Abrir o caixa no sistema",
+        "Definir o teto da gaveta e fazer sangria intraday ao ultrapassar",
+        "Conferir vitrines e manequins",
+        "Repor e organizar araras e mesas (pensar com abundância)",
+        "Conferir etiquetas e preços visíveis",
+        "Briefing de 5 min: metas do dia, resultado de ontem, campanhas",
+        "Conferir uniforme e apresentação pessoal da equipe (dress code)",
+    ],
+    "fechamento": [
+        "Conferir vendas do dia no sistema x formas de pagamento",
+        "Comprovantes de Pix conferidos no app do banco (não aceitar print)",
+        "Fazer a sangria final e a conferência de caixa no app",
+        "Emitir relatório do dia e registrar o resultado",
+        "Recolher peças dos provadores",
+        "Reorganizar araras e mesas e repor para o dia seguinte",
+        "Contar o dinheiro na presença do gerente e registrar no controle",
+        "Organizar por denominação em envelope identificado (período + valor)",
+        "Transporte só de 2ª a 6ª — caixa + gerente/subgerente juntos (nunca sozinho)",
+        "Depositar no caixa eletrônico em horário de menor movimento",
+        "Fotografar o comprovante, enviar no grupo e anexar ao controle",
+        "Valor não reconhecido pelo caixa eletrônico: anotar, avisar e guardar no cofre",
+        "Desligar ar-condicionado (registrar), luzes não essenciais e equipamentos",
+        "Conferir que não há ninguém na loja",
+        "Trancar portas, armar o alarme e conferir câmeras",
+    ],
+}
+CHK_TURNOS = [("abertura", "🔓 Abertura"), ("fechamento", "🌙 Fechamento")]
+CHK_TURNO_LABEL = {k: v for k, v in CHK_TURNOS}
+
+
+CHECKLIST_HTML = r"""
+{% extends "base.html" %}
+{% block title %}Checklist diário{% endblock %}
+{% block body %}
+<style>
+  .ck-form{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:6px 0 4px}
+  .ck-form .f{display:flex;flex-direction:column;gap:4px}
+  .ck-form label{font-size:11px;color:var(--muted);font-weight:600}
+  .ck-form input,.ck-form select{padding:8px 10px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--txt);font-size:14px}
+  .g-btn{padding:9px 16px;border-radius:9px;border:0;background:var(--brand);color:#13270a;font-weight:800;cursor:pointer;font-size:14px}
+  table.ck{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  table.ck th,table.ck td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left}
+  table.ck th{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px}
+  .st{font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px}
+  .st.ok{background:rgba(46,204,113,.15);color:#7ee2a8}
+  .st.parcial{background:rgba(241,196,15,.15);color:#f3d35e}
+  .st.pendente{background:rgba(231,76,60,.15);color:#f29a90}
+  .items li{list-style:none;display:flex;align-items:flex-start;gap:11px;padding:9px 10px;border-radius:9px;font-size:14px;border-bottom:1px solid var(--line)}
+  .items{padding-left:0;margin:6px 0}
+  .items input{margin-top:3px;width:18px;height:18px;accent-color:var(--brand)}
+  .msg{padding:10px 12px;border-radius:10px;margin-bottom:12px;font-size:13.5px}
+  .msg.ok{background:rgba(46,204,113,.12);color:#7ee2a8;border:1px solid rgba(46,204,113,.3)}
+</style>
+
+<div class="card">
+  <h1>Checklist diário</h1>
+  <p class="muted">Abertura e fechamento salvos no banco, por loja e data. O cockpit lê isto para mostrar o status de hoje.
+    <a href="{{ url_for('checklist_csv') }}">⬇ Exportar CSV</a></p>
+</div>
+
+{% if ok %}<div class="msg ok">{{ ok }}</div>{% endif %}
+
+<div class="card">
+  <h2>Status de hoje ({{ hoje_br }})</h2>
+  <table class="ck">
+    <thead><tr><th>Loja</th><th>Abertura</th><th>Fechamento</th></tr></thead>
+    <tbody>
+    {% for L in status %}
+      <tr>
+        <td><b>{{ L.nome }}</b></td>
+        <td>{% if L.ab_total %}<span class="st {{ L.ab_st }}">{{ L.ab_feitos }}/{{ L.ab_total }}</span>{% else %}<span class="st pendente">pendente</span>{% endif %}</td>
+        <td>{% if L.fe_total %}<span class="st {{ L.fe_st }}">{{ L.fe_feitos }}/{{ L.fe_total }}</span>{% else %}<span class="st pendente">pendente</span>{% endif %}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="3" class="muted">Cadastre lojas em <a href="/gestao#lojas">Gestão</a>.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if lojas %}
+<div class="card">
+  <h2>Preencher checklist</h2>
+  <form method="get" action="{{ url_for('checklist') }}" class="ck-form">
+    <div class="f"><label>Loja</label>
+      <select name="loja" required>
+        <option value="">—</option>
+        {% for l in lojas %}<option value="{{ l.id }}" {{ 'selected' if sel_loja==l.id|string else '' }}>{{ l.nome }}</option>{% endfor %}
+      </select></div>
+    <div class="f"><label>Turno</label>
+      <select name="turno">{% for k, lbl in turnos %}<option value="{{ k }}" {{ 'selected' if sel_turno==k else '' }}>{{ lbl }}</option>{% endfor %}</select></div>
+    <div class="f"><label>Data</label><input type="date" name="data" value="{{ sel_data }}"></div>
+    <button class="g-btn" type="submit">Abrir checklist</button>
+  </form>
+
+  {% if itens %}
+  <form method="post" action="{{ url_for('checklist_salvar') }}" style="margin-top:14px">
+    <input type="hidden" name="loja_id" value="{{ sel_loja }}">
+    <input type="hidden" name="turno" value="{{ sel_turno }}">
+    <input type="hidden" name="data" value="{{ sel_data }}">
+    <h3 style="margin:6px 0">{{ turno_label }} · {{ sel_loja_nome }} · {{ sel_data_br }}</h3>
+    <ul class="items">
+      {% for it in itens %}
+      <li><input type="checkbox" name="it_{{ loop.index0 }}" id="it_{{ loop.index0 }}" {{ 'checked' if loop.index0 in feitos else '' }}>
+          <label for="it_{{ loop.index0 }}">{{ it }}</label></li>
+      {% endfor %}
+    </ul>
+    <div class="ck-form">
+      <div class="f" style="flex:1"><label>Responsável</label><input name="responsavel" value="{{ responsavel }}" placeholder="quem preencheu"></div>
+      <div class="f" style="flex:2"><label>Observações</label><input name="obs" value="{{ obs }}" placeholder="ocorrências do turno"></div>
+    </div>
+    <div style="margin-top:12px"><button class="g-btn" type="submit">Salvar checklist</button></div>
+  </form>
+  {% endif %}
+</div>
+{% else %}
+<div class="card"><p class="muted">Cadastre lojas em <a href="/gestao#lojas">Gestão</a> para usar o checklist.</p></div>
+{% endif %}
 {% endblock %}
 """
 
@@ -828,6 +966,9 @@ def create_app():
         # Cockpit do dono — visão por loja (Fase 3.4).
         if tool_id == "cockpit":
             return redirect("/cockpit")
+        # Checklist diário migrado para o Postgres (Fase 3.5).
+        if tool_id == "checklist":
+            return redirect("/checklist")
         # Avaliação de desempenho migrada para o Postgres (Fase 3.2).
         if tool_id == "avaliacao":
             return redirect("/avaliacoes")
@@ -1212,6 +1353,127 @@ def create_app():
             headers={"Content-Disposition": "attachment; filename=disciplina_swn.csv"},
         )
 
+    # ------------------------------------------------- Checklist diário (Fase 3.5)
+    def _chk_st(feitos, total):
+        if not total:
+            return "pendente"
+        if feitos >= total:
+            return "ok"
+        return "parcial"
+
+    def _chk_hoje_por_loja(lojas, dia):
+        """dict[loja_id] = {'abertura': (feitos,total), 'fechamento': (feitos,total)}."""
+        rows = query("SELECT loja_id, turno, feitos, total FROM checklists WHERE data = ?", (dia,))
+        m = {}
+        for r in rows:
+            m.setdefault(r["loja_id"], {})[r["turno"]] = (r.get("feitos") or 0, r.get("total") or 0)
+        return m
+
+    @app.route("/checklist")
+    @require_roles("admin", "rh", "supervisor", "gerente", "subgerente", "estoquista")
+    def checklist():
+        hoje = date.today()
+        lojas = query("SELECT * FROM lojas ORDER BY nome")
+        mapa = _chk_hoje_por_loja(lojas, hoje.isoformat())
+        status = []
+        for L in lojas:
+            ab = mapa.get(L["id"], {}).get("abertura")
+            fe = mapa.get(L["id"], {}).get("fechamento")
+            status.append({
+                "nome": L["nome"],
+                "ab_feitos": ab[0] if ab else 0, "ab_total": ab[1] if ab else 0,
+                "ab_st": _chk_st(*ab) if ab else "pendente",
+                "fe_feitos": fe[0] if fe else 0, "fe_total": fe[1] if fe else 0,
+                "fe_st": _chk_st(*fe) if fe else "pendente",
+            })
+
+        sel_loja = request.args.get("loja")
+        sel_turno = request.args.get("turno") or "abertura"
+        sel_data = request.args.get("data") or hoje.isoformat()
+        itens = None
+        feitos = set()
+        responsavel = ""
+        obs = ""
+        sel_loja_nome = ""
+        if sel_loja and sel_turno in CHK_ITENS:
+            itens = CHK_ITENS[sel_turno]
+            existing = query(
+                "SELECT * FROM checklists WHERE loja_id = ? AND data = ? AND turno = ? ORDER BY id DESC",
+                (sel_loja, sel_data, sel_turno), one=True,
+            )
+            if existing:
+                try:
+                    feitos = set(json.loads(existing.get("itens") or "[]"))
+                except (ValueError, TypeError):
+                    feitos = set()
+                responsavel = existing.get("responsavel") or ""
+                obs = existing.get("obs") or ""
+            lj = query("SELECT nome FROM lojas WHERE id = ?", (sel_loja,), one=True)
+            sel_loja_nome = lj["nome"] if lj else ""
+
+        return render_template_string(
+            CHECKLIST_HTML, user=current_user(), lojas=lojas, status=status,
+            turnos=CHK_TURNOS, sel_loja=sel_loja, sel_turno=sel_turno, sel_data=sel_data,
+            itens=itens, feitos=feitos, responsavel=responsavel, obs=obs,
+            sel_loja_nome=sel_loja_nome, turno_label=CHK_TURNO_LABEL.get(sel_turno, sel_turno),
+            hoje_br=hoje.strftime("%d/%m/%Y"), sel_data_br=_fmt_data_br(sel_data),
+            ok=request.args.get("ok"),
+        )
+
+    @app.route("/checklist/salvar", methods=["POST"])
+    @require_roles("admin", "rh", "supervisor", "gerente", "subgerente", "estoquista")
+    def checklist_salvar():
+        u = current_user()
+        loja_id = request.form.get("loja_id")
+        turno = request.form.get("turno")
+        dia = request.form.get("data") or date.today().isoformat()
+        if not loja_id or turno not in CHK_ITENS:
+            return redirect("/checklist?ok=Selecione loja e turno")
+        itens = CHK_ITENS[turno]
+        feitos = [i for i in range(len(itens)) if request.form.get("it_%d" % i)]
+        payload = json.dumps(feitos)
+        total = len(itens)
+        existing = query(
+            "SELECT id FROM checklists WHERE loja_id = ? AND data = ? AND turno = ? ORDER BY id DESC",
+            (loja_id, dia, turno), one=True,
+        )
+        if existing:
+            execute(
+                "UPDATE checklists SET itens=?, feitos=?, total=?, responsavel=?, obs=?, criado_em=?, criado_por=? WHERE id=?",
+                (payload, len(feitos), total, request.form.get("responsavel") or "",
+                 request.form.get("obs") or "", _now(), u["id"], existing["id"]),
+            )
+        else:
+            execute(
+                "INSERT INTO checklists (loja_id, data, turno, itens, feitos, total, responsavel, obs, criado_em, criado_por) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (loja_id, dia, turno, payload, len(feitos), total,
+                 request.form.get("responsavel") or "", request.form.get("obs") or "", _now(), u["id"]),
+            )
+        audit(u["id"], "checklist_salvar", "%s/%s/%s %d/%d" % (loja_id, turno, dia, len(feitos), total))
+        return redirect("/checklist?ok=Checklist salvo (%d de %d itens)" % (len(feitos), total))
+
+    @app.route("/checklist.csv")
+    @require_roles("admin", "rh", "supervisor", "gerente", "subgerente", "estoquista")
+    def checklist_csv():
+        rows = query(
+            "SELECT ck.*, l.nome AS loja_nome FROM checklists ck "
+            "LEFT JOIN lojas l ON l.id = ck.loja_id ORDER BY ck.data DESC, l.nome"
+        )
+        buf = io.StringIO()
+        buf.write("﻿")
+        w = csv.writer(buf, delimiter=";")
+        w.writerow(["Data", "Loja", "Turno", "Feitos", "Total", "%", "Responsável", "Observações"])
+        for r in rows:
+            tot = r.get("total") or 0
+            pct = round((r.get("feitos") or 0) / tot * 100) if tot else 0
+            w.writerow([r.get("data"), r.get("loja_nome") or "", CHK_TURNO_LABEL.get(r.get("turno"), r.get("turno")),
+                        r.get("feitos"), r.get("total"), "%d%%" % pct, r.get("responsavel"), r.get("obs")])
+        return Response(
+            buf.getvalue(), mimetype="text/csv; charset=utf-8",
+            headers={"Content-Disposition": "attachment; filename=checklists_swn.csv"},
+        )
+
     # ------------------------------------------------- Cockpit do dono (Fase 3.4)
     @app.route("/cockpit")
     @require_roles("admin", "supervisor")
@@ -1227,6 +1489,7 @@ def create_app():
             "SELECT a.data_fato, c.loja_id FROM advertencias a "
             "LEFT JOIN colaboradores c ON c.id = a.colaborador_id"
         )
+        chk_map = _chk_hoje_por_loja(lojas_raw, hoje.isoformat())
         for c in colabs:
             c["situacao"] = _situacao(c, hoje)
 
@@ -1253,10 +1516,18 @@ def create_app():
                 alertas.append("%s advertências neste mês" % adv_mes)
             if nota_media is not None and nota_media < 3:
                 alertas.append("Nota média de avaliação baixa (%s)" % nota_media)
+            chk = chk_map.get(lid, {})
+            ab = chk.get("abertura")
+            fe = chk.get("fechamento")
+            ab_txt = ("%d/%d" % ab) if ab else "—"
+            fe_txt = ("%d/%d" % fe) if fe else "—"
+            if headcount and not ab:
+                alertas.append("Abertura de hoje não registrada")
             lojas.append({
                 "nome": L["nome"], "cidade_uf": L.get("cidade_uf"),
                 "headcount": headcount, "pct_exper": pct_exper, "turnover": turnover,
                 "adv_mes": adv_mes, "adv_total": adv_total, "nota_media": nota_media,
+                "chk_ab": ab_txt, "chk_fe": fe_txt,
                 "alertas": alertas,
             })
 

@@ -179,7 +179,7 @@ TOOLS = [
         "nome": "Checklist de Loja",
         "icone": "🔑",
         "arquivo": "CHECKLIST_LOJA_SWN.html",
-        "descricao": "Abertura, fechamento, semanal, mensal e ar-condicionado.",
+        "descricao": "Abertura e fechamento diário — salvo no banco, com status no cockpit.",
         "papeis": ["admin", "supervisor", "gerente", "subgerente", "estoquista"],
     },
     # ---- Acessos / Geral ----
