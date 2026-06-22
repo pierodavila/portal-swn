@@ -1,0 +1,40 @@
+# Blueprint do Render para o Portal SWN (serviço SEPARADO do app de caixa).
+# Cria um Web Service (Starter) + um Postgres NOVO e dedicado a este portal.
+#
+# Como usar: no Render -> Blueprints -> New Blueprint Instance -> aponte para
+# este repositório. O Render lê este arquivo e provisiona tudo.
+# Postgres PAGO para guardar dados de verdade (Piero vai assinar o Postgres).
+#   - Plano 'basic_256mb' = ~US$ 6-7/mês, persistente (NAO expira como o free).
+#   - Para começar grátis (apaga em ~30 dias), troque para: plan: free
+#   - Para mais robustez depois: basic_1gb, etc.
+# Web service: deixei 'free' (hiberna quando ocioso; primeiro acesso fica lento).
+#   Os lembretes diario/semanal rodam no Cowork, entao a hibernacao nao os afeta.
+#   Para o web nunca hibernar, troque o plan do service para 'starter' (US$7).
+databases:
+  - name: portal-swn-db
+    plan: basic_256mb        # banco Postgres NOVO e dedicado ao portal (pago, persistente)
+    databaseName: portal_swn
+    user: portal_swn
+
+services:
+  - type: web
+    name: portal-swn
+    runtime: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn app:app --bind 0.0.0.0:$PORT --timeout 120 --workers 1"
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true          # chave de sessão gerada pelo Render
+      - key: DATABASE_URL
+        fromDatabase:
+          name: portal-swn-db
+          property: connectionString  # liga ao Postgres deste blueprint
+      - key: ADMIN_EMAIL
+        sync: false                   # defina no painel (ex.: piero@offlet.com.br)
+      - key: ADMIN_PASSWORD
+        sync: false                   # defina no painel; troque após o 1º login
+      - key: PYTHON_VERSION
+        value: "3.12.4"

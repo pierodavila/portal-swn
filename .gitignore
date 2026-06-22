@@ -1,0 +1,14 @@
+# Banco local SQLite
+portal.db
+*.db
+
+# Variáveis de ambiente
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.pytest_cache/
