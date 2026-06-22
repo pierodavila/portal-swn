@@ -1,0 +1,16 @@
+{
+  "name": "Portal SWN · Premium Outlets",
+  "short_name": "Portal SWN",
+  "description": "Portal interno da rede SWN — ferramentas, checklists e cadastros por papel.",
+  "start_url": "PORTAL_SWN.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f1115",
+  "theme_color": "#0f1115",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
