@@ -10,12 +10,14 @@ Rodar local (sem Postgres): python app.py  -> usa SQLite (portal.db).
 Produção (Render): gunicorn + Postgres via DATABASE_URL.
 """
 import os
+import io
+import csv
 import logging
-from datetime import datetime
+from datetime import datetime, date
 
 from flask import (
     Flask, request, session, redirect, url_for, render_template,
-    abort, send_from_directory, Response,
+    render_template_string, abort, send_from_directory, Response,
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -32,6 +34,195 @@ log = logging.getLogger("portal_swn")
 
 PAPEIS_VALIDOS = catalog.ROLE_IDS  # 9 grupos definidos em catalog.ROLES
 TOOLS_DIR = os.path.join(os.path.dirname(__file__), "tools")
+
+
+# ----------------------------------------------------------------------------
+# Gestão de pessoas — helpers (cálculo de situação e indicadores a partir do DB)
+# ----------------------------------------------------------------------------
+def _parse_date(s):
+    if not s:
+        return None
+    try:
+        return datetime.strptime(str(s)[:10], "%Y-%m-%d").date()
+    except Exception:
+        return None
+
+
+def _meses_entre(d1, d2):
+    m = (d2.year - d1.year) * 12 + (d2.month - d1.month)
+    if d2.day < d1.day:
+        m -= 1
+    return max(m, 0)
+
+
+def _situacao(c, hoje):
+    desl = _parse_date(c.get("desligamento"))
+    if desl and desl <= hoje:
+        return "Desligado"
+    adm = _parse_date(c.get("admissao"))
+    if adm and _meses_entre(adm, hoje) < 3:
+        return "Experiência"
+    return "Ativo"
+
+
+def _indicadores(colabs):
+    hoje = date.today()
+    ym = (hoje.year, hoje.month)
+    ativos, exper = [], 0
+    adm_mes = desl_mes = 0
+    tempos = []
+    for c in colabs:
+        sit = _situacao(c, hoje)
+        adm = _parse_date(c.get("admissao"))
+        desl = _parse_date(c.get("desligamento"))
+        if adm and (adm.year, adm.month) == ym:
+            adm_mes += 1
+        if desl and (desl.year, desl.month) == ym:
+            desl_mes += 1
+        if sit != "Desligado":
+            ativos.append(c)
+            if sit == "Experiência":
+                exper += 1
+            if adm:
+                tempos.append(_meses_entre(adm, hoje))
+    head = len(ativos)
+    return {
+        "headcount": head,
+        "adm_mes": adm_mes,
+        "desl_mes": desl_mes,
+        "turnover": round(desl_mes / head * 100, 1) if head else 0,
+        "tempo_medio": round(sum(tempos) / len(tempos), 1) if tempos else 0,
+        "pct_exper": round(exper / head * 100, 1) if head else 0,
+        "exper": exper,
+    }
+
+
+# Página da Gestão (server-rendered, dados no Postgres). Inline para subir só
+# arquivos .py na raiz (upload confiável no GitHub).
+GESTAO_HTML = r"""
+{% extends "base.html" %}
+{% block title %}Gestão & Cadastros{% endblock %}
+{% block body %}
+<style>
+  .g-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+  .g-kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .g-kpi b{display:block;font-size:26px;color:var(--brand2);line-height:1.1}
+  .g-kpi span{font-size:12px;color:var(--muted)}
+  table.g{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  table.g th,table.g td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left}
+  table.g th{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px}
+  .sit{font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px}
+  .sit.Ativo{background:rgba(46,204,113,.15);color:#7ee2a8}
+  .sit.Experiência{background:rgba(241,196,15,.15);color:#f3d35e}
+  .sit.Desligado{background:rgba(231,76,60,.15);color:#f29a90}
+  .g-form{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-top:12px}
+  .g-form .f{display:flex;flex-direction:column;gap:4px}
+  .g-form label{font-size:11px;color:var(--muted);font-weight:600}
+  .g-form input,.g-form select{padding:8px 10px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--txt);font-size:13.5px}
+  .g-btn{padding:9px 15px;border:0;border-radius:9px;background:var(--brand);color:#1a1300;font-weight:800;cursor:pointer;font-size:13px}
+  .g-del{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:5px 9px;cursor:pointer;font-size:12px}
+  .g-del:hover{border-color:#e74c3c;color:#f29a90}
+  .g-ok{background:rgba(46,204,113,.12);border:1px solid rgba(46,204,113,.35);color:#7ee2a8;padding:9px 12px;border-radius:9px;margin-bottom:12px;font-size:13px}
+  .g-er{background:rgba(231,76,60,.12);border:1px solid rgba(231,76,60,.35);color:#f29a90;padding:9px 12px;border-radius:9px;margin-bottom:12px;font-size:13px}
+  .g-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .g-tabs a{padding:8px 14px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--txt);text-decoration:none;font-weight:700;font-size:13px}
+  .g-tabs a.on{background:var(--brand);color:#1a1300;border-color:var(--brand)}
+  .rollup{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .rollup span{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:12.5px}
+</style>
+
+<div class="card">
+  <h1>Gestão & Cadastros</h1>
+  <p class="muted">Cadastro de colaboradores e lojas <b>salvo no banco</b> — compartilhado entre dispositivos, com histórico. Indicadores de gente calculados ao vivo.</p>
+</div>
+
+{% if ok %}<div class="g-ok">✔️ {{ ok }}</div>{% endif %}
+{% if erro %}<div class="g-er">⚠️ {{ erro }}</div>{% endif %}
+
+<div class="g-tabs">
+  <a href="#colaboradores" class="on">Colaboradores</a>
+  <a href="#lojas">Lojas</a>
+  <a href="#gente">Indicadores de gente</a>
+</div>
+
+<div class="card" id="gente">
+  <h2>Indicadores de gente</h2>
+  <div class="g-kpis">
+    <div class="g-kpi"><b>{{ ind.headcount }}</b><span>Headcount (ativos)</span></div>
+    <div class="g-kpi"><b>{{ ind.adm_mes }}</b><span>Admissões no mês</span></div>
+    <div class="g-kpi"><b>{{ ind.desl_mes }}</b><span>Desligamentos no mês</span></div>
+    <div class="g-kpi"><b>{{ ind.turnover }}%</b><span>Turnover do mês</span></div>
+    <div class="g-kpi"><b>{{ ind.tempo_medio }}</b><span>Tempo médio de casa (meses)</span></div>
+    <div class="g-kpi"><b>{{ ind.pct_exper }}%</b><span>Em experiência</span></div>
+  </div>
+  <p class="muted" style="font-size:12px">Turnover = desligamentos do mês ÷ headcount × 100. Situação derivada das datas: &lt;3 meses de casa = Experiência; com data de desligamento = Desligado.</p>
+  <h2 style="margin-top:14px">Headcount por loja</h2>
+  <div class="rollup">
+    {% for loja, n in rollup.items() %}<span>{{ loja }}: <b>{{ n }}</b></span>{% else %}<span class="muted">Sem colaboradores ativos.</span>{% endfor %}
+  </div>
+</div>
+
+<div class="card" id="colaboradores">
+  <h2>Colaboradores <span class="muted" style="font-size:13px">({{ colabs|length }})</span>
+    <a href="{{ url_for('gestao_csv') }}" class="navbtn" style="float:right">⬇️ Exportar CSV</a></h2>
+  <table class="g">
+    <thead><tr><th>Nome</th><th>CPF</th><th>Loja</th><th>Cargo</th><th>Admissão</th><th>Situação</th><th></th></tr></thead>
+    <tbody>
+    {% for c in colabs %}
+      <tr>
+        <td><b>{{ c.nome }}</b>{% if c.contato %}<br><span class="muted" style="font-size:11px">{{ c.contato }}</span>{% endif %}</td>
+        <td>{{ c.cpf or '—' }}</td>
+        <td>{{ c.loja_nome or '—' }}</td>
+        <td>{{ c.cargo or '—' }}</td>
+        <td>{{ c.admissao or '—' }}</td>
+        <td><span class="sit {{ c.situacao }}">{{ c.situacao }}</span></td>
+        <td><form method="post" action="{{ url_for('gestao_colab_del', cid=c.id) }}" onsubmit="return confirm('Remover {{ c.nome }}?')"><button class="g-del">remover</button></form></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7" class="muted">Nenhum colaborador cadastrado ainda.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <h2 style="margin-top:16px">➕ Novo colaborador</h2>
+  <form class="g-form" method="post" action="{{ url_for('gestao_colab_add') }}">
+    <div class="f"><label>Nome *</label><input name="nome" required></div>
+    <div class="f"><label>CPF</label><input name="cpf"></div>
+    <div class="f"><label>Loja</label><select name="loja_id"><option value="">—</option>{% for l in lojas %}<option value="{{ l.id }}">{{ l.nome }}</option>{% endfor %}</select></div>
+    <div class="f"><label>Cargo</label><input name="cargo" placeholder="ex: Vendedor(a)"></div>
+    <div class="f"><label>Admissão</label><input type="date" name="admissao"></div>
+    <div class="f"><label>Desligamento</label><input type="date" name="desligamento"></div>
+    <div class="f"><label>Contato</label><input name="contato" placeholder="tel / e-mail"></div>
+    <button class="g-btn" type="submit">Adicionar</button>
+  </form>
+</div>
+
+<div class="card" id="lojas">
+  <h2>Lojas <span class="muted" style="font-size:13px">({{ lojas|length }})</span></h2>
+  <table class="g">
+    <thead><tr><th>Nome</th><th>CNPJ</th><th>Cidade/UF</th><th></th></tr></thead>
+    <tbody>
+    {% for l in lojas %}
+      <tr>
+        <td><b>{{ l.nome }}</b></td><td>{{ l.cnpj or '—' }}</td><td>{{ l.cidade_uf or '—' }}</td>
+        <td><form method="post" action="{{ url_for('gestao_loja_del', lid=l.id) }}" onsubmit="return confirm('Remover {{ l.nome }}?')"><button class="g-del">remover</button></form></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="4" class="muted">Nenhuma loja cadastrada. Cadastre as lojas primeiro.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <h2 style="margin-top:16px">➕ Nova loja</h2>
+  <form class="g-form" method="post" action="{{ url_for('gestao_loja_add') }}">
+    <div class="f"><label>Nome *</label><input name="nome" required placeholder="ex: Forum / Colcci ..."></div>
+    <div class="f"><label>CNPJ</label><input name="cnpj"></div>
+    <div class="f"><label>Cidade / UF</label><input name="cidade_uf"></div>
+    <button class="g-btn" type="submit">Adicionar</button>
+  </form>
+</div>
+{% endblock %}
+"""
 
 
 # ----------------------------------------------------------------------------
@@ -123,6 +314,9 @@ def create_app():
     @app.route("/tool/<tool_id>")
     @login_required
     def tool(tool_id):
+        # Gestão agora é página no servidor (Fase 3), não mais o HTML localStorage.
+        if tool_id == "gestao":
+            return redirect("/gestao")
         u = current_user()
         meta = catalog.get_tool(tool_id)
         if meta is None or not meta.get("arquivo"):
@@ -206,6 +400,98 @@ def create_app():
         )
         audit(u["id"], "reset_senha", alvo["email"])
         return redirect(url_for("admin_usuarios"))
+
+    # ------------------------------------------------- Gestão (Fase 3: dados no DB)
+    @app.route("/gestao")
+    @require_roles("admin", "rh", "supervisor")
+    def gestao():
+        lojas = query("SELECT * FROM lojas ORDER BY nome")
+        colabs = query(
+            "SELECT c.*, l.nome AS loja_nome FROM colaboradores c "
+            "LEFT JOIN lojas l ON l.id = c.loja_id ORDER BY c.nome"
+        )
+        hoje = date.today()
+        for c in colabs:
+            c["situacao"] = _situacao(c, hoje)
+        rollup = {}
+        for c in colabs:
+            if c["situacao"] != "Desligado":
+                k = c.get("loja_nome") or "(sem loja)"
+                rollup[k] = rollup.get(k, 0) + 1
+        return render_template_string(
+            GESTAO_HTML, user=current_user(), lojas=lojas, colabs=colabs,
+            ind=_indicadores(colabs), rollup=rollup,
+            ok=request.args.get("ok"), erro=request.args.get("erro"),
+        )
+
+    @app.route("/gestao/loja", methods=["POST"])
+    @require_roles("admin", "rh")
+    def gestao_loja_add():
+        u = current_user()
+        nome = (request.form.get("nome") or "").strip()
+        if not nome:
+            return redirect("/gestao?erro=Informe o nome da loja#lojas")
+        execute(
+            "INSERT INTO lojas (nome, cnpj, cidade_uf, ativo) VALUES (?, ?, ?, 1)",
+            (nome, request.form.get("cnpj") or "", request.form.get("cidade_uf") or ""),
+        )
+        audit(u["id"], "gestao_loja_add", nome)
+        return redirect("/gestao?ok=Loja adicionada#lojas")
+
+    @app.route("/gestao/loja/<int:lid>/delete", methods=["POST"])
+    @require_roles("admin", "rh")
+    def gestao_loja_del(lid):
+        u = current_user()
+        execute("DELETE FROM lojas WHERE id = ?", (lid,))
+        audit(u["id"], "gestao_loja_del", str(lid))
+        return redirect("/gestao?ok=Loja removida#lojas")
+
+    @app.route("/gestao/colaborador", methods=["POST"])
+    @require_roles("admin", "rh")
+    def gestao_colab_add():
+        u = current_user()
+        nome = (request.form.get("nome") or "").strip()
+        if not nome:
+            return redirect("/gestao?erro=Informe o nome do colaborador#colaboradores")
+        execute(
+            "INSERT INTO colaboradores "
+            "(nome, cpf, loja_id, cargo, admissao, desligamento, contato, criado_em, criado_por) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (nome, request.form.get("cpf") or "", request.form.get("loja_id") or None,
+             request.form.get("cargo") or "", request.form.get("admissao") or "",
+             request.form.get("desligamento") or "", request.form.get("contato") or "",
+             _now(), u["id"]),
+        )
+        audit(u["id"], "gestao_colab_add", nome)
+        return redirect("/gestao?ok=Colaborador adicionado#colaboradores")
+
+    @app.route("/gestao/colaborador/<int:cid>/delete", methods=["POST"])
+    @require_roles("admin", "rh")
+    def gestao_colab_del(cid):
+        u = current_user()
+        execute("DELETE FROM colaboradores WHERE id = ?", (cid,))
+        audit(u["id"], "gestao_colab_del", str(cid))
+        return redirect("/gestao?ok=Colaborador removido#colaboradores")
+
+    @app.route("/gestao/colaboradores.csv")
+    @require_roles("admin", "rh", "supervisor")
+    def gestao_csv():
+        colabs = query(
+            "SELECT c.*, l.nome AS loja_nome FROM colaboradores c "
+            "LEFT JOIN lojas l ON l.id = c.loja_id ORDER BY c.nome"
+        )
+        hoje = date.today()
+        buf = io.StringIO()
+        buf.write("﻿")
+        w = csv.writer(buf, delimiter=";")
+        w.writerow(["Nome", "CPF", "Loja", "Cargo", "Admissão", "Desligamento", "Situação", "Contato"])
+        for c in colabs:
+            w.writerow([c.get("nome"), c.get("cpf"), c.get("loja_nome") or "", c.get("cargo"),
+                        c.get("admissao"), c.get("desligamento"), _situacao(c, hoje), c.get("contato")])
+        return Response(
+            buf.getvalue(), mimetype="text/csv; charset=utf-8",
+            headers={"Content-Disposition": "attachment; filename=colaboradores_swn.csv"},
+        )
 
     # --------------------------------------------------- static (PWA assets)
     @app.route("/manifest.json")

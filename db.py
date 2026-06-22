@@ -160,6 +160,20 @@ def _schema_statements():
             criado_em  {ts}
         )
         """,
+        f"""
+        CREATE TABLE IF NOT EXISTS colaboradores (
+            id           {pk},
+            nome         TEXT NOT NULL,
+            cpf          TEXT,
+            loja_id      INTEGER,
+            cargo        TEXT,
+            admissao     TEXT,
+            desligamento TEXT,
+            contato      TEXT,
+            criado_em    {ts},
+            criado_por   INTEGER
+        )
+        """,
     ]
 
 
