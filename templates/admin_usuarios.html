@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Usuários{% endblock %}
+{% block body %}
+  <style>
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    @media(max-width:680px){.row{grid-template-columns:1fr}}
+    label{display:block;font-size:13px;color:var(--muted);margin:10px 0 5px}
+    input,select{width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:9px;
+      background:var(--panel2);color:var(--txt);font-size:14px}
+    .btn{margin-top:14px;padding:10px 16px;border:0;border-radius:9px;cursor:pointer;
+      font-weight:800;background:var(--brand);color:#1a1300}
+    .btn.small{margin:0;padding:6px 10px;font-size:12px}
+    .btn.gray{background:var(--panel2);color:var(--txt);border:1px solid var(--line)}
+    table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
+    th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line)}
+    th{color:var(--muted);font-weight:600}
+    .tag{padding:2px 8px;border-radius:999px;font-size:11px;border:1px solid var(--line);background:var(--panel2)}
+    .on{color:#7ee2a8}.no{color:#f29a90}
+    .ok{background:rgba(46,204,113,.15);color:#7ee2a8;border:1px solid rgba(46,204,113,.3);
+      padding:9px 12px;border-radius:9px;font-size:13px;margin-bottom:12px}
+    .er{background:rgba(231,76,60,.15);color:#f29a90;border:1px solid rgba(231,76,60,.3);
+      padding:9px 12px;border-radius:9px;font-size:13px;margin-bottom:12px}
+    form.inline{display:inline}
+  </style>
+
+  <div class="card">
+    <h1>Administração de usuários</h1>
+    <p class="muted">Crie logins, defina o papel (que determina as ferramentas visíveis),
+      ative/desative e redefina senhas.</p>
+  </div>
+
+  {% if ok %}<div class="ok">{{ ok }}</div>{% endif %}
+  {% if erro %}<div class="er">{{ erro }}</div>{% endif %}
+
+  <div class="card">
+    <h2>Novo usuário</h2>
+    <form method="post" action="{{ url_for('admin_usuarios') }}">
+      <div class="row">
+        <div><label>Nome</label><input name="nome" required></div>
+        <div><label>E-mail</label><input name="email" type="email" required></div>
+      </div>
+      <div class="row">
+        <div><label>Senha inicial</label><input name="senha" type="text" required></div>
+        <div>
+          <label>Papel</label>
+          <select name="papel" required>
+            {% for pid, plabel in papeis %}<option value="{{ pid }}">{{ plabel }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div><label>Loja (opcional)</label><input name="loja_id" type="number"></div>
+        <div></div>
+      </div>
+      <button class="btn" type="submit">Criar usuário</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Usuários cadastrados</h2>
+    <table>
+      <thead>
+        <tr><th>Nome</th><th>E-mail</th><th>Papel</th><th>Status</th><th>Último acesso</th><th>Ações</th></tr>
+      </thead>
+      <tbody>
+        {% for u in usuarios %}
+        <tr>
+          <td>{{ u.nome }}</td>
+          <td>{{ u.email }}</td>
+          <td><span class="tag">{{ roles.get(u.papel, u.papel) }}</span></td>
+          <td>{% if u.ativo %}<span class="on">ativo</span>{% else %}<span class="no">inativo</span>{% endif %}</td>
+          <td class="muted">{{ u.ultimo_acesso or "—" }}</td>
+          <td>
+            <form class="inline" method="post" action="{{ url_for('admin_toggle', uid=u.id) }}">
+              <button class="btn small gray" type="submit">{{ "Desativar" if u.ativo else "Ativar" }}</button>
+            </form>
+            <form class="inline" method="post" action="{{ url_for('admin_reset', uid=u.id) }}"
+                  onsubmit="this.senha.value=prompt('Nova senha para {{ u.email }}:')||''; return !!this.senha.value;">
+              <input type="hidden" name="senha">
+              <button class="btn small gray" type="submit">Redefinir senha</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

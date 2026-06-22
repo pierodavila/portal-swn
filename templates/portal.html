@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Painel{% endblock %}
+{% block body %}
+  <div class="note">
+    Você vê apenas as ferramentas liberadas para o papel
+    <b>{{ user.papel }}</b>. Os formulários ainda salvam em
+    <b>localStorage</b> (no seu navegador) — a migração para banco é fase futura.
+  </div>
+
+  <div class="card">
+    <h1>Olá, {{ user.nome }}</h1>
+    <p class="muted">Este é o seu painel. Abra uma ferramenta abaixo.</p>
+  </div>
+
+  <style>
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+    .tool{display:block;text-decoration:none;color:var(--txt);
+      background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;
+      transition:border-color .15s,transform .1s}
+    .tool:hover{border-color:var(--brand);transform:translateY(-2px)}
+    .tool.off{opacity:.55;cursor:not-allowed}
+    .ico{font-size:26px}
+    .tool h3{margin:8px 0 4px;font-size:16px}
+    .tool p{margin:0;font-size:13px;color:var(--muted)}
+    .soon{display:inline-block;margin-top:8px;font-size:11px;color:var(--muted);
+      border:1px solid var(--line);border-radius:999px;padding:2px 8px}
+  </style>
+
+  <div class="grid">
+    {% for t in tools %}
+      {% if t.arquivo %}
+        <a class="tool" href="{{ url_for('tool', tool_id=t.id) }}">
+          <div class="ico">{{ t.icone }}</div>
+          <h3>{{ t.nome }}</h3>
+          <p>{{ t.descricao }}</p>
+        </a>
+      {% else %}
+        <div class="tool off" title="Sem destino nesta fase">
+          <div class="ico">{{ t.icone }}</div>
+          <h3>{{ t.nome }}</h3>
+          <p>{{ t.descricao }}</p>
+          <span class="soon">em breve / externo</span>
+        </div>
+      {% endif %}
+    {% else %}
+      <p class="muted">Nenhuma ferramenta liberada para o seu papel ainda.</p>
+    {% endfor %}
+  </div>
+{% endblock %}
