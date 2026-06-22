@@ -660,6 +660,80 @@ Recusa de assinatura registrada com 2 testemunhas:
 
 
 # ----------------------------------------------------------------------------
+# Cockpit do dono — agrega os dados que o portal já tem por loja (Fase 3.4)
+# ----------------------------------------------------------------------------
+def _is_mes_atual(s, hoje):
+    d = _parse_date(s)
+    return bool(d and d.year == hoje.year and d.month == hoje.month)
+
+
+COCKPIT_HTML = r"""
+{% extends "base.html" %}
+{% block title %}Cockpit do Dono{% endblock %}
+{% block body %}
+<style>
+  .c-top{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+  .c-top .k{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .c-top .k b{display:block;font-size:28px;color:var(--brand2);line-height:1.1}
+  .c-top .k span{font-size:12px;color:var(--muted)}
+  .loja-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+  .loja{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .loja h3{margin:0 0 2px;font-size:17px}
+  .loja .uf{font-size:12px;color:var(--muted)}
+  .mini{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px}
+  .mini div{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+  .mini b{display:block;font-size:19px;color:var(--txt)}
+  .mini span{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+  .alert{margin-top:10px;font-size:12.5px;padding:6px 10px;border-radius:8px}
+  .alert.warn{background:rgba(231,76,60,.13);color:#f29a90;border:1px solid rgba(231,76,60,.25)}
+  .alert.ok{background:rgba(46,204,113,.1);color:#7ee2a8;border:1px solid rgba(46,204,113,.22)}
+  .links{margin-top:12px;font-size:12.5px;display:flex;gap:12px;flex-wrap:wrap}
+</style>
+
+<div class="card">
+  <h1>Cockpit do Dono</h1>
+  <p class="muted">Visão por loja com os dados que o portal já controla: gente, avaliações e disciplina.
+    Caixa e checklist diário ainda não entram aqui (caixa é app separado; checklist ainda é local no navegador).</p>
+</div>
+
+<div class="c-top">
+  <div class="k"><b>{{ rede.lojas }}</b><span>lojas</span></div>
+  <div class="k"><b>{{ rede.headcount }}</b><span>colaboradores ativos</span></div>
+  <div class="k"><b>{{ rede.exper }}</b><span>em experiência</span></div>
+  <div class="k"><b>{{ rede.adv_mes }}</b><span>advertências no mês</span></div>
+  <div class="k"><b>{{ rede.nota_media or '—' }}</b><span>nota média (avaliações)</span></div>
+</div>
+
+<div class="loja-grid">
+  {% for L in lojas %}
+  <div class="loja">
+    <h3>{{ L.nome }}</h3>
+    <div class="uf">{{ L.cidade_uf or '—' }}</div>
+    <div class="mini">
+      <div><b>{{ L.headcount }}</b><span>Ativos</span></div>
+      <div><b>{{ L.pct_exper }}%</b><span>Experiência</span></div>
+      <div><b>{{ L.turnover }}%</b><span>Turnover mês</span></div>
+      <div><b>{{ L.adv_mes }}</b><span>Advert. mês</span></div>
+      <div><b>{{ L.adv_total }}</b><span>Advert. total</span></div>
+      <div><b>{{ L.nota_media or '—' }}</b><span>Nota média</span></div>
+    </div>
+    {% for a in L.alertas %}<div class="alert warn">⚠️ {{ a }}</div>{% endfor %}
+    {% if not L.alertas %}<div class="alert ok">✓ Sem alertas no momento</div>{% endif %}
+    <div class="links">
+      <a href="/gestao#colaboradores">Gente</a>
+      <a href="/avaliacoes">Avaliações</a>
+      <a href="/disciplina">Disciplina</a>
+    </div>
+  </div>
+  {% else %}
+  <div class="card"><p class="muted">Nenhuma loja cadastrada. Cadastre lojas e colaboradores em <a href="/gestao">Gestão</a> para o cockpit ganhar vida.</p></div>
+  {% endfor %}
+</div>
+{% endblock %}
+"""
+
+
+# ----------------------------------------------------------------------------
 # Factory
 # ----------------------------------------------------------------------------
 def create_app():
@@ -751,6 +825,9 @@ def create_app():
         # Gestão agora é página no servidor (Fase 3), não mais o HTML localStorage.
         if tool_id == "gestao":
             return redirect("/gestao")
+        # Cockpit do dono — visão por loja (Fase 3.4).
+        if tool_id == "cockpit":
+            return redirect("/cockpit")
         # Avaliação de desempenho migrada para o Postgres (Fase 3.2).
         if tool_id == "avaliacao":
             return redirect("/avaliacoes")
@@ -1134,6 +1211,64 @@ def create_app():
             buf.getvalue(), mimetype="text/csv; charset=utf-8",
             headers={"Content-Disposition": "attachment; filename=disciplina_swn.csv"},
         )
+
+    # ------------------------------------------------- Cockpit do dono (Fase 3.4)
+    @app.route("/cockpit")
+    @require_roles("admin", "supervisor")
+    def cockpit():
+        hoje = date.today()
+        lojas_raw = query("SELECT * FROM lojas ORDER BY nome")
+        colabs = query("SELECT * FROM colaboradores")
+        avals = query(
+            "SELECT a.nota_final, c.loja_id FROM avaliacoes a "
+            "LEFT JOIN colaboradores c ON c.id = a.colaborador_id"
+        )
+        advs = query(
+            "SELECT a.data_fato, c.loja_id FROM advertencias a "
+            "LEFT JOIN colaboradores c ON c.id = a.colaborador_id"
+        )
+        for c in colabs:
+            c["situacao"] = _situacao(c, hoje)
+
+        lojas = []
+        for L in lojas_raw:
+            lid = L["id"]
+            meus = [c for c in colabs if c.get("loja_id") == lid]
+            ativos = [c for c in meus if c["situacao"] != "Desligado"]
+            headcount = len(ativos)
+            exper = sum(1 for c in ativos if c["situacao"] == "Experiência")
+            desl_mes = sum(1 for c in meus if _is_mes_atual(c.get("desligamento"), hoje))
+            adv_mes = sum(1 for a in advs if a.get("loja_id") == lid and _is_mes_atual(a.get("data_fato"), hoje))
+            adv_total = sum(1 for a in advs if a.get("loja_id") == lid)
+            notas = [a["nota_final"] for a in avals if a.get("loja_id") == lid and a.get("nota_final") is not None]
+            nota_media = round(sum(notas) / len(notas), 2) if notas else None
+            turnover = round(desl_mes / headcount * 100, 1) if headcount else 0
+            pct_exper = round(exper / headcount * 100) if headcount else 0
+            alertas = []
+            if headcount == 0:
+                alertas.append("Sem colaboradores ativos cadastrados")
+            if turnover >= 20:
+                alertas.append("Turnover do mês alto (%s%%)" % turnover)
+            if adv_mes >= 3:
+                alertas.append("%s advertências neste mês" % adv_mes)
+            if nota_media is not None and nota_media < 3:
+                alertas.append("Nota média de avaliação baixa (%s)" % nota_media)
+            lojas.append({
+                "nome": L["nome"], "cidade_uf": L.get("cidade_uf"),
+                "headcount": headcount, "pct_exper": pct_exper, "turnover": turnover,
+                "adv_mes": adv_mes, "adv_total": adv_total, "nota_media": nota_media,
+                "alertas": alertas,
+            })
+
+        todas_notas = [a["nota_final"] for a in avals if a.get("nota_final") is not None]
+        rede = {
+            "lojas": len(lojas_raw),
+            "headcount": sum(l["headcount"] for l in lojas),
+            "exper": sum(1 for c in colabs if c["situacao"] == "Experiência"),
+            "adv_mes": sum(1 for a in advs if _is_mes_atual(a.get("data_fato"), hoje)),
+            "nota_media": round(sum(todas_notas) / len(todas_notas), 2) if todas_notas else None,
+        }
+        return render_template_string(COCKPIT_HTML, user=current_user(), lojas=lojas, rede=rede)
 
     # --------------------------------------------------- static (PWA assets)
     @app.route("/manifest.json")

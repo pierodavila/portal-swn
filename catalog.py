@@ -44,6 +44,14 @@ ATENDIMENTO = ["supervisor", "gerente", "subgerente", "vendedor", "digital"]
 TOOLS = [
     # ---- Gestao / Dono ----
     {
+        "id": "cockpit",
+        "nome": "Cockpit do Dono",
+        "icone": "📊",
+        "arquivo": "COCKPIT_SWN.html",
+        "descricao": "Visão por loja: gente, avaliações e disciplina num lugar só.",
+        "papeis": ["admin", "supervisor"],
+    },
+    {
         "id": "gestao",
         "nome": "Gestão & Cadastros (console)",
         "icone": "🗂️",
