@@ -174,6 +174,26 @@ def _schema_statements():
             criado_por   INTEGER
         )
         """,
+        f"""
+        CREATE TABLE IF NOT EXISTS avaliacoes (
+            id             {pk},
+            colaborador_id INTEGER,
+            avaliador_id   INTEGER,
+            tipo           TEXT,
+            periodo        TEXT,
+            kpi_meta       TEXT,
+            kpi_real       TEXT,
+            nota_resultado REAL,
+            nota_comp      REAL,
+            nota_final     REAL,
+            competencias   TEXT,
+            pontos_fortes  TEXT,
+            a_desenvolver  TEXT,
+            plano          TEXT,
+            criado_em      {ts},
+            criado_por     INTEGER
+        )
+        """,
     ]
 
 

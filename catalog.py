@@ -106,7 +106,7 @@ TOOLS = [
         "nome": "Avaliação do Colaborador",
         "icone": "⭐",
         "arquivo": "AVALIACAO_COLABORADOR_SWN.html",
-        "descricao": "Avaliação semanal e mensal com KPIs e nota.",
+        "descricao": "Avaliação com KPIs e nota — salva no banco, com histórico.",
         "papeis": ["admin", "rh", "supervisor", "gerente"],
     },
     {
