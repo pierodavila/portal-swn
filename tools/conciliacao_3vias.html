@@ -1,0 +1,29 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Conciliacao 3 vias</title>
+<style>body{font-family:-apple-system,sans-serif;background:#f4f4f6;color:#1a1a2e;max-width:660px;margin:0 auto;padding:24px}h1{font-size:1.1rem;color:#4a1a7a}.card{background:#fff;border-radius:12px;padding:18px 20px;margin:14px 0;box-shadow:0 1px 4px rgba(0,0,0,.08)}button{background:#4a1a7a;color:#fff;border:none;border-radius:10px;padding:14px 22px;font-size:1rem;font-weight:600;cursor:pointer}button:disabled{opacity:.5}.muted{color:#888;font-size:.82rem}pre{background:#f8f8fb;padding:10px;border-radius:8px;font-size:.78rem;white-space:pre-wrap}</style></head><body>
+<h1>Concilia&ccedil;&atilde;o 3 vias (Sistema / F&iacute;sico / Almode)</h1>
+<div class="card"><p>Atualiza a se&ccedil;&atilde;o de concilia&ccedil;&atilde;o do Hist&oacute;rico para mostrar as 3 fontes.</p>
+<button id="go" onclick="run()">Aplicar</button><div id="log"></div></div>
+<script>
+const OWNER="pierodavila",REPO="conferencia-caixa",BRANCH="main",PATH="templates/historico.html";
+const NEWCARD="\n<div class=\"card\">\n  <div class=\"card-title\">\ud83d\udd0d Concilia\u00e7\u00e3o: Sistema \u00d7 F\u00edsico \u00d7 Almode</div>\n  <p class=\"text-muted\" style=\"font-size:.8rem;margin-bottom:8px\">Cada c\u00e9lula mostra <b>Sistema / F\u00edsico / Almode</b>. Vermelho = os tr\u00eas n\u00e3o batem.</p>\n  <div class=\"table-wrap\"><table>\n    <thead><tr><th>Data</th><th>Loja</th><th>Pix (S/F/A)</th><th>Cart\u00e3o (S/F/A)</th><th>Dinheiro (S/F/A)</th></tr></thead>\n    <tbody>\n    {% for r in records if r.almode_pix is not none %}\n      <tr>\n        <td style=\"white-space:nowrap\">{{ r.date }}</td>\n        <td>{{ r.store_nome }}</td>\n        {% for sx, fx, ax in [ (r.system_pix, r.fisico_pix, r.almode_pix), (r.system_cartao, r.fisico_cartao, r.almode_cartao), (r.system_dinheiro, r.fisico_dinheiro, r.almode_dinheiro) ] %}\n          {% set s=(sx or 0)|float %}{% set f=(fx or 0)|float %}{% set a=ax|float %}\n          {% set ok = ((s-f)|round(2)==0 and (s-a)|round(2)==0) %}\n          <td style=\"text-align:right;white-space:nowrap;{% if not ok %}color:#dc2626;font-weight:700{% else %}color:#065f46{% endif %}\">{{ \"%.2f\"|format(s) }} / {{ \"%.2f\"|format(f) }} / {{ \"%.2f\"|format(a) }}</td>\n        {% endfor %}\n      </tr>\n    {% endfor %}\n    </tbody>\n  </table></div>\n  <p class=\"text-muted\" style=\"font-size:.78rem;margin-top:6px\">S\u00f3 aparece para dias j\u00e1 sincronizados com a Almode.</p>\n</div>\n";
+function log(m){document.getElementById('log').innerHTML+='<pre>'+m+'</pre>'}
+function dec(b){return new TextDecoder().decode(Uint8Array.from(atob(b),c=>c.charCodeAt(0)))}
+function enc(s){return btoa(String.fromCharCode(...new TextEncoder().encode(s)))}
+async function run(){const tk=prompt('Cole seu token do GitHub:');if(!tk)return;const TK=tk.trim();document.getElementById('go').disabled=true;
+ const H={Authorization:'token '+TK,Accept:'application/vnd.github+json'};
+ try{
+  const g=await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATH}?ref=${BRANCH}`,{headers:H});
+  if(!g.ok){log('Erro GET '+g.status);document.getElementById('go').disabled=false;return}
+  const gj=await g.json();let txt=dec(gj.content);
+  const re=/<div class="card">\s*<div class="card-title">🔍 Conciliação[\s\S]*?sincronizados com a Almode\.<\/p>\s*<\/div>\s*/g;
+  let antes=txt; txt=txt.replace(re,'');
+  let removido=(antes!==txt);
+  if(txt.indexOf('{% block content %}')===-1){log('Não achei {% block content %}.');document.getElementById('go').disabled=false;return}
+  txt=txt.replace('{% block content %}','{% block content %}\n'+NEWCARD);
+  const p=await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATH}`,{method:'PUT',headers:H,body:JSON.stringify({message:'feat: conciliacao 3 vias Sistema/Fisico/Almode',content:enc(txt),sha:gj.sha,branch:BRANCH})});
+  const pj=await p.json();
+  if(!p.ok){log('Erro PUT '+p.status+': '+JSON.stringify(pj).slice(0,200));document.getElementById('go').disabled=false;return}
+  log('✅ Atualizado (substituiu anterior: '+removido+'). commit '+(pj.commit&&pj.commit.sha?pj.commit.sha.slice(0,7):'ok')+'. Render redeploya em ~1-2 min.');
+ }catch(e){log('Falha: '+e);document.getElementById('go').disabled=false}
+}
+</script></body></html>

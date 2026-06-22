@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NPS — Satisfação do cliente · SWN · Premium Outlets</title>
+<style>
+  :root{
+    --bg:#0f1115;--panel:#161a22;--panel2:#1c2230;--line:#262d3a;
+    --txt:#e8ecf3;--muted:#9aa6b8;--brand:#b4d233;--brand2:#cbe465;
+    --green:#2ecc71;--red:#e74c3c;--amber:#f5b942;--blue:#4aa3ff;--radius:13px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5}
+  a{color:var(--blue)}
+  .topbar{position:sticky;top:0;z-index:20;background:rgba(15,17,21,.95);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);padding:13px 22px;display:flex;align-items:center;gap:12px}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:16px}
+  .brand small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+  .wrap{max-width:920px;margin:0 auto;padding:22px}
+
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+  .tabs button{padding:9px 15px;border:1px solid var(--line);border-radius:10px;cursor:pointer;
+    background:var(--panel);color:var(--muted);font-weight:700;font-size:13px}
+  .tabs button.active{background:var(--brand);color:#1a1300;border-color:var(--brand)}
+
+  .block{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    margin-bottom:14px;overflow:hidden}
+  .block h3{margin:0;padding:12px 16px;font-size:13px;text-transform:uppercase;letter-spacing:.6px;
+    color:var(--brand2);background:var(--panel2);border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:9px}
+  .block .body{padding:16px}
+
+  label.fl{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px}
+  input,select,textarea{padding:9px 12px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--txt);font-size:13.5px;font-family:inherit;outline:none;width:100%}
+  input:focus,select:focus,textarea:focus{border-color:var(--brand)}
+  textarea{resize:vertical;min-height:64px}
+
+  .btn{padding:10px 16px;border:0;border-radius:10px;cursor:pointer;font-weight:700;font-size:13px}
+  .btn.primary{background:var(--brand);color:#1a1300}
+  .btn.ghost{background:var(--panel2);border:1px solid var(--line);color:var(--txt)}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+
+  .note{background:linear-gradient(135deg,rgba(180,210,51,.08),rgba(74,163,255,.06));
+    border:1px dashed var(--line);border-radius:12px;padding:13px 15px;font-size:12.5px;color:var(--muted);margin-top:16px}
+  .warn{background:linear-gradient(135deg,rgba(245,185,66,.12),rgba(231,76,60,.06));
+    border:1px solid rgba(245,185,66,.4);border-radius:12px;padding:13px 15px;font-size:12.5px;color:#f0d9a8;margin-top:14px}
+
+  /* ===== RESPONDER (cliente) ===== */
+  .survey{max-width:620px;margin:0 auto}
+  .survey .q{font-size:23px;font-weight:800;text-align:center;margin:8px 0 4px;line-height:1.35}
+  .survey .sub{text-align:center;color:var(--muted);font-size:13.5px;margin-bottom:22px}
+  .scale{display:grid;grid-template-columns:repeat(6,1fr);gap:9px;margin:18px 0}
+  .scale button{padding:0;height:58px;font-size:21px;font-weight:800;border-radius:12px;cursor:pointer;
+    border:2px solid var(--line);background:var(--panel2);color:var(--txt);transition:.12s}
+  .scale button:hover{border-color:var(--brand)}
+  .scale button.sel{background:var(--brand);color:#1a1300;border-color:var(--brand);transform:scale(1.05)}
+  .scale-legend{display:flex;justify-content:space-between;color:var(--muted);font-size:11.5px;margin:-6px 4px 14px;text-transform:uppercase;letter-spacing:.4px}
+  .survey .send{width:100%;height:56px;font-size:18px;margin-top:8px}
+  .thanks{text-align:center;padding:40px 16px}
+  .thanks .big{font-size:60px;line-height:1}
+  .thanks h2{font-size:26px;margin:14px 0 6px;color:var(--brand2)}
+  .thanks p{color:var(--muted);font-size:15px}
+  .lojapick{max-width:340px;margin:0 auto 4px}
+
+  /* kiosk mode hides chrome */
+  body.kiosk .topbar,body.kiosk .tabs,body.kiosk #adminNote{display:none}
+  body.kiosk .wrap{max-width:680px;padding-top:34px}
+
+  /* ===== RESULTADOS (gestão) ===== */
+  .scorecard{display:flex;gap:16px;flex-wrap:wrap;align-items:stretch}
+  .nps-big{flex:1;min-width:200px;background:var(--panel2);border:1px solid var(--line);border-radius:var(--radius);padding:20px;text-align:center}
+  .nps-big .val{font-size:58px;font-weight:900;line-height:1}
+  .nps-big .lbl{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.6px;margin-top:4px}
+  .nps-big .zone{font-size:13px;font-weight:700;margin-top:8px}
+  .kpis{flex:2;min-width:260px;display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .kpi{background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:13px 15px}
+  .kpi .n{font-size:24px;font-weight:800}
+  .kpi .t{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px}
+  .bar{display:flex;height:26px;border-radius:8px;overflow:hidden;margin:14px 0 6px;border:1px solid var(--line)}
+  .bar span{display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#0d1116}
+  .bar .prom{background:var(--green)}.bar .neu{background:var(--amber)}.bar .det{background:var(--red)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px;font-weight:700}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .filterbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end;padding:14px 16px}
+  .filterbar .f{flex:1;min-width:150px}
+  .empty{padding:30px 16px;text-align:center;color:var(--muted)}
+  .cmt{font-size:12px;color:var(--muted);max-width:340px}
+
+  /* ===== QR ===== */
+  #qrWrap{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start}
+  #qrBox{background:#fff;padding:18px;border-radius:14px;display:inline-block}
+  #qrBox canvas{display:block;image-rendering:pixelated}
+  #qrMeta{flex:1;min-width:240px}
+  .urlpreview{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:10px 12px;word-break:break-all;color:var(--brand2);margin-top:8px}
+  /* poster (print) */
+  #poster{display:none}
+
+  @media print{
+    body{background:#fff;color:#000}
+    .topbar,.tabs,.actions,.note,.warn,#qrMeta,#qrControls,#adminNote{display:none}
+    .block,.scorecard{border:1px solid #999;background:#fff}
+    .block h3{background:#eee;color:#000}
+    /* print mode: poster only */
+    body.printing .wrap>*{display:none}
+    body.printing #poster{display:block!important;text-align:center;padding:40px 20px}
+    #poster h1{font-size:34px;margin:0 0 6px;color:#111}
+    #poster h2{font-size:19px;color:#444;font-weight:600;margin:0 0 26px}
+    #poster .pqr{background:#fff;display:inline-block;padding:10px}
+    #poster .pqr canvas{display:block}
+    #poster .ploja{font-size:22px;font-weight:800;margin-top:22px;color:#111}
+    #poster .pfoot{margin-top:14px;color:#555;font-size:14px}
+  }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand"><svg width="58" height="28" viewBox="0 0 58 28" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SWN"><rect width="58" height="28" rx="7" fill="#fff"/><text x="6" y="22" font-family="Arial,Helvetica,sans-serif" font-weight="900" font-size="21" letter-spacing="-1.5"><tspan fill="#1b3c86">s</tspan><tspan fill="#b4d233">w</tspan><tspan fill="#2e241a">n</tspan></text></svg><div>NPS — Satisfação do cliente <small>SWN · Premium Outlets</small></div></div>
+  </div>
+
+  <div class="wrap">
+    <div class="tabs" id="tabs"></div>
+    <div id="content"></div>
+
+    <!-- Poster usado só na impressão do QR -->
+    <div id="poster">
+      <h1>Avalie nosso atendimento</h1>
+      <h2>Aponte a câmera do celular para o QR code</h2>
+      <div class="pqr" id="posterQr"></div>
+      <div class="ploja" id="posterLoja"></div>
+      <div class="pfoot">SWN · Premium Outlets — sua opinião melhora a nossa loja</div>
+    </div>
+  </div>
+
+<script>
+/* =====================================================================
+   NPS SWN — coleta por QR code. Self-contained, sem libs/CDN.
+   Dados em localStorage com prefixo 'nps:'.
+   ===================================================================== */
+
+/* ---- Lojas da rede SWN (Forum é apenas UMA das lojas) ---- */
+const LOJAS = ["Forum","Colcci","Carmim","Outlet Premium","Loja Centro","Outra"];
+
+const el=id=>document.getElementById(id);
+const STORE_KEY='nps:respostas';
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+/* ---- persistência ---- */
+function loadRespostas(){try{return JSON.parse(localStorage.getItem(STORE_KEY)||'[]');}catch(e){return [];}}
+function saveRespostas(arr){localStorage.setItem(STORE_KEY,JSON.stringify(arr));}
+function addResposta(r){const a=loadRespostas();a.push(r);saveRespostas(a);}
+
+/* ---- classificação NPS ---- */
+function categoria(n){return n>=9?'promotor':n>=7?'neutro':'detrator';}
+function calcNPS(arr){
+  const total=arr.length;
+  if(!total)return {total:0,prom:0,neu:0,det:0,nps:0,pctP:0,pctN:0,pctD:0};
+  let prom=0,neu=0,det=0;
+  arr.forEach(r=>{const c=categoria(r.nota);if(c==='promotor')prom++;else if(c==='neutro')neu++;else det++;});
+  const pctP=prom/total*100, pctN=neu/total*100, pctD=det/total*100;
+  const nps=Math.round(pctP-pctD);
+  return {total,prom,neu,det,nps,pctP,pctN,pctD};
+}
+
+/* ---- URL params ---- */
+const params=new URLSearchParams(location.search);
+const paramLoja=params.get('loja');
+const kioskMode=params.get('kiosk')==='1';
+
+/* =====================================================================
+   ABAS
+   ===================================================================== */
+const TABS={
+  responder:{nome:"📝 Responder"},
+  resultados:{nome:"📊 Resultados"},
+  qr:{nome:"🔳 QR code"}
+};
+let CURTAB = kioskMode ? 'responder' : 'responder';
+
+function buildTabs(){
+  el('tabs').innerHTML=Object.entries(TABS).map(([k,v])=>
+    `<button class="${k===CURTAB?'active':''}" onclick="setTab('${k}')">${v.nome}</button>`).join('');
+}
+function setTab(k){CURTAB=k;buildTabs();render();}
+
+function render(){
+  if(CURTAB==='responder')renderResponder();
+  else if(CURTAB==='resultados')renderResultados();
+  else renderQR();
+}
+
+/* =====================================================================
+   ABA 1 — RESPONDER (cliente)
+   ===================================================================== */
+let selNota=null;
+function renderResponder(){
+  selNota=null;
+  const lojaOpts=LOJAS.map(l=>`<option ${l===paramLoja?'selected':''}>${esc(l)}</option>`).join('');
+  const lojaFixa = kioskMode && paramLoja;
+  let lojaField;
+  if(lojaFixa){
+    lojaField=`<input type="hidden" id="r_loja" value="${esc(paramLoja)}">
+      <div class="sub">Loja: <b style="color:var(--brand2)">${esc(paramLoja)}</b></div>`;
+  }else{
+    lojaField=`<div class="lojapick"><label class="fl">Loja</label>
+      <select id="r_loja">${lojaOpts}</select></div>`;
+  }
+  el('content').innerHTML=`
+  <div class="block"><div class="body survey" id="surveyArea">
+    <div class="q">De 0 a 10, o quanto você recomendaria a <span style="color:var(--brand2)">SWN</span> a um amigo?</div>
+    <div class="sub">Sua resposta é anônima e ajuda a melhorar nossa loja.</div>
+    ${lojaFixa?lojaField:''}
+    <div class="scale" id="scale">
+      ${Array.from({length:11},(_,i)=>`<button type="button" data-n="${i}" onclick="pickNota(${i})">${i}</button>`).join('')}
+    </div>
+    <div class="scale-legend"><span>0 · Nada provável</span><span>10 · Muito provável</span></div>
+    ${lojaFixa?'':lojaField}
+    <div style="margin-top:14px"><label class="fl">Comentário (opcional)</label>
+      <textarea id="r_cmt" placeholder="Conte o que achou do atendimento, da loja, dos preços..."></textarea></div>
+    <button class="btn primary send" id="sendBtn" onclick="enviarResposta()">Enviar avaliação</button>
+  </div></div>`;
+}
+function pickNota(n){
+  selNota=n;
+  el('scale').querySelectorAll('button').forEach(b=>b.classList.toggle('sel',+b.dataset.n===n));
+}
+function enviarResposta(){
+  if(selNota===null){alert('Por favor, escolha uma nota de 0 a 10.');return;}
+  const loja=el('r_loja')?el('r_loja').value:'';
+  const cmt=el('r_cmt')?el('r_cmt').value.trim():'';
+  addResposta({nota:selNota,comentario:cmt,loja:loja,ts:new Date().toISOString()});
+  el('content').innerHTML=`
+  <div class="block"><div class="body thanks">
+    <div class="big">${selNota>=9?'🎉':selNota>=7?'🙏':'💬'}</div>
+    <h2>Obrigado pela sua avaliação!</h2>
+    <p>${selNota>=9?'Que bom que você ama a SWN! Volte sempre.':selNota>=7?'Vamos trabalhar para superar suas expectativas.':'Sentimos muito. Vamos usar seu retorno para melhorar.'}</p>
+    <button class="btn primary" style="margin-top:18px;height:50px;padding:0 26px" onclick="renderResponder()">Nova avaliação</button>
+  </div></div>`;
+}
+
+/* =====================================================================
+   ABA 2 — RESULTADOS (gestão)
+   ===================================================================== */
+function renderResultados(){
+  const all=loadRespostas();
+  if(!all.length){
+    el('content').innerHTML=`<div class="block"><div class="empty">
+      Ainda não há respostas registradas neste navegador.<br>
+      Use a aba <b>Responder</b> para coletar ou gere o <b>QR code</b> para a loja.</div></div>`;
+    return;
+  }
+  // filtros
+  const fLoja=window._fLoja||'';
+  const fIni=window._fIni||'';
+  const fFim=window._fFim||'';
+  const filtered=all.filter(r=>{
+    if(fLoja && r.loja!==fLoja)return false;
+    const d=(r.ts||'').slice(0,10);
+    if(fIni && d<fIni)return false;
+    if(fFim && d>fFim)return false;
+    return true;
+  });
+  const s=calcNPS(filtered);
+  const zone = s.nps>=75?{t:'Excelente',c:'var(--green)'}:s.nps>=50?{t:'Muito bom',c:'var(--brand)'}:s.nps>=0?{t:'Razoável',c:'var(--amber)'}:{t:'Crítico',c:'var(--red)'};
+  const lojaOpts=['<option value="">Todas as lojas</option>'].concat(LOJAS.map(l=>`<option ${l===fLoja?'selected':''}>${esc(l)}</option>`)).join('');
+
+  // quebra por loja
+  const byLoja={};
+  filtered.forEach(r=>{(byLoja[r.loja||'(sem loja)']=byLoja[r.loja||'(sem loja)']||[]).push(r);});
+  const lojaRows=Object.entries(byLoja).sort((a,b)=>b[1].length-a[1].length).map(([loja,arr])=>{
+    const x=calcNPS(arr);
+    return `<tr><td>${esc(loja)}</td><td class="num">${x.total}</td><td class="num" style="color:var(--green)">${x.prom}</td><td class="num" style="color:var(--amber)">${x.neu}</td><td class="num" style="color:var(--red)">${x.det}</td><td class="num"><b style="color:${x.nps>=0?'var(--brand2)':'var(--red)'}">${x.nps}</b></td></tr>`;
+  }).join('');
+
+  // quebra por período (mês)
+  const byMes={};
+  filtered.forEach(r=>{const m=(r.ts||'').slice(0,7);(byMes[m]=byMes[m]||[]).push(r);});
+  const mesRows=Object.entries(byMes).sort((a,b)=>a[0]<b[0]?1:-1).map(([mes,arr])=>{
+    const x=calcNPS(arr);
+    return `<tr><td>${fmtMes(mes)}</td><td class="num">${x.total}</td><td class="num">${x.prom}/${x.neu}/${x.det}</td><td class="num"><b style="color:${x.nps>=0?'var(--brand2)':'var(--red)'}">${x.nps}</b></td></tr>`;
+  }).join('');
+
+  // últimos comentários
+  const cmts=filtered.filter(r=>r.comentario).slice().reverse().slice(0,12).map(r=>
+    `<tr><td class="num"><b style="color:${categoriaCor(r.nota)}">${r.nota}</b></td><td>${esc(r.loja)}</td><td class="cmt">${esc(r.comentario)}</td><td style="color:var(--muted);white-space:nowrap">${fmtData(r.ts)}</td></tr>`).join('');
+
+  el('content').innerHTML=`
+  <div class="block"><div class="filterbar">
+    <div class="f"><label class="fl">Loja</label><select onchange="window._fLoja=this.value;renderResultados()">${lojaOpts}</select></div>
+    <div class="f"><label class="fl">De</label><input type="date" value="${esc(fIni)}" onchange="window._fIni=this.value;renderResultados()"></div>
+    <div class="f"><label class="fl">Até</label><input type="date" value="${esc(fFim)}" onchange="window._fFim=this.value;renderResultados()"></div>
+    <button class="btn ghost" onclick="window._fLoja='';window._fIni='';window._fFim='';renderResultados()">Limpar</button>
+  </div></div>
+
+  <div class="scorecard">
+    <div class="nps-big">
+      <div class="val" style="color:${zone.c}">${s.nps}</div>
+      <div class="lbl">NPS — Net Promoter Score</div>
+      <div class="zone" style="color:${zone.c}">${zone.t}</div>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><div class="n">${s.total}</div><div class="t">Respostas</div></div>
+      <div class="kpi"><div class="n" style="color:var(--green)">${s.prom}</div><div class="t">Promotores (9–10)</div></div>
+      <div class="kpi"><div class="n" style="color:var(--amber)">${s.neu}</div><div class="t">Neutros (7–8)</div></div>
+      <div class="kpi"><div class="n" style="color:var(--red)">${s.det}</div><div class="t">Detratores (0–6)</div></div>
+    </div>
+  </div>
+
+  <div class="bar">
+    <span class="prom" style="width:${s.pctP}%">${s.pctP>=8?Math.round(s.pctP)+'%':''}</span>
+    <span class="neu" style="width:${s.pctN}%">${s.pctN>=8?Math.round(s.pctN)+'%':''}</span>
+    <span class="det" style="width:${s.pctD}%">${s.pctD>=8?Math.round(s.pctD)+'%':''}</span>
+  </div>
+  <div style="display:flex;gap:14px;color:var(--muted);font-size:12px;margin:0 2px 4px">
+    <span><b style="color:var(--green)">■</b> Promotores</span>
+    <span><b style="color:var(--amber)">■</b> Neutros</span>
+    <span><b style="color:var(--red)">■</b> Detratores</span>
+    <span style="margin-left:auto">NPS = %promotores − %detratores</span>
+  </div>
+
+  <div class="actions">
+    <button class="btn primary" onclick="exportCSV()">⬇️ Exportar CSV</button>
+    <button class="btn ghost" onclick="if(confirm('Apagar TODAS as respostas deste navegador?')){localStorage.removeItem(STORE_KEY);renderResultados();}">🗑️ Limpar respostas</button>
+  </div>
+
+  <div class="block"><h3>🏬 Por loja</h3>
+    <table><thead><tr><th>Loja</th><th class="num">Total</th><th class="num">Prom.</th><th class="num">Neut.</th><th class="num">Detr.</th><th class="num">NPS</th></tr></thead>
+    <tbody>${lojaRows}</tbody></table></div>
+
+  <div class="block"><h3>📆 Por período (mês)</h3>
+    <table><thead><tr><th>Período</th><th class="num">Total</th><th class="num">P/N/D</th><th class="num">NPS</th></tr></thead>
+    <tbody>${mesRows}</tbody></table></div>
+
+  ${cmts?`<div class="block"><h3>💬 Comentários recentes</h3>
+    <table><thead><tr><th class="num">Nota</th><th>Loja</th><th>Comentário</th><th>Data</th></tr></thead>
+    <tbody>${cmts}</tbody></table></div>`:''}`;
+}
+function categoriaCor(n){return n>=9?'var(--green)':n>=7?'var(--amber)':'var(--red)';}
+function fmtData(ts){if(!ts)return '';const d=new Date(ts);const p=n=>String(n).padStart(2,'0');return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()}`;}
+function fmtMes(m){if(!m)return '(sem data)';const [a,mm]=m.split('-');const meses=['','jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];return `${meses[+mm]||mm}/${a}`;}
+
+function exportCSV(){
+  const all=loadRespostas();
+  const fLoja=window._fLoja||'',fIni=window._fIni||'',fFim=window._fFim||'';
+  const rows=all.filter(r=>{
+    if(fLoja && r.loja!==fLoja)return false;
+    const d=(r.ts||'').slice(0,10);
+    if(fIni && d<fIni)return false;
+    if(fFim && d>fFim)return false;
+    return true;
+  });
+  const head=['Data/Hora','Loja','Nota','Categoria','Comentario'];
+  const csvCell=v=>{v=String(v==null?'':v);return /[";\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
+  const lines=[head.join(';')];
+  rows.forEach(r=>{
+    lines.push([fmtDataHora(r.ts),r.loja,r.nota,catLabel(r.nota),r.comentario].map(csvCell).join(';'));
+  });
+  const csv='﻿'+lines.join('\r\n'); // BOM UTF-8
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='nps-swn-'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+}
+function catLabel(n){return n>=9?'Promotor':n>=7?'Neutro':'Detrator';}
+function fmtDataHora(ts){if(!ts)return '';const d=new Date(ts);const p=n=>String(n).padStart(2,'0');return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;}
+
+/* =====================================================================
+   ABA 3 — QR CODE (para a loja)
+   ===================================================================== */
+function buildSurveyUrl(base,loja){
+  let u=(base||'').trim();
+  if(!u)return '';
+  // remove qualquer query/hash existente da URL base
+  u=u.split('#')[0].split('?')[0];
+  const qp=new URLSearchParams();
+  if(loja)qp.set('loja',loja);
+  qp.set('kiosk','1');
+  return u+'?'+qp.toString();
+}
+function renderQR(){
+  const savedUrl=localStorage.getItem('nps:qrUrl')||location.href.split('?')[0].split('#')[0];
+  const savedLoja=localStorage.getItem('nps:qrLoja')||LOJAS[0];
+  const lojaOpts=LOJAS.filter(l=>l!=='Outra').map(l=>`<option ${l===savedLoja?'selected':''}>${esc(l)}</option>`).join('');
+  el('content').innerHTML=`
+  <div class="block"><h3>🔳 Gerador de QR code para a loja</h3><div class="body">
+    <div id="qrControls">
+      <label class="fl">URL pública onde o formulário está hospedado</label>
+      <input id="qr_url" value="${esc(savedUrl)}" placeholder="https://swn-nps.onrender.com/NPS_SWN.html" onchange="updateQR()">
+      <div style="margin-top:14px"><label class="fl">Loja deste QR</label>
+        <select id="qr_loja" onchange="updateQR()">${lojaOpts}</select></div>
+      <div class="actions">
+        <button class="btn primary" onclick="updateQR()">🔄 Gerar QR</button>
+        <button class="btn ghost" onclick="printPoster()">🖨️ Imprimir cartaz</button>
+      </div>
+    </div>
+    <div class="warn">⚠️ <b>Atenção:</b> o QR só funciona para os clientes quando o formulário estiver
+      <b>HOSPEDADO em uma URL pública</b> (ex.: no Render). Apontar a câmera para um QR de
+      <code>file://</code> não abre no celular do cliente — localmente isso serve apenas para teste.</div>
+    <div id="qrWrap" style="margin-top:18px">
+      <div id="qrBox"><div id="qrBoxInner"></div></div>
+      <div id="qrMeta">
+        <label class="fl">O QR aponta para:</label>
+        <div class="urlpreview" id="qrUrlPreview"></div>
+        <p style="color:var(--muted);font-size:12.5px;margin-top:12px">
+          O link já inclui <code>?loja=...&kiosk=1</code>, então o celular do cliente
+          abre direto na tela de avaliação em modo quiosque, com a loja correta.</p>
+      </div>
+    </div>
+  </div></div>`;
+  updateQR();
+}
+function updateQR(){
+  const base=el('qr_url')?el('qr_url').value:'';
+  const loja=el('qr_loja')?el('qr_loja').value:'';
+  if(el('qr_url'))localStorage.setItem('nps:qrUrl',base);
+  if(el('qr_loja'))localStorage.setItem('nps:qrLoja',loja);
+  const url=buildSurveyUrl(base,loja);
+  el('qrUrlPreview').textContent=url||'(informe uma URL)';
+  const inner=el('qrBoxInner');inner.innerHTML='';
+  if(!url){inner.innerHTML='<div style="color:#888;padding:40px;width:180px;text-align:center">Informe a URL para gerar o QR</div>';return;}
+  try{
+    const canvas=QRCode.toCanvas(url,{scale:6,margin:2});
+    inner.appendChild(canvas);
+  }catch(e){
+    inner.innerHTML='<div style="color:#c00;padding:20px;width:200px">Não foi possível gerar o QR: '+esc(e.message)+'</div>';
+  }
+}
+function printPoster(){
+  const base=el('qr_url')?el('qr_url').value:'';
+  const loja=el('qr_loja')?el('qr_loja').value:'';
+  const url=buildSurveyUrl(base,loja);
+  if(!url){alert('Informe a URL pública antes de imprimir o cartaz.');return;}
+  const pq=el('posterQr');pq.innerHTML='';
+  try{pq.appendChild(QRCode.toCanvas(url,{scale:9,margin:2}));}catch(e){alert('Erro ao gerar QR: '+e.message);return;}
+  el('posterLoja').textContent=loja?('SWN · '+loja):'SWN · Premium Outlets';
+  document.body.classList.add('printing');
+  window.print();
+  setTimeout(()=>document.body.classList.remove('printing'),500);
+}
+
+/* =====================================================================
+   QR CODE ENCODER — pure JS, sem dependências.
+   Implementação compacta de codificação QR (modo byte, EC level M),
+   máscara automática, baseada no algoritmo padrão ISO/IEC 18004.
+   Domínio público / MIT (Kazuhiko Arase style, reescrita compacta).
+   ===================================================================== */
+var QRCode=(function(){
+  // ---- Galois field GF(256) para Reed-Solomon ----
+  var EXP=new Array(256),LOG=new Array(256);
+  (function(){var x=1;for(var i=0;i<255;i++){EXP[i]=x;LOG[x]=i;x<<=1;if(x&0x100)x^=0x11d;}EXP[255]=EXP[0];})();
+  function gmul(a,b){if(a===0||b===0)return 0;return EXP[(LOG[a]+LOG[b])%255];}
+  function rsGenPoly(n){var p=[1];for(var i=0;i<n;i++){var np=new Array(p.length+1).fill(0);for(var j=0;j<p.length;j++){np[j]^=gmul(p[j],EXP[i]);np[j+1]^=p[j];}p=np;}return p;}
+  function rsEncode(data,ecLen){var gen=rsGenPoly(ecLen);var res=data.concat(new Array(ecLen).fill(0));
+    for(var i=0;i<data.length;i++){var coef=res[i];if(coef!==0){for(var j=0;j<gen.length;j++){res[i+j]^=gmul(gen[j],coef);}}}
+    return res.slice(data.length);}
+
+  // ---- Tabela de capacidade (modo byte) e parâmetros EC nível M ----
+  // [versão] = { size, ecBytes, ecBlocks:[ [count, dataBytesPorBloco], ... ] }
+  // Cobrimos versões 1..10 (suficiente para URLs de loja).
+  var VINFO={
+    1:{tot:26,ec:10,g:[[1,16]]},
+    2:{tot:44,ec:16,g:[[1,28]]},
+    3:{tot:70,ec:26,g:[[1,44]]},
+    4:{tot:100,ec:18,g:[[2,32]]},
+    5:{tot:134,ec:24,g:[[2,43]]},
+    6:{tot:172,ec:16,g:[[4,27]]},
+    7:{tot:196,ec:18,g:[[4,31]]},
+    8:{tot:242,ec:22,g:[[2,38],[2,39]]},
+    9:{tot:292,ec:22,g:[[3,36],[2,37]]},
+    10:{tot:346,ec:26,g:[[4,43],[1,44]]}
+  };
+  function dataCapacity(v){var info=VINFO[v];var n=0;info.g.forEach(b=>n+=b[0]*b[1]);return n;}
+  function sizeOf(v){return 17+4*v;}
+
+  // ---- alinhamento ----
+  var ALIGN={1:[],2:[6,18],3:[6,22],4:[6,26],5:[6,30],6:[6,34],7:[6,22,38],8:[6,24,42],9:[6,26,46],10:[6,28,50]};
+
+  // ---- BCH para format info ----
+  function bchFormat(data){var d=data<<10;var g=0x537;
+    for(var i=4;i>=0;i--){if((d>>>(i+10))&1)d^=g<<i;}
+    return ((data<<10)|d)^0x5412;}
+  function bchVersion(ver){var d=ver<<12;var g=0x1f25;
+    for(var i=5;i>=0;i--){if((d>>>(i+12))&1)d^=g<<i;}
+    return (ver<<12)|d;}
+
+  function buildMatrix(version,ecLevel,dataCW,maskPattern){
+    var n=sizeOf(version);
+    var m=[],reserved=[];
+    for(var i=0;i<n;i++){m.push(new Array(n).fill(null));reserved.push(new Array(n).fill(false));}
+    function place(r,c,v){m[r][c]=v;reserved[r][c]=true;}
+    // finder + separadores
+    function finder(r0,c0){for(var r=-1;r<=7;r++)for(var c=-1;c<=7;c++){var rr=r0+r,cc=c0+c;if(rr<0||rr>=n||cc<0||cc>=n)continue;
+      var on=(r>=0&&r<=6&&(c===0||c===6))||(c>=0&&c<=6&&(r===0||r===6))||(r>=2&&r<=4&&c>=2&&c<=4);
+      place(rr,cc,on?1:0);}}
+    finder(0,0);finder(0,n-7);finder(n-7,0);
+    // timing
+    for(var i=8;i<n-8;i++){place(6,i,i%2===0?1:0);place(i,6,i%2===0?1:0);}
+    // alignment
+    var ap=ALIGN[version];
+    for(var a=0;a<ap.length;a++)for(var b=0;b<ap.length;b++){var r=ap[a],c=ap[b];
+      if(reserved[r][c])continue;
+      for(var dr=-2;dr<=2;dr++)for(var dc=-2;dc<=2;dc++){var on=Math.max(Math.abs(dr),Math.abs(dc))!==1?1:0;place(r+dr,c+dc,on);}}
+    // dark module
+    place(n-8,8,1);
+    // reservar area de format
+    for(var i=0;i<9;i++){if(!reserved[8][i])reserved[8][i]=true;if(!reserved[i][8])reserved[i][8]=true;}
+    for(var i=0;i<8;i++){reserved[8][n-1-i]=true;reserved[n-1-i][8]=true;}
+    reserved[8][7]=true;
+    // reservar version info (v>=7)
+    if(version>=7){for(var i=0;i<6;i++)for(var j=0;j<3;j++){reserved[i][n-11+j]=true;reserved[n-11+j][i]=true;}}
+
+    // ---- colocar dados em zig-zag ----
+    var bitIdx=0;
+    function getBit(idx){return (dataCW[idx>>3]>>>(7-(idx&7)))&1;}
+    var total=dataCW.length*8;
+    var col=n-1;
+    var upward=true;
+    while(col>0){
+      if(col===6)col--; // pular coluna de timing
+      for(var i=0;i<n;i++){
+        var row=upward?(n-1-i):i;
+        for(var c=0;c<2;c++){
+          var cc=col-c;
+          if(reserved[row][cc])continue;
+          var bit=bitIdx<total?getBit(bitIdx):0;
+          bitIdx++;
+          // máscara
+          var mask;
+          switch(maskPattern){
+            case 0:mask=(row+cc)%2===0;break;
+            case 1:mask=row%2===0;break;
+            case 2:mask=cc%3===0;break;
+            case 3:mask=(row+cc)%3===0;break;
+            case 4:mask=(Math.floor(row/2)+Math.floor(cc/3))%2===0;break;
+            case 5:mask=((row*cc)%2)+((row*cc)%3)===0;break;
+            case 6:mask=(((row*cc)%2)+((row*cc)%3))%2===0;break;
+            case 7:mask=(((row+cc)%2)+((row*cc)%3))%2===0;break;
+          }
+          m[row][cc]=mask?(bit^1):bit;
+        }
+      }
+      upward=!upward;col-=2;
+    }
+
+    // ---- format info (EC level + mask) ----
+    var ecBits={L:1,M:0,Q:3,H:2}[ecLevel];
+    var fmt=bchFormat((ecBits<<3)|maskPattern);
+    var fmtBits=[];for(var i=14;i>=0;i--)fmtBits.push((fmt>>>i)&1);
+    // posições padrão
+    var coords1=[[8,0],[8,1],[8,2],[8,3],[8,4],[8,5],[8,7],[8,8],[7,8],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8]];
+    for(var i=0;i<15;i++){var rc=coords1[i];m[rc[0]][rc[1]]=fmtBits[i];}
+    var coords2=[];
+    for(var i=0;i<7;i++)coords2.push([n-1-i,8]);
+    for(var i=0;i<8;i++)coords2.push([8,n-8+i]);
+    for(var i=0;i<15;i++){var rc=coords2[i];m[rc[0]][rc[1]]=fmtBits[i];}
+
+    // ---- version info (v>=7) ----
+    if(version>=7){
+      var vinfo=bchVersion(version);
+      var vbits=[];for(var i=0;i<18;i++)vbits.push((vinfo>>>i)&1);
+      var k=0;
+      for(var i=0;i<6;i++)for(var j=0;j<3;j++){var b=vbits[k++];m[i][n-11+j]=b;m[n-11+j][i]=b;}
+    }
+    return m;
+  }
+
+  function penalty(m){
+    var n=m.length,p=0;
+    // regra 1: corridas
+    for(var r=0;r<n;r++){var run=1;for(var c=1;c<n;c++){if(m[r][c]===m[r][c-1]){run++;if(run===5)p+=3;else if(run>5)p++;}else run=1;}}
+    for(var c=0;c<n;c++){var run=1;for(var r=1;r<n;r++){if(m[r][c]===m[r-1][c]){run++;if(run===5)p+=3;else if(run>5)p++;}else run=1;}}
+    // regra 2: blocos 2x2
+    for(var r=0;r<n-1;r++)for(var c=0;c<n-1;c++){var v=m[r][c];if(v===m[r][c+1]&&v===m[r+1][c]&&v===m[r+1][c+1])p+=3;}
+    // regra 3: padrão 1011101 com 0000
+    var pat1=[1,0,1,1,1,0,1,0,0,0,0],pat2=[0,0,0,0,1,0,1,1,1,0,1];
+    function match(arr,pat){for(var i=0;i<pat.length;i++)if(arr[i]!==pat[i])return false;return true;}
+    for(var r=0;r<n;r++)for(var c=0;c<n-10;c++){var w=[];for(var k=0;k<11;k++)w.push(m[r][c+k]);if(match(w,pat1)||match(w,pat2))p+=40;}
+    for(var c=0;c<n;c++)for(var r=0;r<n-10;r++){var w=[];for(var k=0;k<11;k++)w.push(m[r+k][c]);if(match(w,pat1)||match(w,pat2))p+=40;}
+    // regra 4: proporção de escuros
+    var dark=0;for(var r=0;r<n;r++)for(var c=0;c<n;c++)if(m[r][c])dark++;
+    var ratio=dark/(n*n)*100;var k=Math.floor(Math.abs(ratio-50)/5);p+=k*10;
+    return p;
+  }
+
+  function encode(text){
+    // utf-8 bytes
+    var bytes=[];
+    for(var i=0;i<text.length;i++){
+      var cp=text.codePointAt(i);
+      if(cp>0xffff)i++;
+      if(cp<0x80)bytes.push(cp);
+      else if(cp<0x800){bytes.push(0xc0|(cp>>6),0x80|(cp&0x3f));}
+      else if(cp<0x10000){bytes.push(0xe0|(cp>>12),0x80|((cp>>6)&0x3f),0x80|(cp&0x3f));}
+      else{bytes.push(0xf0|(cp>>18),0x80|((cp>>12)&0x3f),0x80|((cp>>6)&0x3f),0x80|(cp&0x3f));}
+    }
+    // escolher versão
+    var version=0;
+    for(var v=1;v<=10;v++){
+      var cci=(v<10)?8:16; // count indicator bits (byte mode): v1-9 = 8 bits
+      var need=4+cci+bytes.length*8;
+      var cap=dataCapacity(v)*8;
+      if(need<=cap){version=v;break;}
+    }
+    if(!version)throw new Error('Texto muito longo para QR v1–10 (máx ~'+dataCapacity(10)+' bytes). Encurte a URL.');
+
+    var info=VINFO[version];
+    var cci=(version<10)?8:16;
+    // bit stream
+    var bits=[];
+    function pushBits(val,len){for(var i=len-1;i>=0;i--)bits.push((val>>>i)&1);}
+    pushBits(4,4); // mode: byte = 0100
+    pushBits(bytes.length,cci);
+    bytes.forEach(b=>pushBits(b,8));
+    var totalDataBits=dataCapacity(version)*8;
+    // terminator
+    var term=Math.min(4,totalDataBits-bits.length);
+    for(var i=0;i<term;i++)bits.push(0);
+    // pad to byte
+    while(bits.length%8!==0)bits.push(0);
+    // pad bytes
+    var pads=[0xec,0x11],pi=0;
+    while(bits.length<totalDataBits){pushBits(pads[pi++%2],8);}
+    // to codewords
+    var dataCW=[];
+    for(var i=0;i<bits.length;i+=8){var b=0;for(var j=0;j<8;j++)b=(b<<1)|bits[i+j];dataCW.push(b);}
+
+    // dividir em blocos, calcular EC
+    var blocks=[];var idx=0;
+    info.g.forEach(grp=>{
+      for(var b=0;b<grp[0];b++){
+        var dlen=grp[1];
+        var d=dataCW.slice(idx,idx+dlen);idx+=dlen;
+        var ec=rsEncode(d,info.ec);
+        blocks.push({d:d,ec:ec});
+      }
+    });
+    // intercalar data
+    var finalCW=[];
+    var maxD=Math.max.apply(null,blocks.map(b=>b.d.length));
+    for(var i=0;i<maxD;i++)blocks.forEach(bl=>{if(i<bl.d.length)finalCW.push(bl.d[i]);});
+    var maxE=Math.max.apply(null,blocks.map(b=>b.ec.length));
+    for(var i=0;i<maxE;i++)blocks.forEach(bl=>{if(i<bl.ec.length)finalCW.push(bl.ec[i]);});
+
+    // escolher máscara
+    var best=null,bestP=Infinity;
+    for(var mask=0;mask<8;mask++){
+      var m=buildMatrix(version,'M',finalCW,mask);
+      var p=penalty(m);
+      if(p<bestP){bestP=p;best=m;}
+    }
+    return best;
+  }
+
+  function toCanvas(text,opts){
+    opts=opts||{};
+    var scale=opts.scale||5,margin=opts.margin==null?2:opts.margin;
+    var m=encode(text);
+    var n=m.length;
+    var size=(n+margin*2)*scale;
+    var canvas=document.createElement('canvas');
+    canvas.width=size;canvas.height=size;
+    var ctx=canvas.getContext('2d');
+    ctx.fillStyle='#ffffff';ctx.fillRect(0,0,size,size);
+    ctx.fillStyle='#000000';
+    for(var r=0;r<n;r++)for(var c=0;c<n;c++){if(m[r][c])ctx.fillRect((c+margin)*scale,(r+margin)*scale,scale,scale);}
+    return canvas;
+  }
+  function toMatrix(text){return encode(text);}
+  return {toCanvas:toCanvas,toMatrix:toMatrix,_encode:encode};
+})();
+
+/* =====================================================================
+   INIT
+   ===================================================================== */
+function fmt(d){if(!d)return '';return d;}
+if(kioskMode){document.body.classList.add('kiosk');CURTAB='responder';}
+buildTabs();render();
+</script>
+</body>
+</html>

@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Disciplina &amp; Jornada · SWN · Premium Outlets</title>
+<style>
+  :root{
+    --bg:#0f1115;--panel:#161a22;--panel2:#1c2230;--line:#262d3a;
+    --txt:#e8ecf3;--muted:#9aa6b8;--brand:#b4d233;--brand2:#cbe465;
+    --green:#2ecc71;--red:#e74c3c;--blue:#4aa3ff;--radius:13px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5}
+  a{color:var(--blue)}
+  .topbar{position:sticky;top:0;z-index:20;background:rgba(15,17,21,.95);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);padding:13px 22px;display:flex;align-items:center;gap:12px}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:16px}
+  .logo{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;
+    background:linear-gradient(135deg,var(--brand),var(--brand2));color:#1a1300;font-weight:900}
+  .brand small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+  .wrap{max-width:980px;margin:0 auto;padding:22px}
+
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+  .tabs button{padding:9px 15px;border:1px solid var(--line);border-radius:10px;cursor:pointer;
+    background:var(--panel);color:var(--muted);font-weight:700;font-size:13px}
+  .tabs button.active{background:var(--brand);color:#1a1300;border-color:var(--brand)}
+
+  .block{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    margin-bottom:14px;overflow:hidden}
+  .block h3{margin:0;padding:12px 16px;font-size:13px;text-transform:uppercase;letter-spacing:.6px;
+    color:var(--brand2);background:var(--panel2);border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:9px}
+  .block .body{padding:14px 16px}
+  .block .seqnote{font-size:10.5px;color:var(--muted);font-weight:600;text-transform:none;letter-spacing:0}
+
+  .grid{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+  .col-main{flex:1 1 540px;min-width:0}
+  .col-side{flex:1 1 280px}
+
+  .f{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+  .row{display:flex;flex-wrap:wrap;gap:12px}
+  .row .f{flex:1 1 160px}
+  label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+  input[type=text],input[type=date],input[type=time],input[type=number],input[type=month],select,textarea{
+    padding:8px 11px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--txt);font-size:13.5px;outline:none;font-family:inherit;width:100%}
+  input:focus,select:focus,textarea:focus{border-color:var(--brand)}
+  textarea{min-height:80px;resize:vertical;line-height:1.5}
+
+  .radios{display:flex;flex-wrap:wrap;gap:14px;padding:4px 0}
+  .radios label{display:flex;align-items:center;gap:7px;text-transform:none;letter-spacing:0;
+    font-size:13.5px;color:var(--txt);font-weight:600;cursor:pointer}
+  .radios input{width:auto;accent-color:var(--brand)}
+
+  .modeltext{background:var(--panel2);border:1px dashed var(--line);border-radius:10px;
+    padding:12px 14px;font-size:13px;color:var(--txt);line-height:1.65;white-space:pre-wrap}
+
+  .side{font-size:12.5px;color:var(--muted);line-height:1.6}
+  .side ul{margin:8px 0;padding-left:18px}
+  .side li{margin-bottom:7px}
+  .side b{color:var(--txt)}
+  .pill{display:inline-block;background:rgba(180,210,51,.14);color:var(--brand2);
+    border:1px solid rgba(180,210,51,.3);border-radius:7px;padding:2px 8px;font-size:11px;font-weight:700;margin:2px 2px 2px 0}
+  .danger{background:linear-gradient(135deg,rgba(231,76,60,.12),rgba(231,76,60,.04));
+    border:1px solid rgba(231,76,60,.35);border-radius:10px;padding:11px 13px;font-size:12.5px;color:#f3b4ad;margin:10px 0}
+  .danger b{color:#ffd6d0}
+  .info{background:linear-gradient(135deg,rgba(74,163,255,.1),rgba(74,163,255,.03));
+    border:1px solid rgba(74,163,255,.3);border-radius:10px;padding:11px 13px;font-size:12.5px;color:#bcd9ff;margin:10px 0}
+  .info b{color:#e3f0ff}
+
+  .signs{display:flex;flex-wrap:wrap;gap:20px;margin-top:18px}
+  .sign{flex:1 1 200px;text-align:center}
+  .sign .line{border-top:1px solid var(--txt);margin-top:34px;padding-top:6px;font-size:12px;color:var(--muted)}
+
+  /* escala */
+  .escala-wrap{overflow-x:auto}
+  table.escala{border-collapse:collapse;width:100%;font-size:12px}
+  table.escala th,table.escala td{border:1px solid var(--line);padding:2px;text-align:center}
+  table.escala th{background:var(--panel2);color:var(--brand2);font-weight:700;position:sticky;top:0}
+  table.escala th.we{color:#f3b4ad}
+  table.escala td.namecell{text-align:left;min-width:150px}
+  table.escala input{padding:4px 5px;font-size:12px;border-radius:6px;text-align:center}
+  table.escala td.namecell input{text-align:left}
+  table.escala .daycell input{width:46px;text-transform:uppercase;font-weight:700}
+  table.escala td.we{background:rgba(231,76,60,.06)}
+  .legend{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;font-size:12px;color:var(--muted)}
+  .legend span{background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:3px 9px}
+
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
+  .btn{padding:10px 16px;border:0;border-radius:10px;cursor:pointer;font-weight:700;font-size:13px}
+  .btn.primary{background:var(--brand);color:#1a1300}
+  .btn.ghost{background:var(--panel2);border:1px solid var(--line);color:var(--txt)}
+  .btn.ghost:hover{border-color:var(--red);color:#f29a90}
+
+  .note{background:linear-gradient(135deg,rgba(180,210,51,.08),rgba(74,163,255,.06));
+    border:1px dashed var(--line);border-radius:12px;padding:13px 15px;font-size:12.5px;color:var(--muted);margin-top:16px}
+  .note b{color:var(--txt)}
+
+  .pa-print{display:none}
+
+  @media print{
+    body{background:#fff;color:#000}
+    .topbar,.tabs,.actions,.note,.col-side,.no-print{display:none!important}
+    .block,.block .body{border-color:#999;background:#fff}
+    .block h3{background:#eee;color:#000}
+    .col-main{flex-basis:100%}
+    .modeltext{background:#f7f7f7;color:#000;border-color:#999}
+    .danger,.info{background:#f3f3f3;color:#000;border-color:#999}
+    input,select,textarea{background:#fff!important;color:#000!important;border-color:#999!important}
+    .sign .line{border-top:1px solid #000;color:#000}
+    label{color:#444}
+    table.escala th,table.escala td{border-color:#999}
+    table.escala th{background:#eee;color:#000}
+    .pa-print{display:block!important;text-align:center;font-weight:800;margin:0 0 14px;font-size:18px;color:#000}
+  }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand"><svg class="brandmark" width="58" height="28" viewBox="0 0 58 28" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SWN Premium Outlets"><rect width="58" height="28" rx="7" fill="#fff"/><text x="6" y="22" font-family="Arial,Helvetica,sans-serif" font-weight="900" font-size="21" letter-spacing="-1.5"><tspan fill="#1b3c86">s</tspan><tspan fill="#b4d233">w</tspan><tspan fill="#2e241a">n</tspan></text></svg><div>Disciplina &amp; Jornada <small>SWN · Premium Outlets</small></div></div>
+  </div>
+
+  <div class="wrap">
+    <div class="tabs" id="tabs"></div>
+    <div id="content"></div>
+
+    <div class="actions">
+      <button class="btn primary" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
+      <button class="btn ghost" onclick="exportarJSON()">⬇️ Exportar dados (JSON)</button>
+      <button class="btn ghost" onclick="el('imp_file').click()">⬆️ Importar dados (JSON)</button>
+      <input type="file" id="imp_file" accept="application/json,.json" style="display:none" onchange="importarJSON(this)">
+      <button class="btn ghost" onclick="limpar()">Limpar esta aba</button>
+    </div>
+
+    <div class="note">
+      ⚠️ <b>Estes são MODELOS-BASE.</b> Advertência, jornada/feriado e percentual de adiantamento devem ser validados conforme a <b>CLT vigente</b> e a <b>Convenção Coletiva (CCT) dos comerciários</b> da base de cada loja — idealmente com a contabilidade/jurídico. A CCT prevalece sobre a regra geral em vários pontos (vale, domingos/feriados, banco de horas, intervalo).
+      <br>🔒 <b>LGPD:</b> estes documentos contêm dados pessoais e sensíveis (CPF, salário, condutas disciplinares, eventual atestado). Não preencha em computador/navegador compartilhado da loja sem necessidade; trate as vias impressas com sigilo e arquive em prontuário restrito ao RH. O controle de acesso de verdade, com registro de quem preencheu e quando, virá com o portal no servidor (Render).
+      <br>💾 O conteúdo digitado salva apenas <b>neste navegador</b>. ⚠️ Se limpar o navegador ou trocar de computador, os dados se perdem — use <b>🖨️ Imprimir → Salvar PDF</b> para guardar o documento.
+    </div>
+  </div>
+
+<script>
+const el=id=>document.getElementById(id);
+const TABS={advertencia:"📋 Advertência",escala:"🗓️ Escala Mensal",adiantamento:"💵 Adiantamento"};
+let CURTAB="advertencia";
+
+/* ===== persistência genérica de campos ===== */
+function save(k,v){try{localStorage.setItem('rhdj:'+k,v)}catch(e){}}
+function load(k){try{return localStorage.getItem('rhdj:'+k)||''}catch(e){return ''}}
+function bindAll(scope){
+  scope.querySelectorAll('[data-k]').forEach(inp=>{
+    const k=inp.getAttribute('data-k');
+    if(inp.type==='radio'){
+      if(load(k)===inp.value)inp.checked=true;
+      inp.addEventListener('change',()=>{if(inp.checked)save(k,inp.value)});
+    }else{
+      const v=load(k); if(v!=='')inp.value=v;
+      inp.addEventListener('input',()=>save(k,inp.value));
+      inp.addEventListener('change',()=>save(k,inp.value));
+    }
+  });
+}
+
+/* ===== ABA ADVERTÊNCIA ===== */
+function viewAdvertencia(){
+  return `
+  <div class="pa-print" id="ptA"></div>
+  <div class="grid">
+    <div class="col-main">
+      <div class="block"><h3>📋 Documento de Advertência Disciplinar</h3><div class="body">
+        <div class="row">
+          <div class="f"><label>Razão social</label><input type="text" data-k="a_razao" placeholder="SWN ... Ltda"></div>
+          <div class="f"><label>CNPJ</label><input type="text" data-k="a_cnpj" placeholder="00.000.000/0001-00"></div>
+        </div>
+        <div class="row">
+          <div class="f"><label>Loja / unidade</label><input type="text" data-k="a_loja" placeholder="SWN — Loja ..."></div>
+          <div class="f"><label>Data do documento</label><input type="date" data-k="a_dtdoc"></div>
+        </div>
+        <div class="row">
+          <div class="f"><label>Colaborador</label><input type="text" data-k="a_nome"></div>
+          <div class="f"><label>CPF</label><input type="text" data-k="a_cpf"></div>
+        </div>
+        <div class="row">
+          <div class="f"><label>Matrícula</label><input type="text" data-k="a_mat"></div>
+          <div class="f"><label>Função / cargo</label><input type="text" data-k="a_cargo"></div>
+        </div>
+
+        <h3 style="margin:14px -16px 0;border-radius:0">📌 O fato</h3>
+        <div class="row" style="margin-top:12px">
+          <div class="f"><label>Data do fato</label><input type="date" data-k="a_dtfato"></div>
+          <div class="f"><label>Hora</label><input type="time" data-k="a_hrfato"></div>
+          <div class="f"><label>Local</label><input type="text" data-k="a_local" placeholder="ex.: caixa / piso de vendas"></div>
+        </div>
+        <div class="f"><label>Descrição objetiva do ocorrido (fato concreto, neutro — sem julgar a pessoa)</label>
+          <textarea data-k="a_desc" placeholder="Descreva exatamente o que ocorreu, citando a regra interna ou o dispositivo da CLT violado. Ex.: 'No dia ../.. às ..h, no caixa da loja, o(a) colaborador(a) ...'"></textarea></div>
+        <div class="f"><label>Regra interna / dispositivo violado</label><input type="text" data-k="a_regra" placeholder="ex.: item X do Manual de Caixa / art. 482 CLT"></div>
+        <div class="f"><label>Antecedentes (se reincidência: citar advertência anterior e data)</label>
+          <textarea data-k="a_ant" style="min-height:50px" placeholder="ex.: Advertência verbal em ../../.. pelo mesmo tipo de conduta."></textarea></div>
+
+        <h3 style="margin:14px -16px 0;border-radius:0">⚖️ Medida aplicada</h3>
+        <div class="radios" style="margin-top:12px">
+          <label><input type="radio" name="tipo" value="verbal" data-k="a_tipo"> Advertência verbal (registro interno)</label>
+          <label><input type="radio" name="tipo" value="escrita" data-k="a_tipo"> Advertência escrita</label>
+          <label><input type="radio" name="tipo" value="suspensao" data-k="a_tipo"> Suspensão disciplinar</label>
+        </div>
+        <div class="row">
+          <div class="f"><label>Dias de suspensão (teto legal 30 — proporcional: usar 1 a 5; conferir CCT)</label><input type="number" min="1" max="30" data-k="a_susdias" placeholder="ex.: 1"></div>
+          <div class="f"><label>Período de afastamento</label><input type="text" data-k="a_susper" placeholder="de ../../.. a ../../.."></div>
+        </div>
+
+        <div id="a_cienciaWrap">
+        <h3 style="margin:14px -16px 0;border-radius:0">✍️ Ciência do colaborador</h3>
+        <div class="radios" style="margin-top:12px">
+          <label><input type="radio" name="cien" value="assinou" data-k="a_cien"> Colaborador deu ciência e assinou</label>
+          <label><input type="radio" name="cien" value="recusou" data-k="a_cien"> Recusou-se a assinar (registrar com 2 testemunhas)</label>
+        </div>
+        </div>
+
+        <div class="info"><b>Texto-modelo do corpo da advertência</b> (ajuste os dados; a ciência não significa concordância):</div>
+        <div class="modeltext" id="a_modelo"></div>
+
+        <div class="info no-print" id="a_verbalNote" style="display:none">ℹ️ <b>Advertência verbal é apenas registro interno</b> de gestão: não se colhe assinatura do colaborador e não se entrega via formal. Guarde este registro para sustentar a gradação caso haja reincidência.</div>
+
+        <div class="signs" id="a_signMain">
+          <div class="sign"><div class="line">Colaborador — ciente em ___/___/_____<br>(a ciência não implica concordância)</div></div>
+          <div class="sign"><div class="line">Gestor / RH responsável</div></div>
+        </div>
+        <div id="a_test" style="display:none">
+          <div class="info no-print">Recusa de assinatura registrada com <b>2 testemunhas</b> (preencher nome e CPF de cada uma):</div>
+          <div class="row">
+            <div class="f"><label>Testemunha 1 — nome</label><input type="text" data-k="a_t1nome"></div>
+            <div class="f"><label>Testemunha 1 — CPF</label><input type="text" data-k="a_t1cpf"></div>
+          </div>
+          <div class="row">
+            <div class="f"><label>Testemunha 2 — nome</label><input type="text" data-k="a_t2nome"></div>
+            <div class="f"><label>Testemunha 2 — CPF</label><input type="text" data-k="a_t2cpf"></div>
+          </div>
+          <div class="signs">
+            <div class="sign"><div class="line" id="a_t1line">Testemunha 1 — nome / CPF</div></div>
+            <div class="sign"><div class="line" id="a_t2line">Testemunha 2 — nome / CPF</div></div>
+          </div>
+        </div>
+
+        <div id="a_reciboWrap">
+        <h3 style="margin:14px -16px 0;border-radius:0">📨 Recibo / protocolo de entrega da via ao colaborador</h3>
+        <div class="info no-print">Registre a entrega de uma via do documento ao colaborador (a outra fica arquivada no prontuário da empresa).</div>
+        <div class="row" style="margin-top:12px">
+          <div class="f"><label>Data da entrega</label><input type="date" data-k="a_entdata"></div>
+          <div class="f"><label>Hora da entrega</label><input type="time" data-k="a_enthora"></div>
+          <div class="f"><label>Entregue por (nome)</label><input type="text" data-k="a_entpor" placeholder="gestor / RH"></div>
+        </div>
+        <div class="signs">
+          <div class="sign"><div class="line">Colaborador — recebi 1 (uma) via deste documento em ___/___/_____</div></div>
+          <div class="sign"><div class="line" id="a_entline">Responsável pela entrega (gestor / RH)</div></div>
+        </div>
+        </div>
+        <div class="note no-print" style="margin-top:14px">Arquivar no <b>prontuário do empregado</b> com data/protocolo. Duas vias (empresa e colaborador).</div>
+      </div></div>
+    </div>
+
+    <div class="col-side">
+      <div class="block"><h3>✅ Como aplicar corretamente</h3><div class="body side">
+        <p><span class="pill">verbal</span><span class="pill">escrita</span><span class="pill">suspensão</span><span class="pill">justa causa</span></p>
+        <p>A gradação não está literal na CLT — vem da <b>jurisprudência</b> e do princípio da proporcionalidade. Seguir a escala protege a empresa.</p>
+        <ul>
+          <li><b>Imediatidade:</b> punir logo após saber da falta. Demorar = perdão tácito.</li>
+          <li><b>Proporcionalidade:</b> a punição deve caber na gravidade da falta, antecedentes e circunstâncias.</li>
+          <li><b>Gradação:</b> começar pelo grau mais leve e escalar na reincidência. Falta gravíssima pode pular etapas, mas exige prova robusta.</li>
+          <li><b>Não bis in idem:</b> uma falta = uma única punição. Não advertir e suspender pelo mesmo fato.</li>
+          <li><b>Isonomia:</b> mesma falta, mesma punição para quem está em situação equivalente.</li>
+          <li><b>Confidencialidade:</b> aplicar de forma discreta e reservada. <b>Nunca expor</b> o colaborador diante de colegas ou clientes (risco de dano moral).</li>
+        </ul>
+        <div class="danger"><b>Limites:</b> a suspensão disciplinar não pode passar de <b>30 dias</b> (art. 474 CLT); ultrapassar esse teto é considerado <b>rescisão sem justa causa por iniciativa do empregador</b> — <b>não</b> "rescisão indireta" (essa é provocada pelo empregado, art. 483). Na prática, <b>suspensão longa é desproporcional</b>: a jurisprudência e a maioria das CCTs tratam <b>1 a 5 dias</b> como razoável. <b>Confira o limite na CCT</b> antes de suspender. Documento <b>vago</b> ("mau desempenho", "atitude ruim") é anulado em juízo: sempre fato concreto, data, hora e local. Não punir por motivo discriminatório nem como retaliação.</div>
+      </div></div>
+    </div>
+  </div>`;
+}
+function renderAdvertenciaDyn(){
+  // texto-modelo dinâmico
+  const nome=load('a_nome')||'____________________';
+  const cargo=load('a_cargo')||'____________';
+  const loja=load('a_loja')||'____________';
+  const dtf=fmt(load('a_dtfato')); const hr=load('a_hrfato')||'__:__';
+  const local=load('a_local')||'____________';
+  const desc=load('a_desc')||'(descrever o ocorrido)';
+  const tipo=load('a_tipo');
+  const isVerbal=tipo==='verbal';
+  const reincid=(load('a_ant')||'').trim().length>0;
+  let medida='advertência escrita';
+  if(isVerbal)medida='advertência verbal';
+  else if(tipo==='suspensao'){const d=load('a_susdias')||'__';medida=`suspensão disciplinar de ${d} dia(s) (art. 474 CLT)`;}
+  // R3: graduar a escalada — só citar justa causa (art. 482) em suspensão ou reincidência
+  let escalon;
+  if(tipo==='suspensao'||reincid){
+    escalon='Fica o(a) colaborador(a) ciente de que a reincidência ou a prática de nova falta poderá ensejar medida disciplinar mais grave, inclusive a rescisão do contrato por justa causa (art. 482 da CLT).';
+  }else{
+    escalon='Esta medida tem caráter estritamente pedagógico. A repetição da conduta poderá ensejar medida disciplinar mais grave.';
+  }
+  let txt;
+  if(isVerbal){
+    txt=`REGISTRO INTERNO DE ADVERTÊNCIA VERBAL — uso interno de gestão (não requer assinatura do colaborador).
+
+Unidade ${loja}. Colaborador(a) ${nome}, função ${cargo}.
+No dia ${dtf}, por volta das ${hr}, no local ${local}, ocorreu: ${desc}
+
+Foi feita orientação verbal ao(à) colaborador(a) sobre a conduta. ${escalon}
+
+Registrado por: ____________________ (gestor/RH) em ___/___/_____.`;
+  }else{
+    txt=`A SWN · Premium Outlets, por meio da unidade ${loja}, comunica ao(à) colaborador(a) ${nome}, na função de ${cargo}, a aplicação de ${medida} em razão do fato a seguir:
+
+No dia ${dtf}, por volta das ${hr}, no local ${local}, ocorreu: ${desc}
+
+A conduta contraria a(s) regra(s) interna(s) da empresa e/ou dispositivo da CLT. ${escalon}
+
+Solicitamos a ciência abaixo. A assinatura atesta apenas o recebimento, não significando concordância com o teor.`;
+  }
+  const m=el('a_modelo'); if(m)m.textContent=txt;
+  // R4: verbal = registro interno, sem ciência/assinatura/testemunhas
+  const cw=el('a_cienciaWrap'); if(cw)cw.style.display=isVerbal?'none':'';
+  const sm=el('a_signMain'); if(sm)sm.style.display=isVerbal?'none':'flex';
+  const vn=el('a_verbalNote'); if(vn)vn.style.display=isVerbal?'block':'none';
+  const t=el('a_test'); if(t)t.style.display=(!isVerbal && load('a_cien')==='recusou')?'block':'none';
+  // recibo de entrega: só faz sentido em medida formal (não na verbal/registro interno)
+  const rw=el('a_reciboWrap'); if(rw)rw.style.display=isVerbal?'none':'';
+  // preencher linhas de assinatura com os nomes/CPF digitados
+  const t1l=el('a_t1line'); if(t1l){const n=load('a_t1nome'),c=load('a_t1cpf');t1l.textContent=(n||c)?`${n||'____________'} — CPF ${c||'____________'}`:'Testemunha 1 — nome / CPF';}
+  const t2l=el('a_t2line'); if(t2l){const n=load('a_t2nome'),c=load('a_t2cpf');t2l.textContent=(n||c)?`${n||'____________'} — CPF ${c||'____________'}`:'Testemunha 2 — nome / CPF';}
+  const enl=el('a_entline'); if(enl){const n=load('a_entpor');enl.textContent=n?`${n} (gestor / RH)`:'Responsável pela entrega (gestor / RH)';}
+  const pt=el('ptA'); if(pt)pt.textContent='Advertência Disciplinar — '+(load('a_nome')||'__________')+' — '+(load('a_loja')||'__________');
+}
+
+/* ===== ABA ESCALA ===== */
+const COLABS=8;
+function viewEscala(){
+  return `
+  <div class="pa-print" id="ptE"></div>
+  <div class="block"><h3>🗓️ Escala Mensal da Loja</h3><div class="body">
+    <div class="row">
+      <div class="f"><label>Loja / unidade</label><input type="text" id="e_loja" placeholder="SWN — Loja ..."></div>
+      <div class="f"><label>Mês / ano</label><input type="month" id="e_mes"></div>
+      <div class="f"><label>Gerente responsável</label><input type="text" id="e_resp"></div>
+      <div class="f"><label>Divulgada em</label><input type="date" id="e_div"></div>
+    </div>
+    <div class="legend">
+      <span><b>M</b> = manhã</span><span><b>T</b> = tarde</span><span><b>I</b> = integral</span>
+      <span><b>F</b> = folga</span><span><b>D</b> = domingo de folga (DSR)</span>
+      <span><b>FE</b> = feriado</span><span><b>FÉ</b> = férias</span><span><b>AF</b> = ausência / afastamento</span>
+    </div>
+    <div class="escala-wrap"><table class="escala" id="e_tab"></table></div>
+    <div class="danger" style="background:linear-gradient(135deg,rgba(180,210,51,.1),rgba(180,210,51,.03));border-color:rgba(180,210,51,.35);color:#f2d79a"><b>📍 A escala é apenas PREVISÃO</b> e <b>não substitui o registro de ponto efetivo</b>. As horas realmente trabalhadas, atrasos, faltas e horas extras devem ser apurados pelo <b>controle de ponto</b> (relógio/folha). Use <b>AF</b> para ausência/afastamento sem expor o motivo: <b>atestado é dado de saúde</b> e deve ficar restrito ao RH/DP (LGPD).</div>
+    <div class="info"><b>Regras de jornada (lembrete):</b> até 8h/dia e <b>44h/semana</b>; intervalo de <b>1h</b> se a jornada passar de 6h; <b>11h</b> de interjornada entre o fim de um turno e o início do outro; <b>DSR</b> de 24h após no máx. 6 dias; folga em <b>pelo menos 1 domingo a cada 3 semanas</b> (revezamento). <b>6x1</b> é o padrão da loja. Banco de horas exige <b>acordo escrito</b>. Divulgar a escala com antecedência (boa prática: até o dia 25 do mês anterior) e colher ciência.</div>
+    <div class="danger"><b>⚠️ Feriados — Portaria MTE 3.665/2023:</b> o comércio só poderá abrir em feriado com <b>autorização expressa em CCT/acordo coletivo</b> (acordo individual não basta, mesmo pagando em dobro). Vigência prevista para <b>1º/mar/2026</b>, mas houve sucessivos <b>adiamentos</b> — manter sob monitoramento jurídico. <b>Confirmar loja a loja</b> se a CCT vigente autoriza trabalho em feriado antes de escalar.</div>
+    <div class="signs">
+      <div class="sign"><div class="line">Gerente responsável</div></div>
+      <div class="sign"><div class="line">Ciência da equipe (assinaturas em anexo)</div></div>
+    </div>
+  </div></div>
+
+  <div class="block"><h3>⏱️ Banco de horas (resumo do mês)</h3><div class="body">
+    <div class="info no-print">Resumo gerencial — o banco de horas só é válido com <b>acordo escrito</b> (individual ou via CCT). Valores em horas (use sinal/decimais, ex.: <b>2:30</b> ou <b>2.5</b>). O saldo atual é calculado automaticamente.</div>
+    <div class="escala-wrap"><table class="escala" id="e_btab"></table></div>
+  </div></div>
+
+  <div class="block"><h3>✅ Checklist rápido de conformidade</h3><div class="body">
+    <div class="info no-print">Confira antes de divulgar a escala. As respostas ficam salvas neste navegador.</div>
+    <div class="radios" style="flex-direction:column;align-items:flex-start;gap:10px">
+      <label><input type="checkbox" data-k="e_ck1"> Todos os colaboradores têm <b style="margin:0 4px">DSR</b> (descanso semanal remunerado de 24h) na semana?</label>
+      <label><input type="checkbox" data-k="e_ck2"> Cada colaborador tem <b style="margin:0 4px">folga em ao menos 1 domingo a cada 3 semanas</b> (revezamento)?</label>
+      <label><input type="checkbox" data-k="e_ck3"> A <b style="margin:0 4px">interjornada de 11h</b> entre o fim de um turno e o início do outro está respeitada?</label>
+      <label><input type="checkbox" data-k="e_ck4"> Jornada dentro de <b style="margin:0 4px">8h/dia e 44h/semana</b>, com intervalo de 1h quando passa de 6h?</label>
+      <label><input type="checkbox" data-k="e_ck5"> Trabalho em <b style="margin:0 4px">feriado</b> conferido na CCT da loja (Portaria MTE 3.665/2023)?</label>
+    </div>
+  </div></div>`;
+}
+function buildBancoTab(){
+  const tab=el('e_btab'); if(!tab)return;
+  const mes=el('e_mes')?el('e_mes').value:'';
+  const lojakey=((el('e_loja')?el('e_loja').value:'')||'_')+'|'+(mes||'_');
+  let head='<tr><th class="namecell">Colaborador</th><th>Saldo anterior</th><th>+ Horas</th><th>− Horas</th><th>Saldo atual</th></tr>';
+  let body='';
+  for(let r=0;r<COLABS;r++){
+    body+=`<tr><td class="namecell"><input type="text" data-ek="bh:${lojakey}:n${r}" placeholder="Nome"></td>`+
+      `<td><input type="text" data-ek="bh:${lojakey}:ant${r}" placeholder="0:00"></td>`+
+      `<td><input type="text" data-ek="bh:${lojakey}:add${r}" placeholder="0:00"></td>`+
+      `<td><input type="text" data-ek="bh:${lojakey}:sub${r}" placeholder="0:00"></td>`+
+      `<td><input type="text" data-ek="bh:${lojakey}:atu${r}" placeholder="auto" data-bhr="${r}"></td></tr>`;
+  }
+  tab.innerHTML=head+body;
+  function toMin(s){s=(s||'').trim();if(!s)return 0;let neg=s[0]==='-';s=s.replace('-','');let v=0;if(s.indexOf(':')>=0){const[h,mm]=s.split(':');v=(parseInt(h||'0',10))*60+(parseInt(mm||'0',10));}else{v=Math.round(parseFloat(s.replace(',','.'))*60)||0;}return neg?-v:v;}
+  function toHHMM(min){const neg=min<0;min=Math.abs(min);const h=Math.floor(min/60);const m=min%60;return (neg?'-':'')+h+':'+String(m).padStart(2,'0');}
+  function recalcRow(r){
+    const a=load(`bh:${lojakey}:ant${r}`),ad=load(`bh:${lojakey}:add${r}`),su=load(`bh:${lojakey}:sub${r}`);
+    const out=tab.querySelector(`[data-bhr="${r}"]`); if(!out)return;
+    if(!a&&!ad&&!su){out.value='';return;}
+    out.value=toHHMM(toMin(a)+toMin(ad)-toMin(su));
+  }
+  tab.querySelectorAll('[data-ek]').forEach(inp=>{
+    const k=inp.getAttribute('data-ek');
+    const v=load(k); if(v)inp.value=v;
+    inp.addEventListener('input',()=>{save(k,inp.value);const m2=k.match(/:(?:ant|add|sub)(\d+)$/);if(m2)recalcRow(parseInt(m2[1],10));});
+  });
+  for(let r=0;r<COLABS;r++)recalcRow(r);
+}
+function buildEscalaTab(){
+  const mes=el('e_mes').value; // YYYY-MM
+  let y,m;
+  if(mes){[y,m]=mes.split('-').map(Number);}else{const d=new Date();y=d.getFullYear();m=d.getMonth()+1;}
+  const days=new Date(y,m,0).getDate();
+  const lojakey=(el('e_loja').value||'_')+'|'+(mes||'_');
+  let head='<tr><th class="namecell">Colaborador / cargo</th>';
+  for(let d=1;d<=days;d++){
+    const dow=new Date(y,m-1,d).getDay(); // 0 dom 6 sab
+    const we=(dow===0||dow===6)?'we':'';
+    const lbl=['D','S','T','Q','Q','S','S'][dow];
+    head+=`<th class="${we}">${d}<br><small>${lbl}</small></th>`;
+  }
+  head+='</tr>';
+  let body='';
+  for(let r=0;r<COLABS;r++){
+    body+=`<tr><td class="namecell"><input type="text" data-ek="esc:${lojakey}:n${r}" placeholder="Nome — cargo"></td>`;
+    for(let d=1;d<=days;d++){
+      const dow=new Date(y,m-1,d).getDay();
+      const we=(dow===0||dow===6)?'we':'';
+      body+=`<td class="daycell ${we}"><input type="text" maxlength="3" data-ek="esc:${lojakey}:r${r}d${d}"></td>`;
+    }
+    body+='</tr>';
+  }
+  el('e_tab').innerHTML=head+body;
+  // bind escala cells
+  el('e_tab').querySelectorAll('[data-ek]').forEach(inp=>{
+    const k=inp.getAttribute('data-ek');
+    const v=load(k); if(v)inp.value=v;
+    inp.addEventListener('input',()=>save(k,inp.value));
+  });
+  const pt=el('ptE'); if(pt)pt.textContent='Escala Mensal — '+(el('e_loja').value||'________')+' — '+(mes||'__/____');
+}
+function renderEscalaDyn(){
+  ['e_loja','e_mes','e_resp','e_div'].forEach(id=>{
+    const inp=el(id); if(!inp)return;
+    const v=load(id); if(v&&!inp.value)inp.value=v;
+    inp.addEventListener('input',()=>{save(id,inp.value);if(id==='e_loja'||id==='e_mes'){buildEscalaTab();buildBancoTab();}});
+    inp.addEventListener('change',()=>{save(id,inp.value);if(id==='e_loja'||id==='e_mes'){buildEscalaTab();buildBancoTab();}});
+  });
+  if(!el('e_mes').value)el('e_mes').value=new Date().toISOString().slice(0,7);
+  buildEscalaTab();
+  buildBancoTab();
+  // checklist de conformidade (checkboxes data-k)
+  el('content').querySelectorAll('input[type=checkbox][data-k]').forEach(cb=>{
+    const k=cb.getAttribute('data-k');
+    if(load(k)==='1')cb.checked=true;
+    cb.addEventListener('change',()=>save(k,cb.checked?'1':''));
+  });
+}
+
+/* ===== ABA ADIANTAMENTO ===== */
+function viewAdiantamento(){
+  return `
+  <div class="pa-print" id="ptV"></div>
+  <div class="grid">
+    <div class="col-main">
+      <div class="block"><h3>💵 Recibo de Adiantamento Salarial / Vale</h3><div class="body">
+        <div class="row">
+          <div class="f"><label>Razão social</label><input type="text" data-k="v_razao"></div>
+          <div class="f"><label>CNPJ</label><input type="text" data-k="v_cnpj"></div>
+        </div>
+        <div class="row">
+          <div class="f"><label>Loja / unidade</label><input type="text" data-k="v_loja"></div>
+          <div class="f"><label>Colaborador</label><input type="text" data-k="v_nome"></div>
+        </div>
+        <div class="row">
+          <div class="f"><label>CPF</label><input type="text" data-k="v_cpf"></div>
+          <div class="f"><label>Matrícula</label><input type="text" data-k="v_mat"></div>
+          <div class="f"><label>Cargo</label><input type="text" data-k="v_cargo"></div>
+        </div>
+        <div class="row">
+          <div class="f"><label>Tipo</label>
+            <select data-k="v_tipo"><option value="padrao">Adiantamento mensal padrão</option><option value="extra">Vale extraordinário</option></select></div>
+          <div class="f"><label>Mês de competência (desconto)</label><input type="month" data-k="v_comp"></div>
+        </div>
+        <div class="row">
+          <div class="f"><label>Salário base (R$)</label><input type="number" step="0.01" data-k="v_sal" placeholder="0,00"></div>
+          <div class="f"><label>Percentual (%)</label><input type="number" step="1" data-k="v_pct" placeholder="40"></div>
+          <div class="f"><label>Valor do adiantamento (R$)</label><input type="text" id="v_valor" data-k="v_val" placeholder="auto / digite"></div>
+        </div>
+        <div class="f"><label>Valor por extenso</label><input type="text" id="v_extenso" readonly placeholder="(gerado automaticamente)" style="font-style:italic"></div>
+        <div id="v_warn" class="danger" style="display:none"></div>
+
+        <div id="v_aprovWrap" style="display:none">
+          <h3 style="margin:14px -16px 0;border-radius:0">🔐 Fluxo de aprovação (vale extraordinário)</h3>
+          <div class="row" style="margin-top:12px">
+            <div class="f"><label>Aprovado por (gestor / RH)</label><input type="text" data-k="v_aprovpor" placeholder="nome do aprovador"></div>
+            <div class="f"><label>Data da aprovação</label><input type="date" data-k="v_aprovdt"></div>
+          </div>
+          <div class="danger" style="background:linear-gradient(135deg,rgba(180,210,51,.1),rgba(180,210,51,.03));border-color:rgba(180,210,51,.35);color:#f2d79a"><b>⚠️ Limite de frequência:</b> o vale extraordinário deve ser <b>excepcional</b> — recomenda-se <b>no máximo 1 por mês</b> por colaborador. Concessões recorrentes viram dependência (ciclo vicioso) e comprometem a renda líquida. Toda concessão exige <b>aprovação formal</b> de gestor/RH antes do pagamento.</div>
+        </div>
+        <div class="row">
+          <div class="f"><label>Data de pagamento</label><input type="date" data-k="v_dtpag"></div>
+          <div class="f"><label>Forma</label><select data-k="v_forma"><option>PIX</option><option>Depósito</option><option>Dinheiro</option></select></div>
+        </div>
+        <div class="f"><label>Motivo (se vale extraordinário)</label><input type="text" data-k="v_motivo" placeholder="—"></div>
+
+        <div class="info"><b>Declaração de autorização do desconto:</b></div>
+        <div class="modeltext" id="v_modelo"></div>
+
+        <div class="signs">
+          <div class="sign"><div class="line">Colaborador — autorizo o desconto</div></div>
+          <div class="sign"><div class="line">Responsável pelo pagamento (RH/DP)</div></div>
+        </div>
+        <div class="note no-print" style="margin-top:14px">Emitir em <b>duas vias</b> (empresa e colaborador) ou via eletrônica com aceite registrado (data/hora). A rubrica "Adiantamento" deve constar claramente no holerite.</div>
+      </div></div>
+    </div>
+
+    <div class="col-side">
+      <div class="block"><h3>📌 Política resumida</h3><div class="body side">
+        <ul>
+          <li><b>É antecipação, não benefício novo:</b> o "vale" é adiantamento de salário, descontado integral no fechamento do mês (art. 462 CLT).</li>
+          <li><b>Percentual usual:</b> <b>40%</b> do salário bruto (faixa de mercado 40%–50%). 40% preserva o equilíbrio da folha.</li>
+          <li><b>Data usual:</b> por volta do <b>dia 20</b>; saldo até o 5º dia útil do mês seguinte.</li>
+          <li><b>Regra única e escrita:</b> mesmo percentual e data para todos no mesmo cargo/loja (evita acusação de tratamento desigual).</li>
+          <li><b>Separe</b> o adiantamento padrão (automático) do <b>vale emergencial</b> (solicitação formal, aprovação, teto e limite de frequência).</li>
+          <li><b>Autorização assinada</b> sempre — desconto sem aceite gera risco de devolução em dobro.</li>
+        </ul>
+        <div class="danger"><b>Conferir a CCT:</b> muitas convenções do comércio fixam <b>percentual mínimo</b> (geralmente 40%) e <b>data</b> — quando há previsão, ela <b>prevalece</b> sobre a política interna. Respeitar o piso de remuneração líquida (não comprometer demais a renda do colaborador).</div>
+      </div></div>
+    </div>
+  </div>`;
+}
+function renderAdiantamentoDyn(){
+  // valor automático
+  const sal=parseFloat((load('v_sal')||'').replace(',','.'));
+  const pct=parseFloat(load('v_pct'));
+  const vEl=el('v_valor');
+  if(vEl && !load('v_val') && sal>0 && pct>0){vEl.value=(sal*pct/100).toFixed(2);}
+  const sinp=document.querySelector('[data-k="v_sal"]'), pinp=document.querySelector('[data-k="v_pct"]');
+  function warnPct(){
+    const w=el('v_warn'); if(!w)return;
+    const p=parseFloat((pinp&&pinp.value)||load('v_pct'));
+    if(p>40){w.style.display='block';w.innerHTML='<b>Atenção:</b> percentual acima de <b>40%</b> sobre o salário bruto pode comprometer a renda líquida do colaborador (após INSS/IRRF e o próprio desconto do adiantamento). Calcule preservando o líquido e <b>confira o teto/percentual fixado na CCT</b> — quando há previsão, a convenção prevalece.';}
+    else{w.style.display='none';}
+  }
+  function recalc(){
+    const s=parseFloat((sinp.value||'').replace(',','.')); const p=parseFloat(pinp.value);
+    if(s>0&&p>0){vEl.value=(s*p/100).toFixed(2);save('v_val',vEl.value);}
+    warnPct();
+  }
+  if(sinp&&pinp){sinp.addEventListener('input',recalc);pinp.addEventListener('input',recalc);}
+  warnPct();
+
+  // valor por extenso
+  const valNum=(vEl&&vEl.value)||load('v_val');
+  const ext=extensoReais(valNum);
+  const exEl=el('v_extenso'); if(exEl)exEl.value=ext||'';
+  // fluxo de aprovação visível só para vale extraordinário
+  const aw=el('v_aprovWrap'); if(aw)aw.style.display=(load('v_tipo')==='extra')?'':'none';
+
+  const nome=load('v_nome')||'____________________';
+  const valor=load('v_val')||'______';
+  const comp=fmtMes(load('v_comp'));
+  const extTxt=ext?` (${ext})`:'';
+  const txt=`Eu, ${nome}, declaro ter recebido a título de adiantamento salarial o valor de R$ ${valor}${extTxt}, e AUTORIZO o desconto integral desse valor na minha folha de pagamento referente ao mês de competência ${comp}, nos termos do art. 462 da CLT.`;
+  const m=el('v_modelo'); if(m)m.textContent=txt;
+  const pt=el('ptV'); if(pt)pt.textContent='Recibo de Adiantamento — '+(load('v_nome')||'__________');
+}
+
+/* ===== infra ===== */
+function buildTabs(){
+  el('tabs').innerHTML=Object.entries(TABS).map(([k,v])=>
+    `<button class="${k===CURTAB?'active':''}" onclick="setTab('${k}')">${v}</button>`).join('');
+}
+function setTab(k){CURTAB=k;location.hash='#'+k;buildTabs();render();}
+function render(){
+  if(CURTAB==='advertencia'){el('content').innerHTML=viewAdvertencia();bindAll(el('content'));renderAdvertenciaDyn();
+    el('content').addEventListener('input',renderAdvertenciaDyn);el('content').addEventListener('change',renderAdvertenciaDyn);}
+  else if(CURTAB==='escala'){el('content').innerHTML=viewEscala();renderEscalaDyn();}
+  else{el('content').innerHTML=viewAdiantamento();bindAll(el('content'));renderAdiantamentoDyn();
+    el('content').addEventListener('input',renderAdiantamentoDyn);el('content').addEventListener('change',renderAdiantamentoDyn);}
+  window.scrollTo(0,0);
+}
+function limpar(){
+  if(!confirm('Limpar os campos desta aba neste navegador?'))return;
+  const prefs={advertencia:['rhdj:a_'],escala:['rhdj:e','rhdj:esc:','rhdj:bh:'],adiantamento:['rhdj:v_']}[CURTAB];
+  Object.keys(localStorage).filter(k=>prefs.some(p=>k.startsWith(p))).forEach(k=>localStorage.removeItem(k));
+  render();
+}
+/* ===== backup: exportar / importar localStorage (prefixo rhdj:) ===== */
+function exportarJSON(){
+  const data={};
+  Object.keys(localStorage).filter(k=>k.startsWith('rhdj:')).forEach(k=>{data[k]=localStorage.getItem(k);});
+  const payload={_app:'RH_DISCIPLINA_JORNADA_SWN',_exportado:new Date().toISOString(),dados:data};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='backup_disciplina_jornada_'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function importarJSON(input){
+  const file=input.files&&input.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const obj=JSON.parse(e.target.result);
+      const dados=obj&&obj.dados?obj.dados:obj;
+      const chaves=Object.keys(dados).filter(k=>k.startsWith('rhdj:'));
+      if(!chaves.length){alert('Arquivo sem dados válidos (chaves rhdj:).');input.value='';return;}
+      if(!confirm('Importar '+chaves.length+' campo(s)? Isso substitui os dados atuais deste navegador.')){input.value='';return;}
+      Object.keys(localStorage).filter(k=>k.startsWith('rhdj:')).forEach(k=>localStorage.removeItem(k));
+      chaves.forEach(k=>localStorage.setItem(k,dados[k]));
+      input.value=''; render();
+      alert('Dados importados com sucesso.');
+    }catch(err){alert('Não foi possível ler o arquivo JSON.');input.value='';}
+  };
+  reader.readAsText(file);
+}
+
+function fmt(d){if(!d)return '___/___/_____';const[a,m,x]=d.split('-');return `${x}/${m}/${a}`;}
+function fmtMes(d){if(!d)return '__/____';const[a,m]=d.split('-');return `${m}/${a}`;}
+
+/* ===== número para extenso em reais ===== */
+function extensoReais(valor){
+  let s=String(valor||'').trim().replace(/[R$\s]/g,'');
+  if(!s)return '';
+  // detectar separador decimal: se há vírgula, ela é o decimal (pt-BR) e ponto é milhar;
+  // caso contrário o ponto é o decimal (formato toFixed)
+  if(s.indexOf(',')>=0){s=s.replace(/\./g,'').replace(',','.');}
+  let n=parseFloat(s);
+  if(isNaN(n)||n<0)return '';
+  n=Math.round(n*100)/100;
+  const reais=Math.floor(n);
+  const cent=Math.round((n-reais)*100);
+  const u=['zero','um','dois','três','quatro','cinco','seis','sete','oito','nove','dez','onze','doze','treze','quatorze','quinze','dezesseis','dezessete','dezoito','dezenove'];
+  const dez=['','','vinte','trinta','quarenta','cinquenta','sessenta','setenta','oitenta','noventa'];
+  const cem=['','cento','duzentos','trezentos','quatrocentos','quinhentos','seiscentos','setecentos','oitocentos','novecentos'];
+  function trio(num){ // 0..999
+    if(num===0)return '';
+    if(num===100)return 'cem';
+    let s='';
+    const c=Math.floor(num/100), resto=num%100;
+    if(c>0)s+=cem[c];
+    if(resto>0){
+      if(s)s+=' e ';
+      if(resto<20)s+=u[resto];
+      else{const d=Math.floor(resto/10),un=resto%10;s+=dez[d]+(un>0?' e '+u[un]:'');}
+    }
+    return s;
+  }
+  function porExtenso(num){
+    if(num===0)return 'zero';
+    const grupos=[];
+    let x=num;
+    while(x>0){grupos.push(x%1000);x=Math.floor(x/1000);}
+    const nomes=[['',''],['mil','mil'],['milhão','milhões'],['bilhão','bilhões']];
+    let partes=[];
+    for(let i=grupos.length-1;i>=0;i--){
+      const g=grupos[i]; if(g===0)continue;
+      let txt=trio(g);
+      if(i===1){txt=(g===1)?'mil':txt+' mil';}
+      else if(i>1){txt=txt+' '+(g===1?nomes[i][0]:nomes[i][1]);}
+      partes.push(txt);
+    }
+    // junta com vírgulas e "e" antes do último grupo pequeno
+    let r=partes.join(' e ');
+    return r;
+  }
+  let out=porExtenso(reais)+' '+(reais===1?'real':'reais');
+  if(cent>0)out+=' e '+porExtenso(cent)+' '+(cent===1?'centavo':'centavos');
+  return out.charAt(0).toUpperCase()+out.slice(1);
+}
+
+// init + deep-link
+const h=(location.hash||'').replace('#','');
+if(TABS[h])CURTAB=h;
+buildTabs();render();
+window.addEventListener('hashchange',()=>{const x=(location.hash||'').replace('#','');if(TABS[x]&&x!==CURTAB){CURTAB=x;buildTabs();render();}});
+</script>
+</body>
+</html>

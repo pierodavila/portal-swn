@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% block title %}Depósito ATM{% endblock %}
+
+{% block content %}
+<div class="flex-between" style="margin-bottom:20px">
+  <h2 style="font-size:1.1rem;font-weight:700">🏧 Depósito no Caixa Eletrônico</h2>
+</div>
+
+<!-- Formulário -->
+<div class="card">
+  <div class="card-title">Registrar Depósito</div>
+
+  <div class="form-group">
+    <label>Loja</label>
+    <select id="store_cnpj" style="width:100%;padding:13px 14px;border:1.5px solid #ddd;border-radius:10px;font-size:1rem;background:#fafafa">
+      <option value="">Selecione a loja...</option>
+      {% for s in stores %}
+      <option value="{{ s.cnpj }}">{{ s.nome }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Valor Depositado</label>
+    <input id="amount" type="number" step="0.01" min="0" class="currency"
+           placeholder="0,00">
+  </div>
+
+  <div class="form-group">
+    <label>Data do Depósito</label>
+    <input id="deposit_date" type="date" style="width:100%;padding:13px 14px;border:1.5px solid #ddd;border-radius:10px;font-size:1rem;background:#fafafa">
+  </div>
+
+  <div style="display:flex;gap:12px">
+    <div class="form-group" style="flex:1">
+      <label>Período — De</label>
+      <input id="period_from" type="date" style="width:100%;padding:13px 14px;border:1.5px solid #ddd;border-radius:10px;font-size:1rem;background:#fafafa">
+    </div>
+    <div class="form-group" style="flex:1">
+      <label>Período — Até</label>
+      <input id="period_to" type="date" style="width:100%;padding:13px 14px;border:1.5px solid #ddd;border-radius:10px;font-size:1rem;background:#fafafa">
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>Depositado por</label>
+    <input id="deposited_by" type="text" placeholder="Nome do gestor"
+           style="width:100%;padding:13px 14px;border:1.5px solid #ddd;border-radius:10px;font-size:1rem;background:#fafafa">
+  </div>
+
+  <div class="form-group">
+    <label>Notas Rasuradas <span class="hint">(opcional)</span></label>
+    <input id="rejected_notes" type="number" step="0.01" min="0" class="currency"
+           placeholder="0,00" style="font-size:1rem">
+    <div style="font-size:.75rem;color:#666;margin-top:4px">
+      💡 Notas rejeitadas pelo ATM serão automaticamente registradas no Cofre Central.
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>📷 Foto do comprovante do depósito <span class="hint">(opcional)</span></label>
+    <input id="foto-deposito" type="file" accept="image/*" capture="environment" style="width:100%">
+  </div>
+
+  <div class="form-group">
+    <label>Observações <span class="hint">(opcional)</span></label>
+    <textarea id="notes" placeholder="Ex: depósito referente à semana 02–08 de junho"></textarea>
+  </div>
+
+  <div id="error-msg" class="alert alert-warn hidden"></div>
+  <div id="success-msg" class="alert" style="background:#d1fae5;color:#065f46;border-left:4px solid #10b981;display:none"></div>
+
+  <button id="submit-btn" class="btn btn-primary btn-full mt-12" onclick="saveDeposit()">
+    Registrar Depósito
+  </button>
+</div>
+
+<!-- Histórico -->
+{% if deposits %}
+<div class="card">
+  <div class="card-title">Depósitos Recentes</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Loja</th>
+          <th>Valor</th>
+          <th>Período</th>
+          <th>Gestor</th>
+          <th>Comprovante</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in deposits %}
+        <tr>
+          <td style="white-space:nowrap">{{ d.deposit_date }}</td>
+          <td>{{ d.store_nome }}</td>
+          <td style="font-weight:600">R$ {{ "%.2f"|format(d.amount) }}</td>
+          <td style="font-size:.8rem;color:#666">
+            {% if d.period_from and d.period_to %}
+              {{ d.period_from }} → {{ d.period_to }}
+            {% else %}—{% endif %}
+          </td>
+          <td style="font-size:.85rem">{{ d.deposited_by or '—' }}</td>
+          <td style="font-size:.85rem">
+            {% if d.id in ids_com_foto %}
+              <a href="/deposito/{{ d.id }}/foto" target="_blank">🧾 ver</a>
+            {% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+        </tr>
+        {% if d.notes %}
+        <tr style="background:#fafafa">
+          <td colspan="6" style="font-size:.78rem;color:#666;padding:6px 12px">
+            {{ d.notes }}
+          </td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Pré-preencher data de hoje
+document.getElementById('deposit_date').value = new Date().toISOString().split('T')[0];
+
+// Comprime a foto no cliente antes do upload (evita queda em internet fraca)
+function comprimirFoto(file) {
+  return new Promise(function(resolve) {
+    if (!file || (''+(file.type||'')).indexOf('image/') !== 0 || file.size < 600*1024) { resolve(file); return; }
+    var img = new Image(), url = URL.createObjectURL(file);
+    img.onload = function() {
+      URL.revokeObjectURL(url);
+      var max = 1600, w = img.width, h = img.height;
+      if (w > max || h > max) { var r = Math.min(max/w, max/h); w = Math.round(w*r); h = Math.round(h*r); }
+      var c = document.createElement('canvas'); c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      c.toBlob(function(b) {
+        if (!b) { resolve(file); return; }
+        resolve(new File([b], (file.name||'comprovante').replace(/\.[^.]+$/,'')+'.jpg', {type:'image/jpeg'}));
+      }, 'image/jpeg', 0.6);
+    };
+    img.onerror = function() { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+
+async function saveDeposit() {
+  const btn    = document.getElementById('submit-btn');
+  const errEl  = document.getElementById('error-msg');
+  const okEl   = document.getElementById('success-msg');
+  const cnpj   = document.getElementById('store_cnpj').value;
+  const amount = parseFloat(document.getElementById('amount').value) || 0;
+  const date   = document.getElementById('deposit_date').value;
+  const foto   = document.getElementById('foto-deposito').files[0];
+
+  errEl.classList.add('hidden');
+  okEl.style.display = 'none';
+
+  if (!cnpj)   { errEl.textContent = 'Selecione a loja.';            errEl.classList.remove('hidden'); return; }
+  if (!amount)  { errEl.textContent = 'Informe o valor depositado.'; errEl.classList.remove('hidden'); return; }
+  if (!date)    { errEl.textContent = 'Informe a data do depósito.'; errEl.classList.remove('hidden'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Registrando...';
+
+  const payload = {
+    store_cnpj:    cnpj,
+    amount:        amount,
+    deposit_date:  date,
+    period_from:   document.getElementById('period_from').value,
+    period_to:     document.getElementById('period_to').value,
+    deposited_by:  document.getElementById('deposited_by').value.trim(),
+    notes:         document.getElementById('notes').value.trim(),
+    rejected_notes: parseFloat(document.getElementById('rejected_notes').value) || 0,
+  };
+
+  try {
+    const resp = await fetch('/deposito', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      credentials: 'same-origin',
+      body: JSON.stringify(payload)
+    });
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      errEl.textContent = data.error || 'Erro ao registrar.';
+      errEl.classList.remove('hidden');
+      btn.disabled = false;
+      btn.textContent = 'Registrar Depósito';
+      return;
+    }
+
+    // Upload da foto do comprovante (best-effort, não bloqueia o sucesso)
+    if (data.id && foto) {
+      btn.textContent = 'Enviando foto...';
+      try {
+        const small = await comprimirFoto(foto);
+        const fd = new FormData(); fd.append('foto', small);
+        await fetch('/deposito/' + data.id + '/foto', {method:'POST', body: fd, credentials:'same-origin'});
+      } catch(e) { /* depósito já salvou; foto é best-effort */ }
+    }
+
+    okEl.textContent = '✅ Depósito registrado com sucesso!';
+    okEl.style.display = 'block';
+    btn.textContent = 'Salvo!';
+    setTimeout(() => location.reload(), 1800);
+
+  } catch(e) {
+    errEl.textContent = 'Falha de conexão ao enviar. Confira em "Depósitos Recentes" se já foi salvo antes de registrar de novo.';
+    errEl.classList.remove('hidden');
+    btn.disabled = false;
+    btn.textContent = 'Registrar Depósito';
+  }
+}
+</script>
+{% endblock %}

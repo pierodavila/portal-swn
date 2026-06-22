@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestão &amp; Cadastros · SWN · Premium Outlets</title>
+<style>
+  :root{
+    --bg:#0f1115;--panel:#161a22;--panel2:#1c2230;--line:#262d3a;
+    --txt:#e8ecf3;--muted:#9aa6b8;--brand:#b4d233;--brand2:#cbe465;
+    --green:#2ecc71;--red:#e74c3c;--blue:#4aa3ff;--radius:13px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5}
+  a{color:var(--blue)}
+  .topbar{position:sticky;top:0;z-index:20;background:rgba(15,17,21,.95);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);padding:13px 22px;display:flex;align-items:center;gap:12px}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:16px}
+  .logo{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;
+    background:linear-gradient(135deg,var(--brand),var(--brand2));color:#1a1300;font-weight:900}
+  .brand small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+  .wrap{max-width:1080px;margin:0 auto;padding:22px}
+
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+  .tabs button{padding:9px 15px;border:1px solid var(--line);border-radius:10px;cursor:pointer;
+    background:var(--panel);color:var(--muted);font-weight:700;font-size:13px}
+  .tabs button.active{background:var(--brand);color:#1a1300;border-color:var(--brand)}
+
+  .block{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    margin-bottom:14px;overflow:hidden}
+  .block h3{margin:0;padding:12px 16px;font-size:13px;text-transform:uppercase;letter-spacing:.6px;
+    color:var(--brand2);background:var(--panel2);border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .block .seqnote{font-size:10.5px;color:var(--muted);font-weight:600;text-transform:none;letter-spacing:0}
+  .block .body{padding:12px 16px}
+
+  /* formulários */
+  .form-grid{display:flex;gap:12px;flex-wrap:wrap;align-items:end}
+  .form-grid .f{display:flex;flex-direction:column;gap:4px}
+  .form-grid label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+  input,select,textarea{padding:8px 11px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--txt);font-size:13.5px;font-family:inherit;outline:none}
+  input:focus,select:focus,textarea:focus{border-color:var(--brand)}
+
+  /* tabelas */
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:9px 11px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}
+  th{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700;
+    background:var(--panel2);position:sticky;top:0}
+  tbody tr:hover{background:var(--panel2)}
+  td input,td select{padding:6px 8px;font-size:12.5px;width:100%}
+  .tbl-wrap{overflow-x:auto}
+  .pill{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+  .pill.ok{background:rgba(46,204,113,.16);color:var(--green)}
+  .pill.warn{background:rgba(180,210,51,.16);color:var(--brand2)}
+  .pill.off{background:rgba(231,76,60,.16);color:#f29a90}
+  .pill.muted{background:rgba(154,166,184,.14);color:var(--muted)}
+
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
+  .btn{padding:10px 16px;border:0;border-radius:10px;cursor:pointer;font-weight:700;font-size:13px}
+  .btn.primary{background:var(--brand);color:#1a1300}
+  .btn.ghost{background:var(--panel2);border:1px solid var(--line);color:var(--txt)}
+  .btn.ghost:hover{border-color:var(--brand);color:var(--brand2)}
+  .btn.sm{padding:6px 11px;font-size:12px}
+  .btn.del{background:transparent;border:1px solid var(--line);color:var(--muted)}
+  .btn.del:hover{border-color:var(--red);color:#f29a90}
+
+  /* KPIs / cartões de rollup */
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+  .card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .card .v{font-size:26px;font-weight:800;color:var(--brand2);line-height:1.1}
+  .card .l{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-top:5px}
+  .card .sub{font-size:11px;color:var(--muted);margin-top:4px}
+
+  .note{background:linear-gradient(135deg,rgba(180,210,51,.08),rgba(74,163,255,.06));
+    border:1px dashed var(--line);border-radius:12px;padding:13px 15px;font-size:12.5px;color:var(--muted);margin:0 0 16px}
+  .banner{background:linear-gradient(135deg,rgba(180,210,51,.16),rgba(180,210,51,.05));
+    border:1px solid var(--brand);border-radius:12px;padding:13px 15px;font-size:12.5px;color:var(--txt);margin:0 0 16px}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  .toolbar input[type=search]{min-width:200px;flex:1;max-width:360px}
+  .empty{padding:18px;text-align:center;color:var(--muted);font-size:13px}
+  .formula{font-size:11.5px;color:var(--muted);margin-top:8px;font-style:italic}
+
+  /* grade de status diário */
+  .status-cell{text-align:center}
+  .status-cell input[type=checkbox]{width:18px;height:18px;accent-color:var(--green);cursor:pointer}
+  td.r-green{background:rgba(46,204,113,.10)}
+  td.r-red{background:rgba(231,76,60,.12)}
+
+  @media print{
+    body{background:#fff;color:#000}
+    .topbar,.tabs,.actions,.note,.toolbar,.btn{display:none!important}
+    .block,.card{border:1px solid #999;background:#fff;break-inside:avoid}
+    .block h3{background:#eee;color:#000}
+    .card .v{color:#000}
+    th{background:#eee;color:#000}
+    .banner{border:1px solid #999;background:#fff;color:#000}
+  }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand"><svg class="brandmark" width="58" height="28" viewBox="0 0 58 28" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SWN Premium Outlets"><rect width="58" height="28" rx="7" fill="#fff"/><text x="6" y="22" font-family="Arial,Helvetica,sans-serif" font-weight="900" font-size="21" letter-spacing="-1.5"><tspan fill="#1b3c86">s</tspan><tspan fill="#b4d233">w</tspan><tspan fill="#2e241a">n</tspan></text></svg><div>Gestão &amp; Cadastros <small>SWN · Premium Outlets</small></div></div>
+  </div>
+
+  <div class="wrap">
+    <div class="tabs" id="tabs"></div>
+    <div id="content"></div>
+
+    <div class="actions">
+      <button class="btn primary" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
+      <button class="btn ghost" onclick="exportAllJson()">⬇️ Exportar JSON (tudo)</button>
+      <button class="btn ghost" onclick="el('importFile').click()">⬆️ Importar JSON</button>
+      <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importAllJson(this)">
+    </div>
+  </div>
+
+<script>
+/* ============================================================
+   GESTÃO SWN — fonte única de cadastro (localStorage 'gestao:')
+   ============================================================ */
+const PREFIX='gestao:';
+const K_COLAB='gestao:colaboradores';
+const K_LOJAS='gestao:lojas';
+const el=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---- storage helpers ---- */
+function loadArr(key){try{const v=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(v)?v:[];}catch(e){return [];}}
+function saveArr(key,arr){localStorage.setItem(key,JSON.stringify(arr));}
+function getColabs(){return loadArr(K_COLAB);}
+function setColabs(a){saveArr(K_COLAB,a);}
+function getLojas(){return loadArr(K_LOJAS);}
+function setLojas(a){saveArr(K_LOJAS,a);}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+
+/* ---- datas ---- */
+function todayISO(){return new Date().toISOString().slice(0,10);}
+function fmtDate(d){if(!d)return '—';const[a,m,x]=d.split('-');return `${x}/${m}/${a}`;}
+function monthKey(d){return d?d.slice(0,7):'';}
+function curMonth(){return todayISO().slice(0,7);}
+function monthsBetween(iso,refIso){
+  if(!iso)return null;
+  const a=new Date(iso+'T00:00:00'),b=new Date((refIso||todayISO())+'T00:00:00');
+  if(isNaN(a)||isNaN(b))return null;
+  let m=(b.getFullYear()-a.getFullYear())*12+(b.getMonth()-a.getMonth());
+  if(b.getDate()<a.getDate())m--;
+  return Math.max(0,m);
+}
+function fmtTenure(meses){
+  if(meses==null)return '—';
+  const a=Math.floor(meses/12),m=meses%12;
+  if(a<=0)return m+(m===1?' mês':' meses');
+  if(m===0)return a+(a===1?' ano':' anos');
+  return a+(a===1?' ano':' anos')+' e '+m+(m===1?' mês':' meses');
+}
+
+/* ---- status sugerido do colaborador ---- */
+function suggestStatus(c){
+  if(c.desligamento)return 'Desligado';
+  const m=monthsBetween(c.admissao);
+  if(m!=null&&m<3)return 'Experiência'; // 90 dias ~ 3 meses
+  return 'Ativo';
+}
+
+/* ============================================================
+   ABAS
+   ============================================================ */
+const ORDER=['colaboradores','lojas','cockpit','gente'];
+const NAMES={colaboradores:'👥 Colaboradores',lojas:'🏬 Lojas',cockpit:'🎛️ Cockpit',gente:'📊 Gente'};
+let CURTAB='colaboradores';
+
+function buildTabs(){
+  el('tabs').innerHTML=ORDER.map(k=>
+    `<button class="${k===CURTAB?'active':''}" onclick="setTab('${k}')">${NAMES[k]}</button>`).join('');
+}
+function setTab(k){if(!ORDER.includes(k))k='colaboradores';CURTAB=k;location.hash=k;buildTabs();render();}
+function render(){
+  if(CURTAB==='colaboradores')renderColabs();
+  else if(CURTAB==='lojas')renderLojas();
+  else if(CURTAB==='cockpit')renderCockpit();
+  else if(CURTAB==='gente')renderGente();
+}
+
+/* ============================================================
+   1) COLABORADORES — cadastro único
+   ============================================================ */
+let COLAB_FILTER='';
+function lojaOptions(sel){
+  const opts=getLojas().map(l=>`<option value="${esc(l.nome)}" ${l.nome===sel?'selected':''}>${esc(l.nome)}</option>`).join('');
+  return `<option value="">—</option>${opts}`;
+}
+const CARGOS=['Vendedor','Caixa','Estoquista','Subgerente','Gerente','Outro'];
+function cargoOptions(sel){return CARGOS.map(c=>`<option ${c===sel?'selected':''}>${esc(c)}</option>`).join('');}
+const STATUSES=['Experiência','Ativo','Desligado'];
+function statusOptions(sel){return STATUSES.map(s=>`<option ${s===sel?'selected':''}>${esc(s)}</option>`).join('');}
+function statusPill(s){const cls=s==='Ativo'?'ok':s==='Experiência'?'warn':s==='Desligado'?'off':'muted';return `<span class="pill ${cls}">${esc(s||'—')}</span>`;}
+
+function renderColabs(){
+  const lojas=getLojas();
+  const colabs=getColabs();
+  const f=COLAB_FILTER.trim().toLowerCase();
+  const list=colabs.filter(c=>!f||(c.nome||'').toLowerCase().includes(f)||(c.loja||'').toLowerCase().includes(f));
+
+  let rows='';
+  if(!list.length){
+    rows=`<tr><td colspan="9"><div class="empty">${colabs.length?'Nenhum colaborador para este filtro.':'Nenhum colaborador cadastrado ainda. Use o formulário acima para adicionar.'}</div></td></tr>`;
+  }else{
+    rows=list.map(c=>{
+      const sug=suggestStatus(c);
+      return `<tr>
+        <td><input value="${esc(c.nome)}" onchange="updColab('${c.id}','nome',this.value)" placeholder="Nome"></td>
+        <td><input value="${esc(c.cpf)}" onchange="updColab('${c.id}','cpf',this.value)" placeholder="000.000.000-00"></td>
+        <td><select onchange="updColab('${c.id}','loja',this.value)">${lojaOptions(c.loja)}</select></td>
+        <td><select onchange="updColab('${c.id}','cargo',this.value)">${cargoOptions(c.cargo)}</select></td>
+        <td><input type="date" value="${esc(c.admissao)}" onchange="updColab('${c.id}','admissao',this.value)"></td>
+        <td><input type="date" value="${esc(c.desligamento)}" onchange="updColab('${c.id}','desligamento',this.value)"></td>
+        <td><select onchange="updColab('${c.id}','status',this.value)">${statusOptions(c.status||sug)}</select>
+            ${(c.status&&c.status!==sug)?`<div class="formula" style="margin:3px 0 0">sugerido: ${sug}</div>`:''}</td>
+        <td><input value="${esc(c.contato)}" onchange="updColab('${c.id}','contato',this.value)" placeholder="tel / email"></td>
+        <td><button class="btn del sm" onclick="delColab('${c.id}')">🗑️</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  const lojaSelMsg=lojas.length?'':'<div class="note" style="margin-top:0">Nenhuma loja cadastrada ainda — cadastre lojas na aba 🏬 Lojas para popular o seletor de loja.</div>';
+
+  el('content').innerHTML=`
+    <div class="banner">👥 <b>Cadastro único de colaboradores.</b> Esta é a fonte de dados que alimenta o Cockpit e os indicadores de Gente. O status é <b>sugerido</b> automaticamente (Experiência &lt; 3 meses · Desligado se houver data de desligamento) mas pode ser editado manualmente.</div>
+    ${lojaSelMsg}
+    <div class="block">
+      <h3>➕ Novo colaborador</h3>
+      <div class="body">
+        <div class="form-grid">
+          <div class="f" style="flex:1;min-width:160px"><label>Nome</label><input id="nc_nome" placeholder="Nome completo"></div>
+          <div class="f"><label>CPF</label><input id="nc_cpf" placeholder="000.000.000-00"></div>
+          <div class="f"><label>Loja</label><select id="nc_loja">${lojaOptions('')}</select></div>
+          <div class="f"><label>Cargo</label><select id="nc_cargo">${cargoOptions('Vendedor')}</select></div>
+          <div class="f"><label>Admissão</label><input type="date" id="nc_adm" value="${todayISO()}"></div>
+          <div class="f"><label>Contato</label><input id="nc_contato" placeholder="tel / email (opcional)"></div>
+          <button class="btn primary" onclick="addColab()">Adicionar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <input type="search" id="colabSearch" placeholder="🔎 Buscar por nome ou loja..." value="${esc(COLAB_FILTER)}" oninput="COLAB_FILTER=this.value;renderColabs();reFocusSearch()">
+      <span class="pill muted">${list.length} de ${colabs.length}</span>
+      <button class="btn ghost sm" onclick="exportColabsCsv()">⬇️ Exportar CSV</button>
+      <button class="btn ghost sm" onclick="exportAllJson()">⬇️ Exportar JSON</button>
+      <button class="btn ghost sm" onclick="el('importFile').click()">⬆️ Importar JSON</button>
+    </div>
+
+    <div class="block">
+      <h3>👥 Colaboradores <span class="seqnote">— recalcula o status ao salvar</span></h3>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Nome</th><th>CPF</th><th>Loja</th><th>Cargo</th><th>Admissão</th><th>Desligamento</th><th>Status</th><th>Contato</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>`;
+}
+function reFocusSearch(){const s=el('colabSearch');if(s){s.focus();const v=s.value;s.value='';s.value=v;}}
+
+function addColab(){
+  const nome=(el('nc_nome').value||'').trim();
+  if(!nome){alert('Informe o nome do colaborador.');el('nc_nome').focus();return;}
+  const c={
+    id:uid(),nome,
+    cpf:(el('nc_cpf').value||'').trim(),
+    loja:el('nc_loja').value,
+    cargo:el('nc_cargo').value,
+    admissao:el('nc_adm').value||'',
+    desligamento:'',
+    contato:(el('nc_contato').value||'').trim(),
+    status:''
+  };
+  c.status=suggestStatus(c);
+  const a=getColabs();a.push(c);setColabs(a);
+  renderColabs();
+}
+function updColab(id,field,val){
+  const a=getColabs();const c=a.find(x=>x.id===id);if(!c)return;
+  c[field]=val;
+  // recalcular status sugerido quando muda admissão/desligamento (a não ser que o usuário tenha editado o status manualmente nesta ação)
+  if(field==='admissao'||field==='desligamento'){c.status=suggestStatus(c);}
+  setColabs(a);
+  renderColabs();
+}
+function delColab(id){
+  const a=getColabs();const c=a.find(x=>x.id===id);
+  if(!confirm('Remover o colaborador '+(c?c.nome:'')+'?'))return;
+  setColabs(a.filter(x=>x.id!==id));renderColabs();
+}
+
+/* ============================================================
+   2) LOJAS — cadastro de lojas
+   ============================================================ */
+function renderLojas(){
+  const lojas=getLojas();
+  let rows='';
+  if(!lojas.length){
+    rows=`<tr><td colspan="7"><div class="empty">Nenhuma loja cadastrada. Use o formulário acima.</div></td></tr>`;
+  }else{
+    rows=lojas.map(l=>`<tr>
+      <td><input value="${esc(l.nome)}" onchange="updLoja('${l.id}','nome',this.value)" placeholder="Nome da loja"></td>
+      <td><input value="${esc(l.cnpj)}" onchange="updLoja('${l.id}','cnpj',this.value)" placeholder="00.000.000/0000-00"></td>
+      <td><input value="${esc(l.cidade)}" onchange="updLoja('${l.id}','cidade',this.value)" placeholder="Cidade / UF"></td>
+      <td><input value="${esc(l.gerente)}" onchange="updLoja('${l.id}','gerente',this.value)" placeholder="Gerente"></td>
+      <td><input value="${esc(l.telefone)}" onchange="updLoja('${l.id}','telefone',this.value)" placeholder="Telefone"></td>
+      <td><select onchange="updLoja('${l.id}','status',this.value)">
+        <option ${l.status==='ativa'?'selected':''} value="ativa">ativa</option>
+        <option ${l.status==='inativa'?'selected':''} value="inativa">inativa</option>
+      </select></td>
+      <td><button class="btn del sm" onclick="delLoja('${l.id}')">🗑️</button></td>
+    </tr>`).join('');
+  }
+  el('content').innerHTML=`
+    <div class="banner">🏬 <b>Cadastro de lojas.</b> As lojas aqui cadastradas alimentam os seletores de loja em Colaboradores e a grade do Cockpit.</div>
+    <div class="block">
+      <h3>➕ Nova loja</h3>
+      <div class="body"><div class="form-grid">
+        <div class="f" style="flex:1;min-width:150px"><label>Nome da loja</label><input id="nl_nome" placeholder="Ex.: SWN Loja 1"></div>
+        <div class="f"><label>CNPJ</label><input id="nl_cnpj" placeholder="00.000.000/0000-00"></div>
+        <div class="f"><label>Cidade / UF</label><input id="nl_cidade" placeholder="Cidade / UF"></div>
+        <div class="f"><label>Gerente</label><input id="nl_gerente" placeholder="Nome"></div>
+        <div class="f"><label>Telefone</label><input id="nl_tel" placeholder="(00) 0000-0000"></div>
+        <button class="btn primary" onclick="addLoja()">Adicionar</button>
+      </div></div>
+    </div>
+    <div class="toolbar">
+      <span class="pill muted">${lojas.length} loja(s)</span>
+      <button class="btn ghost sm" onclick="exportLojasCsv()">⬇️ Exportar CSV</button>
+    </div>
+    <div class="block">
+      <h3>🏬 Lojas</h3>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Nome</th><th>CNPJ</th><th>Cidade/UF</th><th>Gerente</th><th>Telefone</th><th>Status</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>`;
+}
+function addLoja(){
+  const nome=(el('nl_nome').value||'').trim();
+  if(!nome){alert('Informe o nome da loja.');el('nl_nome').focus();return;}
+  const l={id:uid(),nome,cnpj:(el('nl_cnpj').value||'').trim(),cidade:(el('nl_cidade').value||'').trim(),
+    gerente:(el('nl_gerente').value||'').trim(),telefone:(el('nl_tel').value||'').trim(),status:'ativa'};
+  const a=getLojas();a.push(l);setLojas(a);renderLojas();
+}
+function updLoja(id,field,val){const a=getLojas();const l=a.find(x=>x.id===id);if(!l)return;l[field]=val;setLojas(a);if(field==='nome')renderLojas();}
+function delLoja(id){
+  const a=getLojas();const l=a.find(x=>x.id===id);
+  if(!confirm('Remover a loja '+(l?l.nome:'')+'? Colaboradores vinculados manterão o nome antigo no cadastro.'))return;
+  setLojas(a.filter(x=>x.id!==id));renderLojas();
+}
+
+/* ============================================================
+   3) COCKPIT — consolidação multi-loja + status operacional diário
+   ============================================================ */
+function statusKey(loja,data){return PREFIX+'status:'+loja+'|'+data;}
+function getStatus(loja,data){try{return JSON.parse(localStorage.getItem(statusKey(loja,data))||'{}');}catch(e){return {};}}
+function setStatusField(loja,data,field,val){
+  const s=getStatus(loja,data);s[field]=val;localStorage.setItem(statusKey(loja,data),JSON.stringify(s));
+}
+
+function renderCockpit(){
+  const colabs=getColabs();
+  const lojas=getLojas();
+  const ativos=colabs.filter(c=>(c.status||suggestStatus(c))==='Ativo');
+  const exp=colabs.filter(c=>(c.status||suggestStatus(c))==='Experiência');
+  const cm=curMonth();
+  const admMes=colabs.filter(c=>monthKey(c.admissao)===cm);
+  const desMes=colabs.filter(c=>c.desligamento&&monthKey(c.desligamento)===cm);
+
+  // headcount por loja (ativos + experiência = quadro presente)
+  const presentes=colabs.filter(c=>(c.status||suggestStatus(c))!=='Desligado');
+  const porLoja={};
+  lojas.forEach(l=>porLoja[l.nome]=0);
+  presentes.forEach(c=>{porLoja[c.loja]=(porLoja[c.loja]||0)+1;});
+
+  let porLojaHtml=lojas.length
+    ? lojas.map(l=>`<div class="card"><div class="v">${porLoja[l.nome]||0}</div><div class="l">${esc(l.nome)}</div><div class="sub">${esc(l.status==='inativa'?'inativa':'ativa')}</div></div>`).join('')
+    : '<div class="empty">Cadastre lojas para ver o quadro por loja.</div>';
+
+  // grade de status diário
+  const today=todayISO();
+  const dataInputId='cockpitData';
+  let gridRows='';
+  if(!lojas.length){
+    gridRows=`<tr><td colspan="6"><div class="empty">Cadastre lojas para usar a grade de status diário.</div></td></tr>`;
+  }else{
+    gridRows=lojas.map(l=>{
+      const s=getStatus(l.nome,window.__cockpitDate||today);
+      const cell=(field,labelOk)=>{
+        const on=!!s[field];
+        return `<td class="status-cell ${on?'r-green':'r-red'}"><input type="checkbox" ${on?'checked':''} onchange="cockpitToggle('${esc(l.nome)}','${field}',this.checked)"></td>`;
+      };
+      const quebra=s.quebra!=null?s.quebra:'';
+      return `<tr>
+        <td><b>${esc(l.nome)}</b></td>
+        ${cell('abertura')}
+        ${cell('fechamento')}
+        ${cell('deposito')}
+        <td><input type="number" step="0.01" inputmode="decimal" value="${esc(quebra)}" placeholder="0,00" style="max-width:110px" onchange="cockpitQuebra('${esc(l.nome)}',this.value)"></td>
+      </tr>`;
+    }).join('');
+  }
+
+  el('content').innerHTML=`
+    <div class="banner">⚠️ <b>Protótipo:</b> este status operacional é preenchido <b>manualmente</b>. Na versão no servidor (Render), ele virá <b>automático do checklist de cada loja</b>.</div>
+    <div class="block">
+      <h3>🎛️ Rollup do cadastro <span class="seqnote">— visão do dono, calculado dos colaboradores</span></h3>
+      <div class="body"><div class="cards">
+        <div class="card"><div class="v">${ativos.length}</div><div class="l">Headcount (ativos)</div></div>
+        <div class="card"><div class="v">${presentes.length}</div><div class="l">Quadro presente</div><div class="sub">ativos + experiência</div></div>
+        <div class="card"><div class="v">${exp.length}</div><div class="l">Em experiência</div></div>
+        <div class="card"><div class="v">${admMes.length}</div><div class="l">Admissões no mês</div><div class="sub">${fmtMonthLabel(cm)}</div></div>
+        <div class="card"><div class="v">${desMes.length}</div><div class="l">Desligamentos no mês</div><div class="sub">${fmtMonthLabel(cm)}</div></div>
+        <div class="card"><div class="v">${lojas.length}</div><div class="l">Lojas cadastradas</div></div>
+      </div></div>
+    </div>
+
+    <div class="block">
+      <h3>👥 Quadro presente por loja</h3>
+      <div class="body"><div class="cards">${porLojaHtml}</div></div>
+    </div>
+
+    <div class="block">
+      <h3>📋 Status operacional diário por loja
+        <span class="seqnote">— verde = ok · vermelho = pendente</span></h3>
+      <div class="body">
+        <div class="form-grid" style="margin-bottom:12px">
+          <div class="f"><label>Data</label><input type="date" id="${dataInputId}" value="${window.__cockpitDate||today}" onchange="window.__cockpitDate=this.value;renderCockpit()"></div>
+        </div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>Loja</th><th>Abertura ok?</th><th>Fechamento ok?</th><th>Depósito feito?</th><th>Quebra de caixa (R$)</th></tr></thead>
+          <tbody>${gridRows}</tbody>
+        </table></div>
+      </div>
+    </div>`;
+}
+function cockpitToggle(loja,field,val){setStatusField(loja,window.__cockpitDate||todayISO(),field,val);renderCockpit();}
+function cockpitQuebra(loja,val){const v=val===''?null:parseFloat(val);setStatusField(loja,window.__cockpitDate||todayISO(),'quebra',isNaN(v)?null:v);}
+function fmtMonthLabel(ym){if(!ym)return '';const[a,m]=ym.split('-');const mn=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];return (mn[+m-1]||'')+'/'+a;}
+
+/* ============================================================
+   4) GENTE — indicadores de pessoas
+   ============================================================ */
+function absKey(){return PREFIX+'absenteismo';}
+function getAbs(){try{return JSON.parse(localStorage.getItem(absKey())||'{}');}catch(e){return {};}}
+function setAbs(o){localStorage.setItem(absKey(),JSON.stringify(o));}
+
+function renderGente(){
+  const colabs=getColabs();
+  const ativos=colabs.filter(c=>(c.status||suggestStatus(c))==='Ativo');
+  const presentes=colabs.filter(c=>(c.status||suggestStatus(c))!=='Desligado');
+  const exp=colabs.filter(c=>(c.status||suggestStatus(c))==='Experiência');
+  const cm=curMonth();
+  const admMes=colabs.filter(c=>monthKey(c.admissao)===cm).length;
+  const desMes=colabs.filter(c=>c.desligamento&&monthKey(c.desligamento)===cm).length;
+
+  // headcount médio do mês ~ (presentes no início + presentes hoje)/2; aproximamos por presentes + admissões/desligamentos
+  const hcFim=presentes.length;
+  const hcIni=hcFim-admMes+desMes;
+  const hcMedio=((hcIni+hcFim)/2)||0;
+  const turnover=hcMedio>0?(desMes/hcMedio*100):0;
+
+  // tempo médio de casa (ativos)
+  const tenures=ativos.map(c=>monthsBetween(c.admissao)).filter(v=>v!=null);
+  const tenureMed=tenures.length?Math.round(tenures.reduce((a,b)=>a+b,0)/tenures.length):null;
+
+  const pctExp=presentes.length?(exp.length/presentes.length*100):0;
+
+  const abs=getAbs();
+  const aMes=abs[cm]||{ausencia:'',planejado:''};
+  const aPct=(parseFloat(aMes.planejado)>0)?(parseFloat(aMes.ausencia||0)/parseFloat(aMes.planejado)*100):null;
+
+  el('content').innerHTML=`
+    <div class="banner">📊 <b>Indicadores de pessoas</b> calculados do cadastro de colaboradores. Período de referência: <b>${fmtMonthLabel(cm)}</b>.</div>
+
+    <div class="block">
+      <h3>📈 KPIs do mês</h3>
+      <div class="body"><div class="cards">
+        <div class="card"><div class="v">${ativos.length}</div><div class="l">Headcount atual (ativos)</div></div>
+        <div class="card"><div class="v">${admMes}</div><div class="l">Admissões no mês</div></div>
+        <div class="card"><div class="v">${desMes}</div><div class="l">Desligamentos no mês</div></div>
+        <div class="card"><div class="v">${turnover.toFixed(1)}%</div><div class="l">Turnover do mês</div><div class="sub">desligamentos ÷ HC médio</div></div>
+        <div class="card"><div class="v">${fmtTenure(tenureMed)}</div><div class="l">Tempo médio de casa</div><div class="sub">média dos ativos</div></div>
+        <div class="card"><div class="v">${pctExp.toFixed(1)}%</div><div class="l">% em experiência</div></div>
+      </div>
+      <div class="formula">Turnover = desligamentos do mês ÷ headcount médio × 100 — onde HC médio = (quadro no início + quadro no fim do mês) ÷ 2 ≈ ${hcMedio.toFixed(1)} pessoas.</div>
+      </div>
+    </div>
+
+    <div class="block">
+      <h3>🕒 Absenteísmo <span class="seqnote">— dias de ausência ÷ dias planejados</span></h3>
+      <div class="body">
+        <div class="form-grid">
+          <div class="f"><label>Mês (AAAA-MM)</label><input type="month" id="abs_mes" value="${cm}" onchange="renderGenteAbs(this.value)"></div>
+          <div class="f"><label>Dias de ausência (somados)</label><input type="number" step="0.5" id="abs_aus" value="${esc(aMes.ausencia)}" placeholder="ex: 8" onchange="saveAbs()"></div>
+          <div class="f"><label>Dias planejados (homem-dia)</label><input type="number" step="0.5" id="abs_plan" value="${esc(aMes.planejado)}" placeholder="ex: 600" onchange="saveAbs()"></div>
+          <div class="card" style="min-width:140px"><div class="v" id="abs_pct">${aPct==null?'—':aPct.toFixed(2)+'%'}</div><div class="l">Absenteísmo</div></div>
+        </div>
+        <div class="formula">% Absenteísmo = (dias de ausência ÷ dias planejados) × 100. "Dias planejados" = nº de colaboradores × dias úteis previstos no mês.</div>
+      </div>
+    </div>
+
+    <div class="block">
+      <h3>💬 eNPS <span class="seqnote">— Employee Net Promoter Score</span></h3>
+      <div class="body">
+        <div class="form-grid">
+          <div class="f"><label>Promotores (9–10)</label><input type="number" id="enps_p" value="${esc(getEnps().p)}" placeholder="0" oninput="saveEnps()"></div>
+          <div class="f"><label>Neutros (7–8)</label><input type="number" id="enps_n" value="${esc(getEnps().n)}" placeholder="0" oninput="saveEnps()"></div>
+          <div class="f"><label>Detratores (0–6)</label><input type="number" id="enps_d" value="${esc(getEnps().d)}" placeholder="0" oninput="saveEnps()"></div>
+          <div class="card" style="min-width:140px"><div class="v" id="enps_v">—</div><div class="l">eNPS</div><div class="sub" id="enps_faixa"></div></div>
+        </div>
+        <div class="formula">eNPS = %promotores − %detratores (escala de −100 a +100). Referência: &lt;0 crítico · 0–30 razoável · 30–70 bom · &gt;70 excelente.</div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn ghost sm" onclick="exportIndicadoresCsv()">⬇️ Exportar CSV dos indicadores</button>
+    </div>`;
+  computeEnps();
+}
+function renderGenteAbs(mes){
+  // troca o mês mostrado nos campos de absenteísmo
+  const abs=getAbs();const a=abs[mes]||{ausencia:'',planejado:''};
+  el('abs_aus').value=a.ausencia||'';el('abs_plan').value=a.planejado||'';
+  computeAbs();
+}
+function saveAbs(){
+  const mes=el('abs_mes').value;if(!mes)return;
+  const abs=getAbs();abs[mes]={ausencia:el('abs_aus').value,planejado:el('abs_plan').value};setAbs(abs);
+  computeAbs();
+}
+function computeAbs(){
+  const aus=parseFloat(el('abs_aus').value),plan=parseFloat(el('abs_plan').value);
+  el('abs_pct').textContent=(plan>0&&!isNaN(aus))?(aus/plan*100).toFixed(2)+'%':'—';
+}
+function enpsKey(){return PREFIX+'enps';}
+function getEnps(){try{return JSON.parse(localStorage.getItem(enpsKey())||'{}');}catch(e){return {};}}
+function saveEnps(){
+  localStorage.setItem(enpsKey(),JSON.stringify({p:el('enps_p').value,n:el('enps_n').value,d:el('enps_d').value}));
+  computeEnps();
+}
+function computeEnps(){
+  const p=parseFloat(el('enps_p').value)||0,n=parseFloat(el('enps_n').value)||0,d=parseFloat(el('enps_d').value)||0;
+  const tot=p+n+d;
+  if(tot<=0){el('enps_v').textContent='—';el('enps_faixa').textContent='';return;}
+  const score=Math.round((p/tot*100)-(d/tot*100));
+  el('enps_v').textContent=(score>0?'+':'')+score;
+  let faixa='Crítico';if(score>=70)faixa='Excelente';else if(score>=30)faixa='Bom';else if(score>=0)faixa='Razoável';
+  el('enps_faixa').textContent=faixa+' · '+tot+' respostas';
+}
+
+/* ============================================================
+   CSV / JSON export-import
+   ============================================================ */
+function csvCell(v){v=v==null?'':String(v);if(/[";\n]/.test(v))v='"'+v.replace(/"/g,'""')+'"';return v;}
+function downloadCsv(name,rows){
+  const txt=rows.map(r=>r.map(csvCell).join(';')).join('\r\n');
+  const blob=new Blob(['﻿'+txt],{type:'text/csv;charset=utf-8;'});
+  trigger(blob,name);
+}
+function trigger(blob,name){
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');
+  a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+}
+function stamp(){return new Date().toISOString().slice(0,10);}
+
+function exportColabsCsv(){
+  const rows=[['Nome','CPF','Loja','Cargo','Admissão','Desligamento','Status','Contato']];
+  getColabs().forEach(c=>rows.push([c.nome,c.cpf,c.loja,c.cargo,fmtDate(c.admissao),c.desligamento?fmtDate(c.desligamento):'',(c.status||suggestStatus(c)),c.contato]));
+  downloadCsv('colaboradores-swn-'+stamp()+'.csv',rows);
+}
+function exportLojasCsv(){
+  const rows=[['Nome','CNPJ','Cidade/UF','Gerente','Telefone','Status']];
+  getLojas().forEach(l=>rows.push([l.nome,l.cnpj,l.cidade,l.gerente,l.telefone,l.status]));
+  downloadCsv('lojas-swn-'+stamp()+'.csv',rows);
+}
+function exportIndicadoresCsv(){
+  const colabs=getColabs();
+  const ativos=colabs.filter(c=>(c.status||suggestStatus(c))==='Ativo');
+  const presentes=colabs.filter(c=>(c.status||suggestStatus(c))!=='Desligado');
+  const exp=colabs.filter(c=>(c.status||suggestStatus(c))==='Experiência');
+  const cm=curMonth();
+  const admMes=colabs.filter(c=>monthKey(c.admissao)===cm).length;
+  const desMes=colabs.filter(c=>c.desligamento&&monthKey(c.desligamento)===cm).length;
+  const hcFim=presentes.length,hcIni=hcFim-admMes+desMes,hcMedio=(hcIni+hcFim)/2;
+  const turnover=hcMedio>0?(desMes/hcMedio*100):0;
+  const tenures=ativos.map(c=>monthsBetween(c.admissao)).filter(v=>v!=null);
+  const tenureMed=tenures.length?Math.round(tenures.reduce((a,b)=>a+b,0)/tenures.length):null;
+  const pctExp=presentes.length?(exp.length/presentes.length*100):0;
+  const abs=getAbs()[cm]||{};
+  const aPct=(parseFloat(abs.planejado)>0)?(parseFloat(abs.ausencia||0)/parseFloat(abs.planejado)*100):null;
+  const e=getEnps();const p=+e.p||0,n=+e.n||0,d=+e.d||0,tot=p+n+d;
+  const enps=tot>0?Math.round((p/tot*100)-(d/tot*100)):null;
+  const rows=[
+    ['Indicador','Valor','Período'],
+    ['Headcount (ativos)',ativos.length,fmtMonthLabel(cm)],
+    ['Admissões no mês',admMes,fmtMonthLabel(cm)],
+    ['Desligamentos no mês',desMes,fmtMonthLabel(cm)],
+    ['Turnover (%)',turnover.toFixed(1),fmtMonthLabel(cm)],
+    ['Headcount médio',hcMedio.toFixed(1),fmtMonthLabel(cm)],
+    ['Tempo médio de casa (meses)',tenureMed==null?'':tenureMed,'-'],
+    ['% em experiência',pctExp.toFixed(1),'-'],
+    ['Absenteísmo (%)',aPct==null?'':aPct.toFixed(2),fmtMonthLabel(cm)],
+    ['eNPS',enps==null?'':enps,'-']
+  ];
+  downloadCsv('indicadores-gente-swn-'+stamp()+'.csv',rows);
+}
+
+function exportAllJson(){
+  const data={};
+  Object.keys(localStorage).filter(k=>k.startsWith(PREFIX)).forEach(k=>data[k]=localStorage.getItem(k));
+  const payload={_app:'GESTAO_SWN',_versao:1,_exportadoEm:new Date().toISOString(),dados:data};
+  trigger(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),'gestao-swn-backup-'+stamp()+'.json');
+}
+function importAllJson(input){
+  const file=input.files&&input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const parsed=JSON.parse(e.target.result);
+      const dados=parsed&&parsed.dados?parsed.dados:parsed;
+      if(!dados||typeof dados!=='object')throw new Error('formato');
+      const keys=Object.keys(dados).filter(k=>k.startsWith(PREFIX));
+      if(!keys.length){alert('Nenhum dado "gestao:" encontrado neste arquivo.');input.value='';return;}
+      if(!confirm('Importar '+keys.length+' registro(s)? Os dados atuais com as mesmas chaves serão sobrescritos.')){input.value='';return;}
+      keys.forEach(k=>localStorage.setItem(k,dados[k]));
+      alert('✔️ Dados importados com sucesso.');
+      input.value='';render();
+    }catch(err){alert('Arquivo inválido. Selecione um JSON exportado por esta página.');input.value='';}
+  };
+  reader.readAsText(file);
+}
+
+/* ============================================================
+   init + deep-link
+   ============================================================ */
+function initFromHash(){
+  const h=(location.hash||'').replace('#','');
+  CURTAB=ORDER.includes(h)?h:'colaboradores';
+}
+window.addEventListener('hashchange',()=>{initFromHash();buildTabs();render();});
+
+// seed mínimo opcional: nada é criado automaticamente (cadastro é do usuário)
+initFromHash();
+buildTabs();
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kit Admissão · SWN · Premium Outlets</title>
+<style>
+  :root{
+    --bg:#0f1115;--panel:#161a22;--panel2:#1c2230;--line:#262d3a;
+    --txt:#e8ecf3;--muted:#9aa6b8;--brand:#b4d233;--brand2:#cbe465;
+    --green:#2ecc71;--red:#e74c3c;--blue:#4aa3ff;--radius:13px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5}
+  a{color:var(--blue)}
+  .topbar{position:sticky;top:0;z-index:20;background:rgba(15,17,21,.95);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);padding:13px 22px;display:flex;align-items:center;gap:12px}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:16px}
+  .logo{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;
+    background:linear-gradient(135deg,var(--brand),var(--brand2));color:#1a1300;font-weight:900}
+  .brand small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+  .wrap{max-width:920px;margin:0 auto;padding:22px}
+
+  .meta{display:flex;flex-wrap:wrap;gap:12px;background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--radius);padding:14px 16px;margin-bottom:16px}
+  .meta .f{display:flex;flex-direction:column;gap:4px}
+  .meta label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+  .meta input,.meta select{padding:8px 11px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--txt);font-size:13.5px;outline:none}
+  .meta input:focus,.meta select:focus{border-color:var(--brand)}
+  .progress{margin-left:auto;text-align:right;align-self:center}
+  .progress b{font-size:22px;color:var(--brand2)}
+  .progress small{display:block;color:var(--muted);font-size:11px}
+
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+  .tabs button{padding:9px 15px;border:1px solid var(--line);border-radius:10px;cursor:pointer;
+    background:var(--panel);color:var(--muted);font-weight:700;font-size:13px}
+  .tabs button.active{background:var(--brand);color:#1a1300;border-color:var(--brand)}
+
+  .block{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    margin-bottom:14px;overflow:hidden}
+  .block h3{margin:0;padding:12px 16px;font-size:13px;text-transform:uppercase;letter-spacing:.6px;
+    color:var(--brand2);background:var(--panel2);border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:9px}
+  .block .seqnote{font-size:10.5px;color:var(--muted);font-weight:600;text-transform:none;letter-spacing:0}
+  ul{list-style:none;margin:0;padding:8px 10px}
+  li{display:flex;align-items:flex-start;gap:11px;padding:9px 10px;border-radius:9px;font-size:14px}
+  li:hover{background:var(--panel2)}
+  li input[type=checkbox]{margin-top:2px;width:18px;height:18px;accent-color:var(--green);cursor:pointer;flex-shrink:0}
+  li.done label{opacity:.5;text-decoration:line-through}
+  li label{cursor:pointer;flex:1}
+  li .tip{display:block;font-size:11.5px;color:var(--muted);margin-top:2px;text-decoration:none!important}
+  .tag{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.4px;padding:2px 7px;border-radius:6px;
+    margin-left:6px;vertical-align:middle;text-decoration:none!important;text-transform:uppercase}
+  .tag.pre{background:rgba(231,76,60,.18);color:#f29a90;border:1px solid rgba(231,76,60,.4)}
+  .tag.int{background:rgba(74,163,255,.16);color:#9cc8ff;border:1px solid rgba(74,163,255,.4)}
+  .tag.caso{background:rgba(180,210,51,.16);color:var(--brand2);border:1px solid rgba(180,210,51,.4)}
+
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
+  .btn{padding:10px 16px;border:0;border-radius:10px;cursor:pointer;font-weight:700;font-size:13px}
+  .btn.primary{background:var(--brand);color:#1a1300}
+  .btn.ghost{background:var(--panel2);border:1px solid var(--line);color:var(--txt)}
+  .btn.ghost:hover{border-color:var(--red);color:#f29a90}
+
+  .note{background:linear-gradient(135deg,rgba(180,210,51,.08),rgba(74,163,255,.06));
+    border:1px dashed var(--line);border-radius:12px;padding:13px 15px;font-size:12.5px;color:var(--muted);margin-top:16px}
+
+  /* termos / contrato */
+  .doc{padding:14px 18px}
+  .doc h4{margin:14px 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--brand2)}
+  .doc p,.doc li.txt{font-size:13px;color:var(--txt);margin:6px 0}
+  .doc ul.bul{list-style:disc;padding-left:22px}
+  .doc ul.bul li{display:list-item;padding:2px 0;font-size:12.5px}
+  .fgrid{display:flex;flex-wrap:wrap;gap:12px;margin:6px 0}
+  .fgrid .f{display:flex;flex-direction:column;gap:4px;flex:1;min-width:170px}
+  .fgrid label,.doc .lbl{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+  .doc input,.doc select,.doc textarea{padding:8px 11px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--txt);font-size:13.5px;font-family:inherit;outline:none;width:100%}
+  .doc input:focus,.doc textarea:focus,.doc select:focus{border-color:var(--brand)}
+  .doc textarea{resize:vertical;min-height:54px}
+  table.items{width:100%;border-collapse:collapse;margin:8px 0;font-size:13px}
+  table.items th,table.items td{border:1px solid var(--line);padding:6px 8px;text-align:left}
+  table.items th{background:var(--panel2);color:var(--brand2);font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+  table.items input{background:var(--panel2);border:0;width:100%;color:var(--txt);font-size:13px;padding:4px 2px}
+  .sign{display:flex;gap:30px;flex-wrap:wrap;margin-top:26px}
+  .sign .s{flex:1;min-width:220px;text-align:center;border-top:1px solid var(--muted);padding-top:6px;font-size:12px;color:var(--muted)}
+  .legal{font-size:11px;color:var(--muted);font-style:italic;border-left:3px solid var(--brand);padding:4px 0 4px 10px;margin:10px 0;background:rgba(180,210,51,.05)}
+
+  @media print{
+    body{background:#fff;color:#000}
+    .topbar,.tabs,.actions,.note,.progress{display:none}
+    .block,.meta{border:1px solid #999;background:#fff;break-inside:avoid}
+    .block h3{background:#eee;color:#000}
+    .doc p,.doc li.txt,.doc input,.doc textarea,.doc select,table.items td,table.items input{color:#000}
+    .doc input,.doc textarea,.doc select,table.items input{background:#fff;border-color:#999}
+    .tag{border:1px solid #999;color:#000!important;background:#eee}
+    li input[type=checkbox]{-webkit-appearance:auto}
+    .legal{color:#333;background:#f4f4f4}
+    .sign .s{border-top:1px solid #000;color:#000}
+    .block[data-tab]:not(.show-print){display:none}
+    .pa-print{display:block!important}
+  }
+  .pa-print{display:none;text-align:center;font-weight:800;margin:6px 0 16px;font-size:18px}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand"><svg class="brandmark" width="58" height="28" viewBox="0 0 58 28" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SWN Premium Outlets"><rect width="58" height="28" rx="7" fill="#fff"/><text x="6" y="22" font-family="Arial,Helvetica,sans-serif" font-weight="900" font-size="21" letter-spacing="-1.5"><tspan fill="#1b3c86">s</tspan><tspan fill="#b4d233">w</tspan><tspan fill="#2e241a">n</tspan></text></svg><div>Kit Admissão <small>SWN · Premium Outlets</small></div></div>
+  </div>
+
+  <div class="wrap">
+    <div class="pa-print" id="printTitle"></div>
+    <div class="meta">
+      <div class="f"><label>Nome do colaborador</label><input type="text" id="nome" placeholder="Nome completo"></div>
+      <div class="f"><label>CPF</label><input type="text" id="cpf" placeholder="000.000.000-00"></div>
+      <div class="f"><label>Função</label><input type="text" id="funcao" placeholder="ex: Vendedor(a)"></div>
+      <div class="f"><label>Loja</label><input type="text" id="loja" placeholder="ex: Loja 1"></div>
+      <div class="f"><label>Data de admissão</label><input type="date" id="data"></div>
+      <div class="progress"><b id="pct">0%</b><small><span id="cnt">0/0</span> docs</small></div>
+    </div>
+
+    <div class="tabs" id="tabs"></div>
+    <div id="content"></div>
+
+    <div class="actions">
+      <button class="btn primary" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
+      <button class="btn ghost" onclick="exportarDados()">⬇️ Exportar dados (JSON)</button>
+      <button class="btn ghost" onclick="el('importFile').click()">⬆️ Importar dados (JSON)</button>
+      <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importarDados(this)">
+      <button class="btn ghost" onclick="limpar()">Limpar</button>
+    </div>
+
+    <div class="note">
+      💡 Tudo salva apenas <b>neste navegador</b>, vinculado ao <b>CPF + nome</b> do colaborador. ⚠️ Se limpar o navegador ou trocar de computador, os dados se perdem — gere o documento em <b>🖨️ Imprimir → Salvar PDF</b>. 🔒 Contém dados pessoais (LGPD): não use computador compartilhado sem necessidade.
+      <b>Sempre confirmar</b> piso salarial, jornada e prazo de experiência na <b>Convenção Coletiva dos comerciários</b> da base territorial da loja.
+      Lembre da ordem crítica: <b>ASO admissional antes do 1º dia</b>; <b>registro eSocial S-2200 até 1 dia antes</b> do início; <b>S-2220 até dia 15</b> do mês seguinte à admissão.
+    </div>
+  </div>
+
+<script>
+const el=id=>document.getElementById(id);
+function ctxKey(){return (el('cpf').value||'')+'|'+(el('nome').value||'');}
+
+/* ============ Aba: Checklist de Documentos ============ */
+/* tag: pre = antes do 1º dia | int = gerado/assinado internamente | caso = conforme o caso */
+const DOCS = [
+  {h:"1 · Documentos pessoais obrigatórios", items:[
+    ["RG / documento de identidade com foto (ou CNH)"],
+    ["CPF"],
+    ["Carteira de Trabalho Digital (CTPS Digital — habilitada pelo CPF)"],
+    ["Comprovante de residência atualizado"],
+    ["Dados bancários / chave PIX (conta salário)"],
+    ["PIS / NIS","Verificável pelo CPF no eSocial"],
+    ["Título de eleitor"],
+    ["Foto 3x4","Quando usada em crachá"],
+    ["Comprovante de escolaridade","Quando exigido pela função"],
+    ["Certificado de reservista (homens)"],
+  ]},
+  {h:"2 · Conforme o caso", tag:"caso", items:[
+    ["Certidão de nascimento dos filhos até 21 anos","Dependentes IR / salário-família",,"caso"],
+    ["Cartão de vacinação (filhos < 7 anos) e comprovante escolar (filhos > 7 anos)","Salário-família",,"caso"],
+    ["Certidão de casamento","Se aplicável a benefícios/dependentes IR",,"caso"],
+    ["CNH","Se a função exigir conduzir veículo",,"caso"],
+    ["Atestado de invalidez de dependente","Se houver",,"caso"],
+  ]},
+  {h:"3 · Saúde e registro — ORDEM CRÍTICA", seq:"sequência obrigatória — não pular", items:[
+    ["ASO admissional emitido pelo médico do trabalho","Obrigatório por NR-7 — ANTES do 1º dia de trabalho","pre"],
+    ["Registro no eSocial — evento S-2200","Enviar ATÉ 1 DIA ANTES do início das atividades","pre"],
+    ["Conferência da documentação pelo DP/contabilidade",,"pre"],
+    ["Vínculo refletido na CTPS Digital antes do início",,"pre"],
+    ["Envio do S-2220 (monitoramento de saúde/ASO)","Até o dia 15 do mês seguinte à admissão","int"],
+  ]},
+  {h:"4 · Documentos gerados e assinados internamente", tag:"int", items:[
+    ["Contrato de experiência assinado","Aba Contrato de Experiência","int"],
+    ["Ficha de registro do empregado","int"],
+    ["Termo de entrega e responsabilidade de uniforme","Aba Termos","int"],
+    ["Termo de responsabilidade de acessos/senhas","Aba Termos","int"],
+    ["Termo de entrega de EPI (quando aplicável)","Estoque/atividades de risco — aba Termos","int"],
+    ["Declaração de dependentes para IR","int"],
+    ["Declaração / opção de vale-transporte","Desconto de até 6% só se o colaborador aderir","int"],
+    ["Termo de ciência de políticas internas (código de conduta, prevenção de perdas, LGPD)","Aba Termos","int"],
+  ]},
+];
+
+/* ============ Estrutura de abas ============ */
+const TABS = {
+  documentos:{nome:"📋 Checklist de Documentos", hash:"documentos"},
+  termos:{nome:"✍️ Termos", hash:"termos"},
+  contrato:{nome:"📄 Contrato de Experiência", hash:"contrato"},
+  boasvindas:{nome:"🎉 Boas-vindas", hash:"boasvindas"},
+};
+let CURTAB="documentos";
+
+function buildTabs(){
+  el('tabs').innerHTML=Object.entries(TABS).map(([k,v])=>
+    `<button class="${k===CURTAB?'active':''}" onclick="setTab('${k}')">${v.nome}</button>`).join('');
+}
+function setTab(k){CURTAB=k;location.hash=TABS[k].hash;buildTabs();render();}
+
+/* ---- persistência genérica de campos ---- */
+function fkey(name){return 'ka:'+ctxKey()+'|'+CURTAB+'|'+name;}
+function saveF(name,v){localStorage.setItem(fkey(name),v);}
+function getF(name){return localStorage.getItem(fkey(name))||'';}
+function bindFields(scope){
+  scope.querySelectorAll('[data-f]').forEach(inp=>{
+    const n=inp.getAttribute('data-f');
+    if(inp.type==='checkbox'){inp.checked=getF(n)==='1';inp.addEventListener('change',()=>saveF(n,inp.checked?'1':'0'));}
+    else{const v=getF(n);if(v!=='')inp.value=v;inp.addEventListener('input',()=>saveF(n,inp.value));inp.addEventListener('change',()=>saveF(n,inp.value));}
+  });
+}
+
+/* ---- helper: campo que herda do cabeçalho se vazio ---- */
+function hv(name,fallback){const v=getF(name);return v!==''?v:(fallback||'');}
+
+/* ============ RENDER ============ */
+function render(){
+  el('printTitle').textContent=
+    `${TABS[CURTAB].nome.replace(/^[^ ]+ /,'')} — ${el('nome').value||'________'} — Loja ${el('loja').value||'____'} — admissão ${fmt(el('data').value)}`;
+  if(CURTAB==='documentos')renderDocs();
+  else if(CURTAB==='termos')renderTermos();
+  else if(CURTAB==='contrato')renderContrato();
+  else renderBoasVindas();
+  bindFields(el('content'));
+  updateProgress();
+}
+
+function dkey(bi,ii){return 'kad:'+ctxKey()+'|'+bi+'|'+ii;}
+function renderDocs(){
+  let html='';
+  DOCS.forEach((b,bi)=>{
+    html+=`<div class="block"><h3>${b.h}${b.seq?`<span class="seqnote">— ${b.seq}</span>`:''}</h3><ul>`;
+    b.items.forEach((it,ii)=>{
+      const k=dkey(bi,ii);const done=localStorage.getItem(k)==='1';
+      const tg=it[2];let tag='';
+      if(tg==='pre')tag='<span class="tag pre">antes do 1º dia</span>';
+      else if(tg==='int')tag='<span class="tag int">interno</span>';
+      else if(tg==='caso')tag='<span class="tag caso">conforme o caso</span>';
+      html+=`<li class="${done?'done':''}"><input type="checkbox" ${done?'checked':''} onchange="toggleDoc('${k}',this)">
+        <label>${it[0]}${tag}${it[1]?`<span class="tip">${it[1]}</span>`:''}</label></li>`;
+    });
+    html+='</ul></div>';
+  });
+  el('content').innerHTML=html;
+}
+function toggleDoc(k,box){localStorage.setItem(k,box.checked?'1':'0');box.closest('li').classList.toggle('done',box.checked);updateProgress();}
+
+function updateProgress(){
+  if(CURTAB!=='documentos'){el('cnt').textContent='—';el('pct').textContent='—';return;}
+  let total=0,done=0;
+  DOCS.forEach((b,bi)=>b.items.forEach((it,ii)=>{total++;if(localStorage.getItem(dkey(bi,ii))==='1')done++;}));
+  el('cnt').textContent=done+'/'+total;
+  el('pct').textContent=total?Math.round(done/total*100)+'%':'0%';
+}
+
+/* ============ TERMOS ============ */
+function renderTermos(){
+  el('content').innerHTML=`
+  <!-- (a) Termo de Uniforme -->
+  <div class="block show-print" data-tab>
+    <h3>👕 (a) Termo de Entrega e Responsabilidade de Uniforme</h3>
+    <div class="doc">
+      <p>Eu, <input style="display:inline-block;width:auto;min-width:240px" data-f="u_nome" placeholder="nome do colaborador">,
+      CPF <input style="display:inline-block;width:auto;min-width:150px" data-f="u_cpf" placeholder="000.000.000-00">,
+      lotado(a) na loja <input style="display:inline-block;width:auto;min-width:130px" data-f="u_loja" placeholder="loja">,
+      declaro ter recebido da empresa os itens de uniforme abaixo, em bom estado de uso e conservação.</p>
+
+      <h4>Itens entregues</h4>
+      <table class="items">
+        <tr><th>Item</th><th>Qtd.</th><th>Tamanho</th><th>Estado</th></tr>
+        <tr><td><input data-f="u_i1" placeholder="ex: Camiseta do uniforme"></td><td><input data-f="u_q1"></td><td><input data-f="u_t1"></td><td><input data-f="u_e1"></td></tr>
+        <tr><td><input data-f="u_i2"></td><td><input data-f="u_q2"></td><td><input data-f="u_t2"></td><td><input data-f="u_e2"></td></tr>
+        <tr><td><input data-f="u_i3"></td><td><input data-f="u_q3"></td><td><input data-f="u_t3"></td><td><input data-f="u_e3"></td></tr>
+        <tr><td><input data-f="u_i4" placeholder="ex: Crachá (se a loja utilizar)"></td><td><input data-f="u_q4"></td><td><input data-f="u_t4"></td><td><input data-f="u_e4"></td></tr>
+      </table>
+
+      <h4>Regras de uso — Dress Code SWN</h4>
+      <ul class="bul">
+        <li>É <b>obrigatório o uso da camiseta de uniforme</b> durante todo o expediente, mantida sempre limpa e bem cuidada.</li>
+        <li><b>Parte de baixo:</b> calça preta básica sem adereços de marcas concorrentes, ou calças das marcas comercializadas na loja.</li>
+        <li>Em dias de calor, a gerência poderá autorizar bermudas jeans, sarja ou alfaiataria em cores neutras condizentes com a camiseta.</li>
+        <li><b>Calçados:</b> apenas sapato de salto baixo ou tênis. <b>Proibido</b> chinelo, slide ou sandália.</li>
+        <li>Em dias frios, casacos ou jaquetas <b>abertas</b>, pretos ou em cores neutras, de modo que a <b>camiseta do uniforme permaneça visível</b> ao consumidor.</li>
+        <li>Quando a loja utilizar <b>crachá</b>, seu uso é obrigatório.</li>
+        <li>Vestimentas de gerência e subgerência são definidas junto à direção comercial.</li>
+      </ul>
+
+      <h4>Conservação e devolução</h4>
+      <ul class="bul">
+        <li>Comprometo-me a zelar pela conservação e higiene dos itens recebidos, solicitando reposição ao responsável com antecedência quando necessário.</li>
+        <li>Em caso de <b>dano ou perda por mau uso</b>, a reposição poderá ser por minha conta, conforme política da empresa.</li>
+        <li>No <b>desligamento</b>, comprometo-me a <b>devolver</b> todos os itens fornecidos (uniformes, chaves, crachás e demais materiais da empresa) em bom estado.</li>
+      </ul>
+
+      <p class="legal">Atenção legal: sendo o uniforme de uso obrigatório, seu fornecimento (e a higienização, quando exigir cuidado especial) tende a ser ônus do empregador — cobrança indevida gera passivo trabalhista. Validar regras na CCT da base.</p>
+
+      <div class="sign">
+        <div class="s">Assinatura do colaborador</div>
+        <div class="s">Responsável pela loja / Data: <input style="display:inline-block;width:auto;min-width:120px" type="date" data-f="u_data"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- (b) Termo de Acessos/Senhas -->
+  <div class="block show-print" data-tab>
+    <h3>🔐 (b) Termo de Responsabilidade de Acessos e Senhas</h3>
+    <div class="doc">
+      <p>Eu, <input style="display:inline-block;width:auto;min-width:240px" data-f="a_nome" placeholder="nome do colaborador">,
+      CPF <input style="display:inline-block;width:auto;min-width:150px" data-f="a_cpf" placeholder="000.000.000-00">,
+      declaro estar ciente das regras de uso dos sistemas e acessos abaixo concedidos para o exercício da minha função.</p>
+
+      <h4>Acessos concedidos</h4>
+      <table class="items">
+        <tr><th>Sistema / acesso</th><th>Login / identificador</th></tr>
+        <tr><td>Almode / PDV (vendas e operação de caixa)</td><td><input data-f="a_pdv"></td></tr>
+        <tr><td>Sistema de ponto</td><td><input data-f="a_ponto"></td></tr>
+        <tr><td>E-mail / grupos de comunicação da loja</td><td><input data-f="a_email"></td></tr>
+        <tr><td><input data-f="a_outro_n" placeholder="Outro sistema"></td><td><input data-f="a_outro_v"></td></tr>
+      </table>
+
+      <h4>Compromissos</h4>
+      <ul class="bul">
+        <li>Manter <b>sigilo</b> da minha senha e <b>não compartilhá-la</b> com terceiros sob nenhuma hipótese.</li>
+        <li>Responsabilizar-me por <b>todas as operações realizadas sob o meu login</b> (vendas, sangrias, estornos, descontos e demais lançamentos).</li>
+        <li>Tratar com confidencialidade dados de clientes, colaboradores e informações financeiras da loja (LGPD).</li>
+        <li>Estou ciente de que os acessos podem ser <b>monitorados</b> e serão <b>revogados no desligamento</b>.</li>
+      </ul>
+
+      <div class="sign">
+        <div class="s">Assinatura do colaborador</div>
+        <div class="s">Responsável / Data: <input style="display:inline-block;width:auto;min-width:120px" type="date" data-f="a_data"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- (c) Termo de EPI (opcional) -->
+  <div class="block show-print" data-tab>
+    <h3>🦺 (c) Termo de Entrega de EPI <span class="seqnote">— opcional, quando aplicável (estoque / atividades de risco)</span></h3>
+    <div class="doc">
+      <p>Declaro ter recebido gratuitamente os Equipamentos de Proteção Individual abaixo, com a respectiva instrução de uso, comprometendo-me ao uso correto e à guarda dos mesmos (NR-6).</p>
+      <table class="items">
+        <tr><th>EPI</th><th>Nº do CA</th><th>Qtd.</th><th>Data entrega</th></tr>
+        <tr><td><input data-f="epi_i1" placeholder="ex: Luva, calçado de segurança..."></td><td><input data-f="epi_ca1"></td><td><input data-f="epi_q1"></td><td><input data-f="epi_d1"></td></tr>
+        <tr><td><input data-f="epi_i2"></td><td><input data-f="epi_ca2"></td><td><input data-f="epi_q2"></td><td><input data-f="epi_d2"></td></tr>
+      </table>
+      <p class="legal">A NR-6 obriga o fornecimento gratuito do EPI e exige comprovação de entrega e de treinamento de uso.</p>
+      <div class="sign">
+        <div class="s">Assinatura do colaborador</div>
+        <div class="s">Responsável / SST</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- (d) Termo de ciência de políticas internas -->
+  <div class="block show-print" data-tab>
+    <h3>📑 (d) Termo de Ciência de Políticas Internas</h3>
+    <div class="doc">
+      <p>Eu, <input style="display:inline-block;width:auto;min-width:240px" data-f="p_nome" placeholder="nome do colaborador">,
+      CPF <input style="display:inline-block;width:auto;min-width:150px" data-f="p_cpf" placeholder="000.000.000-00">,
+      declaro que <b>recebi, li e estou ciente</b> das políticas e normas internas da SWN · Premium Outlets, comprometendo-me a cumpri-las:</p>
+      <ul class="bul">
+        <li><b>Código de Conduta</b> (Guia do Colaborador): respeito e cordialidade, integridade e honestidade, conflitos de interesse, pontualidade e assiduidade.</li>
+        <li><b>Dress Code e uniforme</b>, conforme o respectivo termo.</li>
+        <li><b>Prevenção de perdas</b> e procedimentos de caixa e depósito.</li>
+        <li><b>Política disciplinar</b> (advertências e medidas) e suas consequências.</li>
+        <li><b>Confidencialidade e LGPD</b>: sigilo dos dados de clientes, colaboradores e informações da empresa.</li>
+      </ul>
+      <p>Estou ciente de que o descumprimento dessas normas pode ensejar medidas disciplinares, na forma da política da empresa e da CLT.</p>
+      <div class="fgrid">
+        <div class="f"><label>Loja</label><input data-f="p_loja" placeholder="loja"></div>
+        <div class="f"><label>Data</label><input type="date" data-f="p_data"></div>
+      </div>
+      <div class="sign">
+        <div class="s">Assinatura do colaborador</div>
+        <div class="s">Responsável pela loja / RH</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- (e) Aviso e Consentimento LGPD -->
+  <div class="block show-print" data-tab>
+    <h3>🛡️ (e) Aviso e Consentimento de Tratamento de Dados Pessoais (LGPD)</h3>
+    <div class="doc">
+      <p>Eu, <input style="display:inline-block;width:auto;min-width:240px" data-f="lg_nome" placeholder="nome do colaborador">,
+      CPF <input style="display:inline-block;width:auto;min-width:150px" data-f="lg_cpf" placeholder="000.000.000-00">,
+      declaro estar <b>ciente e informado(a)</b> de que a SWN · Premium Outlets, na condição de <b>controladora</b>, realiza o tratamento dos meus dados pessoais, nos termos da <b>Lei nº 13.709/2018 (LGPD)</b>.</p>
+
+      <h4>Dados pessoais tratados</h4>
+      <ul class="bul">
+        <li><b>Identificação:</b> nome, RG, CPF, CTPS, PIS/NIS, título de eleitor, data de nascimento, endereço e contatos.</li>
+        <li><b>Dados bancários:</b> conta salário / chave PIX para pagamento de salários e benefícios.</li>
+        <li><b>Foto:</b> imagem para crachá e identificação interna, quando utilizada.</li>
+        <li><b>Biometria de ponto:</b> dado biométrico para registro de jornada, <b>quando houver</b> sistema biométrico na loja (dado pessoal sensível).</li>
+        <li><b>Dados de dependentes:</b> nome, CPF e documentos de filhos/cônjuge para fins de IR, salário-família e benefícios.</li>
+      </ul>
+
+      <h4>Finalidades</h4>
+      <ul class="bul">
+        <li>Processo de <b>admissão</b> e formalização do vínculo empregatício.</li>
+        <li><b>Folha de pagamento</b>, benefícios, descontos e pagamentos legais.</li>
+        <li>Cumprimento de <b>obrigações legais e regulatórias</b>, incluindo envio de eventos ao <b>eSocial</b> (ex.: S-2200, S-2220) e à Receita Federal.</li>
+        <li><b>Gestão do contrato de trabalho</b>: registro de ponto, segurança e saúde ocupacional, controle de acessos e administração geral do vínculo.</li>
+      </ul>
+
+      <h4>Base legal</h4>
+      <ul class="bul">
+        <li><b>Cumprimento de obrigação legal ou regulatória</b> pela controladora (art. 7º, II da LGPD).</li>
+        <li><b>Execução do contrato de trabalho</b> do qual o titular é parte (art. 7º, V da LGPD).</li>
+        <li>Para dados sensíveis (ex.: biometria), o tratamento observa o art. 11 da LGPD, vinculado às mesmas finalidades de obrigação legal e execução do contrato.</li>
+      </ul>
+
+      <h4>Direitos do titular</h4>
+      <ul class="bul">
+        <li>Confirmação da existência de tratamento e <b>acesso</b> aos dados.</li>
+        <li><b>Correção</b> de dados incompletos, inexatos ou desatualizados.</li>
+        <li>Informação sobre o <b>compartilhamento</b> dos dados e a possibilidade de revogar consentimento, quando aplicável.</li>
+        <li><b>Eliminação</b> dos dados tratados com consentimento, ressalvada a guarda legal obrigatória.</li>
+        <li>Os pedidos podem ser feitos ao RH / responsável pela proteção de dados da empresa.</li>
+      </ul>
+
+      <p>Estou ciente de que os dados serão <b>guardados pelo prazo exigido pela legislação trabalhista, previdenciária e fiscal</b>, sendo o acesso restrito às áreas envolvidas (DP, RH e contabilidade) e a terceiros estritamente necessários (ex.: contabilidade e órgãos públicos).</p>
+
+      <div class="fgrid">
+        <div class="f"><label>Loja</label><input data-f="lg_loja" placeholder="loja"></div>
+        <div class="f"><label>Data</label><input type="date" data-f="lg_data"></div>
+      </div>
+      <p class="legal">Para tratamentos que não se enquadrem em obrigação legal ou execução de contrato, deve-se colher consentimento específico e destacado. Validar fluxos com o encarregado (DPO) / responsável legal da empresa.</p>
+      <div class="sign">
+        <div class="s">Assinatura do colaborador (titular dos dados)</div>
+        <div class="s">Responsável pela loja / RH</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ============ CONTRATO DE EXPERIÊNCIA ============ */
+function renderContrato(){
+  el('content').innerHTML=`
+  <div class="block show-print" data-tab>
+    <h3>📄 Contrato de Experiência</h3>
+    <div class="doc">
+      <p class="legal">Modelo enxuto de apoio. <b>Deve ser validado pela contabilidade</b> e ajustado à <b>Convenção Coletiva (CCT)</b> dos comerciários da base territorial da loja antes da assinatura.</p>
+
+      <h4>Partes</h4>
+      <div class="fgrid">
+        <div class="f"><label>Empregador (razão social)</label><input data-f="c_emp" placeholder="Razão social da empresa"></div>
+        <div class="f"><label>CNPJ</label><input data-f="c_cnpj" placeholder="00.000.000/0000-00"></div>
+      </div>
+      <div class="fgrid">
+        <div class="f"><label>Empregado(a)</label><input data-f="c_nome" placeholder="Nome completo"></div>
+        <div class="f"><label>CPF</label><input data-f="c_cpf" placeholder="000.000.000-00"></div>
+        <div class="f"><label>CTPS / nº</label><input data-f="c_ctps"></div>
+      </div>
+
+      <h4>Condições</h4>
+      <div class="fgrid">
+        <div class="f"><label>Função (coerente com CBO)</label><input data-f="c_funcao" placeholder="ex: Vendedor(a) — CBO 5211-10"></div>
+        <div class="f"><label>Local de trabalho / Loja</label><input data-f="c_local" placeholder="Loja / endereço"></div>
+      </div>
+      <div class="fgrid">
+        <div class="f"><label>Salário (R$)</label><input data-f="c_salario" placeholder="conforme piso da CCT"></div>
+        <div class="f"><label>Forma de pagamento</label><input data-f="c_pgto" placeholder="ex: mensal, em conta salário"></div>
+        <div class="f"><label>Jornada / regime</label><input data-f="c_jornada" placeholder="ex: 44h semanais, escala 6x1"></div>
+      </div>
+      <div class="fgrid">
+        <div class="f"><label>Início do contrato</label><input type="date" data-f="c_inicio"></div>
+        <div class="f"><label>1º período (dias)</label><input data-f="c_p1" placeholder="ex: 45"></div>
+        <div class="f"><label>Prorrogação (dias) — única</label><input data-f="c_p2" placeholder="ex: 45"></div>
+      </div>
+
+      <h4>Cláusulas (texto-modelo)</h4>
+      <ul class="bul">
+        <li><b>1.</b> O presente contrato é firmado a título de <b>experiência</b>, nos termos dos <b>arts. 443, 445 e 451 da CLT</b>, pelo prazo do 1º período acima.</li>
+        <li><b>2.</b> O prazo total da experiência <b>não excederá 90 (noventa) dias</b>, admitida <b>uma única prorrogação</b> dentro desse limite (ex.: 45 + 45). Mais de uma prorrogação ou prazo superior a 90 dias converte o vínculo em <b>prazo indeterminado</b>.</li>
+        <li><b>3.</b> Mantida a prestação de serviços após o término do prazo, o contrato passa automaticamente a vigorar por <b>prazo indeterminado</b>.</li>
+        <li><b>4.</b> Durante o período de experiência ficam assegurados os direitos legais: <b>FGTS, INSS, férias e 13º proporcionais</b> e demais previstos em lei e na CCT.</li>
+        <li><b>5.</b> O empregado declara ciência das normas internas, do dress code e dos termos de uniforme, acessos e EPI integrantes do kit de admissão.</li>
+      </ul>
+
+      <div class="fgrid">
+        <div class="f"><label>Cidade</label><input data-f="c_cidade"></div>
+        <div class="f"><label>Data de assinatura</label><input type="date" data-f="c_dataass"></div>
+      </div>
+
+      <div class="sign">
+        <div class="s">Empregado(a)</div>
+        <div class="s">Empregador / Representante</div>
+      </div>
+      <p class="legal" style="margin-top:18px">Confirmar piso salarial, jornada, adicionais e prazo de experiência na CCT dos comerciários. Garantir ASO admissional antes do 1º dia e registro eSocial (S-2200) até 1 dia antes do início.</p>
+    </div>
+  </div>`;
+}
+
+/* ============ BOAS-VINDAS / GUIA DO 1º DIA ============ */
+function renderBoasVindas(){
+  el('content').innerHTML=`
+  <div class="block show-print" data-tab>
+    <h3>🎉 Carta de Boas-vindas · Guia do 1º Dia</h3>
+    <div class="doc">
+      <div class="fgrid">
+        <div class="f"><label>Nome do(a) novo(a) colaborador(a)</label><input data-f="bv_nome" placeholder="${(el('nome').value||'nome')}"></div>
+        <div class="f"><label>Loja</label><input data-f="bv_loja" placeholder="${(el('loja').value||'loja')}"></div>
+      </div>
+      <div class="fgrid">
+        <div class="f"><label>Data de início</label><input type="date" data-f="bv_data"></div>
+        <div class="f"><label>Horário de chegada no 1º dia</label><input data-f="bv_hora" placeholder="ex: 09h30"></div>
+      </div>
+      <div class="fgrid">
+        <div class="f"><label>Apresentar-se a (nome / cargo)</label><input data-f="bv_apresentar" placeholder="ex: Maria, gerente da loja"></div>
+        <div class="f"><label>Seu padrinho / madrinha</label><input data-f="bv_padrinho" placeholder="ex: João, vendedor sênior"></div>
+      </div>
+
+      <h4>Seja muito bem-vindo(a) à SWN! 💛</h4>
+      <p>Que alegria ter você no time! A partir de agora, esta é a sua <b>segunda casa</b> — e queremos que você se sinta exatamente assim: acolhido(a), valorizado(a) e parte de algo maior.</p>
+      <p>Aqui a gente acredita que <b>outlet não é sinônimo de atendimento ruim</b>. Muito pelo contrário: é onde o cliente encontra a melhor combinação de preço e experiência. O seu papel é fazer cada pessoa sair da loja melhor do que entrou.</p>
+      <p>Pedimos só uma coisa desde o primeiro dia: <b>pense com abundância</b>. Abundância de cuidado com o cliente, de colaboração com os colegas, de vontade de aprender e de fazer acontecer. Quando a gente pensa grande e age com generosidade, o resultado vem.</p>
+
+      <h4>📌 O que levar no 1º dia</h4>
+      <ul class="bul">
+        <li>Documentos pendentes de entrega (RG/CPF, dados bancários/PIX, comprovante de residência) — caso ainda não tenham sido enviados.</li>
+        <li><b>ASO admissional</b> (exame médico), se ainda estiver com você.</li>
+        <li>Disposição, pontualidade e um sorriso. 😊</li>
+      </ul>
+
+      <h4>🕐 Onde e a quem se apresentar</h4>
+      <p>No seu 1º dia, chegue à loja no <b>horário combinado</b> (indicado acima) e apresente-se à pessoa indicada acima. Sua dúvida nunca é boba — pergunte sempre.</p>
+
+      <h4>👥 Seu padrinho / madrinha</h4>
+      <p>Você terá um(a) <b>padrinho/madrinha</b> (indicado acima): um colega que vai te acompanhar nos primeiros dias, te apresentar à equipe, mostrar a rotina e tirar suas dúvidas. Conte com ele(a).</p>
+
+      <h4>🗓️ Como funciona a Semana 1 (integração)</h4>
+      <ul class="bul">
+        <li><b>Dia 1:</b> boas-vindas, tour pela loja, apresentação à equipe e assinatura dos termos do kit de admissão.</li>
+        <li><b>Dias 2–3:</b> integração com seu padrinho/madrinha — rotina de loja, sistema (Almode/PDV), ponto e atendimento.</li>
+        <li><b>Dias 4–5:</b> prática acompanhada de atendimento, caixa e organização; primeiras vendas com apoio.</li>
+        <li>Ao longo da semana: leitura do <b>Guia do Colaborador</b>, código de conduta e prevenção de perdas.</li>
+      </ul>
+
+      <h4>👕 Uniforme / Dress Code (resumo)</h4>
+      <ul class="bul">
+        <li><b>Camiseta do uniforme</b> obrigatória durante todo o expediente, sempre limpa e bem cuidada.</li>
+        <li><b>Parte de baixo:</b> calça preta básica ou peças das marcas da loja.</li>
+        <li><b>Calçados:</b> sapato de salto baixo ou tênis (proibido chinelo/slide/sandália).</li>
+        <li>Detalhes completos no <b>Termo de Uniforme</b>, na aba Termos.</li>
+      </ul>
+
+      <p class="legal">Estamos muito felizes em ter você por aqui. Conte com a gente — e bem-vindo(a) à família SWN! 💛</p>
+
+      <div class="sign">
+        <div class="s">Boas-vindas — Gerência / RH</div>
+        <div class="s">Ciência do(a) novo(a) colaborador(a)</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ============ AÇÕES GERAIS ============ */
+function limpar(){
+  if(CURTAB==='documentos'){
+    if(!confirm('Limpar as marcações do checklist deste colaborador?'))return;
+    Object.keys(localStorage).filter(k=>k.startsWith('kad:'+ctxKey())).forEach(k=>localStorage.removeItem(k));
+  }else{
+    if(!confirm('Limpar os campos preenchidos desta aba para este colaborador?'))return;
+    Object.keys(localStorage).filter(k=>k.startsWith('ka:'+ctxKey()+'|'+CURTAB)).forEach(k=>localStorage.removeItem(k));
+  }
+  render();
+}
+
+/* ---- backup: exportar / importar dados desta página ---- */
+const BK_PREFIXES=['kahdr:','ka:','kad:'];
+function isOurKey(k){return BK_PREFIXES.some(p=>k.startsWith(p));}
+function exportarDados(){
+  const data={};
+  Object.keys(localStorage).filter(isOurKey).forEach(k=>data[k]=localStorage.getItem(k));
+  const payload={app:'kit_admissao_swn',versao:1,exportadoEm:new Date().toISOString(),dados:data};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const nome=(el('nome').value||'colaborador').trim().replace(/[^\w\-]+/g,'_');
+  a.href=url;a.download='kit_admissao_'+nome+'_'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function importarDados(input){
+  const file=input.files&&input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const parsed=JSON.parse(reader.result);
+      const data=parsed&&parsed.dados?parsed.dados:parsed;
+      if(!data||typeof data!=='object')throw new Error('formato inválido');
+      const chaves=Object.keys(data).filter(isOurKey);
+      if(!chaves.length)throw new Error('nenhum dado do Kit Admissão encontrado no arquivo');
+      if(!confirm('Importar '+chaves.length+' registro(s)? Os dados atuais com as mesmas chaves serão substituídos.'))return;
+      chaves.forEach(k=>localStorage.setItem(k,String(data[k])));
+      loadHeader();render();
+      alert('Dados importados com sucesso.');
+    }catch(e){alert('Não foi possível importar: '+e.message);}
+    finally{input.value='';}
+  };
+  reader.readAsText(file);
+}
+
+function fmt(d){if(!d)return '___/___/___';const[a,m,x]=d.split('-');return `${x}/${m}/${a}`;}
+
+/* ---- persistência do cabeçalho ---- */
+function hkey(id){return 'kahdr:'+id;}
+function loadHeader(){
+  ['nome','cpf','funcao','loja','data'].forEach(id=>{
+    const v=localStorage.getItem(hkey(id));if(v!==null)el(id).value=v;
+  });
+  if(!el('data').value)el('data').value=new Date().toISOString().slice(0,10);
+}
+function bindHeader(){
+  ['nome','cpf','funcao','loja','data'].forEach(id=>{
+    el(id).addEventListener('input',()=>{localStorage.setItem(hkey(id),el(id).value);});
+    el(id).addEventListener('change',()=>{localStorage.setItem(hkey(id),el(id).value);render();});
+  });
+}
+
+/* ---- deep-link por hash ---- */
+function tabFromHash(){
+  const h=(location.hash||'').replace('#','');
+  const found=Object.entries(TABS).find(([k,v])=>v.hash===h);
+  if(found)CURTAB=found[0];
+}
+window.addEventListener('hashchange',()=>{tabFromHash();buildTabs();render();});
+
+/* ---- init ---- */
+loadHeader();
+bindHeader();
+tabFromHash();
+buildTabs();
+render();
+</script>
+</body>
+</html>

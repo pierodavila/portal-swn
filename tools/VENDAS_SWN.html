@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vendas e Atendimento · SWN · Premium Outlets</title>
+<style>
+  :root{
+    --bg:#0f1115;--panel:#161a22;--panel2:#1c2230;--line:#262d3a;
+    --txt:#e8ecf3;--muted:#9aa6b8;--brand:#b4d233;--brand2:#cbe465;
+    --green:#2ecc71;--red:#e74c3c;--blue:#4aa3ff;--radius:13px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5}
+  a{color:var(--blue)}
+  .topbar{position:sticky;top:0;z-index:20;background:rgba(15,17,21,.95);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);padding:13px 22px;display:flex;align-items:center;gap:12px}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:16px}
+  .logo{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;
+    background:linear-gradient(135deg,var(--brand),var(--brand2));color:#1a1300;font-weight:900}
+  .brand small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+  .wrap{max-width:920px;margin:0 auto;padding:22px}
+
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+  .tabs button{padding:9px 15px;border:1px solid var(--line);border-radius:10px;cursor:pointer;
+    background:var(--panel);color:var(--muted);font-weight:700;font-size:13px}
+  .tabs button.active{background:var(--brand);color:#1a1300;border-color:var(--brand)}
+
+  .block{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    margin-bottom:14px;overflow:hidden}
+  .block h3{margin:0;padding:12px 16px;font-size:13px;text-transform:uppercase;letter-spacing:.6px;
+    color:var(--brand2);background:var(--panel2);border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:9px}
+  .block .seqnote{font-size:10.5px;color:var(--muted);font-weight:600;text-transform:none;letter-spacing:0}
+  .block .body{padding:14px 16px}
+  .lead{font-size:14px;color:var(--muted);margin:0 0 14px}
+
+  /* Accordion (etapas de atendimento) */
+  .acc{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;overflow:hidden;background:var(--panel)}
+  .acc>summary{cursor:pointer;list-style:none;padding:13px 16px;display:flex;align-items:center;gap:12px;
+    font-weight:700;font-size:14.5px;background:var(--panel2);user-select:none}
+  .acc>summary::-webkit-details-marker{display:none}
+  .acc>summary:hover{background:#222a3a}
+  .acc .step-n{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;flex-shrink:0;
+    background:linear-gradient(135deg,var(--brand),var(--brand2));color:#1a1300;font-weight:900;font-size:13px}
+  .acc[open]>summary{border-bottom:1px solid var(--line)}
+  .acc .chev{margin-left:auto;color:var(--muted);transition:transform .2s}
+  .acc[open] .chev{transform:rotate(90deg)}
+  .acc .content{padding:14px 16px}
+  .acc .content h4{margin:0 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+  .acc .content h4.do{color:var(--green)}
+  .acc .content h4.say{color:var(--brand2)}
+  .acc .content h4.dont{color:var(--red)}
+  .acc .content ul{list-style:none;margin:0 0 12px;padding:0}
+  .acc .content li{padding:4px 0 4px 18px;position:relative;font-size:13.5px}
+  .acc .content li::before{content:"";position:absolute;left:2px;top:11px;width:6px;height:6px;border-radius:50%;background:var(--muted)}
+  .acc .content h4.do + ul li::before{background:var(--green)}
+  .acc .content h4.dont + ul li::before{background:var(--red)}
+  .script{background:rgba(180,210,51,.08);border-left:3px solid var(--brand);border-radius:0 8px 8px 0;
+    padding:8px 12px;margin:5px 0;font-size:13.5px;font-style:italic;color:var(--txt)}
+  .anchor{background:linear-gradient(135deg,rgba(180,210,51,.12),rgba(74,163,255,.06));
+    border:1px dashed var(--line);border-radius:9px;padding:9px 12px;font-size:12.5px;color:var(--muted);margin-top:6px}
+  .anchor b{color:var(--brand2)}
+
+  /* Valores Forum chips */
+  .values{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}
+  .values .chip{background:var(--panel2);border:1px solid var(--line);border-radius:20px;
+    padding:6px 13px;font-size:12px;font-weight:600;color:var(--brand2)}
+
+  /* Objection table */
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:4px}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--brand2);background:var(--panel2)}
+  td .q{font-weight:700;color:var(--txt)}
+  td small{color:var(--muted)}
+
+  /* Calculadora */
+  .calc-inputs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:6px}
+  .calc-inputs .f{display:flex;flex-direction:column;gap:5px}
+  .calc-inputs label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+  .calc-inputs input{padding:10px 12px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--txt);font-size:15px;outline:none}
+  .calc-inputs input:focus{border-color:var(--brand)}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:6px}
+  .kpi{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:13px 15px}
+  .kpi .name{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--brand2);font-weight:700}
+  .kpi .val{font-size:28px;font-weight:800;color:var(--txt);margin:4px 0 2px}
+  .kpi .formula{font-size:11.5px;color:var(--muted);font-family:ui-monospace,Menlo,monospace}
+  .kpi .bench{font-size:11.5px;color:var(--muted);margin-top:6px;padding-top:6px;border-top:1px dashed var(--line)}
+  .kpi .bench b{color:var(--green)}
+  .relation{background:rgba(74,163,255,.07);border:1px dashed var(--line);border-radius:10px;
+    padding:10px 14px;margin-top:14px;font-size:13px;color:var(--muted)}
+  .relation b{color:var(--blue)}
+
+  /* Trocas cards */
+  .cards2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+  .card{border-radius:12px;padding:14px 16px;border:1px solid var(--line);background:var(--panel2)}
+  .card.legal{border-left:4px solid var(--green)}
+  .card.arrep{border-left:4px solid var(--red)}
+  .card.cortesia{border-left:4px solid var(--brand)}
+  .card h4{margin:0 0 4px;font-size:14px}
+  .card .tag{display:inline-block;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+    padding:3px 9px;border-radius:20px;margin-bottom:8px}
+  .card.legal .tag{background:rgba(46,204,113,.15);color:var(--green)}
+  .card.arrep .tag{background:rgba(231,76,60,.15);color:#f29a90}
+  .card.cortesia .tag{background:rgba(180,210,51,.15);color:var(--brand2)}
+  .card ul{margin:6px 0 0;padding-left:18px;font-size:13px}
+  .card li{margin:4px 0}
+  .saydo{background:rgba(180,210,51,.08);border-left:3px solid var(--brand);border-radius:0 8px 8px 0;
+    padding:8px 12px;margin:10px 0 0;font-size:13px;font-style:italic}
+  .legalref{font-size:11px;color:var(--muted);font-family:ui-monospace,monospace}
+
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
+  .btn{padding:10px 16px;border:0;border-radius:10px;cursor:pointer;font-weight:700;font-size:13px}
+  .btn.primary{background:var(--brand);color:#1a1300}
+  .btn.ghost{background:var(--panel2);border:1px solid var(--line);color:var(--txt)}
+  .btn.ghost:hover{border-color:var(--red);color:#f29a90}
+
+  .note{background:linear-gradient(135deg,rgba(180,210,51,.08),rgba(74,163,255,.06));
+    border:1px dashed var(--line);border-radius:12px;padding:13px 15px;font-size:12.5px;color:var(--muted);margin-top:16px}
+
+  @media print{
+    body{background:#fff;color:#000}
+    .topbar,.tabs,.actions,.note{display:none}
+    .block,.acc,.kpi,.card,.relation,.checklist .col{border:1px solid #999;background:#fff;break-inside:avoid}
+    .checklist li::before{border-color:#000}
+    .block h3,.acc>summary,th{background:#eee;color:#000}
+    .acc .content{display:block!important}
+    .acc{break-inside:avoid}
+    details{display:block}
+    .pa-print{display:block!important}
+    .tab-pane{display:block!important}
+    .tab-pane h2.print-title{display:block!important}
+  }
+  .pa-print{display:none;text-align:center;font-weight:800;margin:6px 0 16px;font-size:18px}
+  .tab-pane{display:none}
+  .tab-pane.active{display:block}
+  .print-title{display:none}
+
+  /* Checklist diário */
+  .checklist{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+  .checklist .col{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:13px 15px}
+  .checklist .col h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--brand2)}
+  .checklist ul{list-style:none;margin:0;padding:0}
+  .checklist li{padding:5px 0 5px 26px;position:relative;font-size:13px}
+  .checklist li::before{content:"";position:absolute;left:0;top:6px;width:15px;height:15px;border:1.5px solid var(--muted);border-radius:4px;background:var(--bg)}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand"><svg class="brandmark" width="58" height="28" viewBox="0 0 58 28" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SWN Premium Outlets"><rect width="58" height="28" rx="7" fill="#fff"/><text x="6" y="22" font-family="Arial,Helvetica,sans-serif" font-weight="900" font-size="21" letter-spacing="-1.5"><tspan fill="#1b3c86">s</tspan><tspan fill="#b4d233">w</tspan><tspan fill="#2e241a">n</tspan></text></svg><div>Vendas e Atendimento <small>SWN · Premium Outlets</small></div></div>
+  </div>
+
+  <div class="wrap">
+    <div class="pa-print" id="printTitle">Vendas e Atendimento — SWN · Premium Outlets</div>
+
+    <div class="tabs" id="tabs"></div>
+
+    <!-- ============ ABA 1: PADRÃO DE ATENDIMENTO ============ -->
+    <div class="tab-pane" id="pane-atendimento">
+      <h2 class="print-title" style="color:var(--brand2)">Padrão de Atendimento</h2>
+
+      <div class="block">
+        <h3>Princípios do atendimento SWN <span class="seqnote">— ancorado nos valores SWN</span></h3>
+        <div class="body">
+          <p class="lead">Deixe de ser <b>atendente</b> (que entrega só o que pediram) e atue como <b>vendedor consultivo</b> (que entende a necessidade e amplia a venda). Regra de ouro: <b>ouvir mais, falar menos, perguntar antes de argumentar.</b></p>
+          <div class="values">
+            <span class="chip">Outlet não é sinônimo de atendimento ruim</span>
+            <span class="chip">Vendemos aquilo que o cliente precisa</span>
+            <span class="chip">O cliente nem sempre tem razão, mas nós sempre temos educação</span>
+            <span class="chip">Pensar com abundância</span>
+            <span class="chip">Roupa boa deve ser para todos</span>
+          </div>
+          <p class="lead" style="margin-top:12px;margin-bottom:0">Atendimento tão atencioso quanto o dos melhores shoppings, com um custo-benefício muito superior. Se a peça ficou ruim ou o cliente não precisa, <b>não force a venda</b>: é melhor ele levar uma peça a menos e voltar sempre por confiança.</p>
+        </div>
+      </div>
+
+      <div class="block">
+        <h3>Os 7 passos do atendimento <span class="seqnote">— clique em cada etapa para expandir</span></h3>
+        <div class="body">
+
+          <details class="acc" open>
+            <summary><span class="step-n">1</span>Abordagem / Recepção — os primeiros 30 segundos<span class="chev">▶</span></summary>
+            <div class="content">
+              <h4 class="do">O que fazer</h4>
+              <ul>
+                <li>Cumprimentar em até ~10 segundos da entrada, com contato visual, sorriso e postura aberta. A primeira impressão é decisiva.</li>
+                <li>Acolher e dar "espaço de respiro": libere o cliente para circular e mantenha-se por perto e disponível.</li>
+                <li>Já ancore a oportunidade de outlet logo na entrada.</li>
+              </ul>
+              <h4 class="say">O que falar</h4>
+              <div class="script">"Seja bem-vindo(a)! Hoje temos a coleção X com até 60% off — fique à vontade que já te mostro."</div>
+              <div class="script">"Tudo o que está nessa arara é coleção passada com preço de outlet — pode garimpar à vontade."</div>
+              <h4 class="dont">Erros a evitar</h4>
+              <ul>
+                <li>Abrir com <b>"Posso ajudar?"</b> — gera o reflexo automático "só estou olhando".</li>
+                <li>Ignorar quem entra ou abordar tarde demais.</li>
+                <li>Grudar no cliente sem deixar ele respirar.</li>
+              </ul>
+              <div class="anchor"><b>Frase-âncora outlet:</b> a abordagem já vende a oportunidade — marca boa, coleção passada, preço acessível.</div>
+            </div>
+          </details>
+
+          <details class="acc">
+            <summary><span class="step-n">2</span>Sondagem / Levantamento de necessidade<span class="chev">▶</span></summary>
+            <div class="content">
+              <h4 class="do">O que fazer</h4>
+              <ul>
+                <li>Perguntas <b>abertas</b> para descobrir: ocasião de uso, para quem é, estilo, orçamento aproximado, numeração, se busca peça específica ou está garimpando.</li>
+                <li>Monte um <b>mapa de necessidade</b> que orienta a demonstração e já abre espaço para o look completo.</li>
+                <li>Aplique o SPIN no balcão: <b>S</b>ituação ("o que você procura hoje?") → <b>P</b>roblema ("o que costuma faltar no seu guarda-roupa?") → <b>I</b>mplicação ("e quando precisa e não tem, atrapalha?") → <b>N</b>ecessidade ("então uma peça versátil que serve pro trabalho e pro fim de semana resolve, né?").</li>
+              </ul>
+              <h4 class="say">O que falar</h4>
+              <div class="script">"É para uma ocasião especial ou para o dia a dia?"</div>
+              <div class="script">"Você prefere algo mais básico ou mais marcante? Qual numeração você costuma usar?"</div>
+              <h4 class="dont">Erros a evitar</h4>
+              <ul>
+                <li>Pular direto para mostrar produto sem entender a necessidade.</li>
+                <li>Perguntas fechadas de "sim/não" que travam a conversa.</li>
+                <li>Julgar o cliente pelo visual ou supor o orçamento.</li>
+              </ul>
+              <div class="anchor"><b>Valor Forum:</b> "vendemos aquilo que o cliente precisa" — a sondagem é onde você descobre o que ele realmente precisa, não o que você quer empurrar.</div>
+            </div>
+          </details>
+
+          <details class="acc">
+            <summary><span class="step-n">3</span>Demonstração / Apresentação do produto<span class="chev">▶</span></summary>
+            <div class="content">
+              <h4 class="do">O que fazer</h4>
+              <ul>
+                <li>Mostre a peça destacando <b>benefício e caimento</b>, não só características.</li>
+                <li>Leve ao provador e estimule a experimentação (provar aumenta muito a conversão). Leve tamanhos alternativos <b>antes</b> que o cliente peça.</li>
+                <li>Sugira composição de look já pensando na venda adicional.</li>
+              </ul>
+              <h4 class="say">O que falar</h4>
+              <div class="script">"Essa é da marca X, que na loja de rua sai por R$ 300; aqui está R$ 119 porque é coleção anterior — mesma qualidade, sem o preço da vitrine."</div>
+              <div class="script">"Experimenta? Já separei a sua numeração e uma logo acima, pra você sentir o caimento."</div>
+              <h4 class="dont">Erros a evitar</h4>
+              <ul>
+                <li>Listar características técnicas sem traduzir em benefício para o cliente.</li>
+                <li>Não incentivar a prova.</li>
+                <li>Deixar o cliente esperando sozinho no provador sem assistência.</li>
+              </ul>
+              <div class="anchor"><b>Frase-âncora outlet:</b> vincule sempre <b>qualidade + preço</b> — "de R$ X por R$ Y".</div>
+            </div>
+          </details>
+
+          <details class="acc">
+            <summary><span class="step-n">4</span>Contorno de objeções<span class="chev">▶</span></summary>
+            <div class="content">
+              <h4 class="do">O que fazer</h4>
+              <ul>
+                <li>Siga a estrutura: <b>Ouvir → Validar → Investigar → Responder → Redirecionar.</b> Resista ao impulso de discordar.</li>
+                <li>Use o metamodelo: transforme a objeção vaga em pergunta concreta ("caro comparado a quê?").</li>
+              </ul>
+              <h4 class="say">Scripts rápidos</h4>
+              <div class="script">"Entendo. Só pra eu te ajudar melhor: o que no preço te parece alto?" (está caro)</div>
+              <div class="script">"Faz sentido pensar. O que ainda está te deixando em dúvida? Lembrando que essa é a última peça nesse tamanho." (vou pensar)</div>
+              <h4 class="dont">Erros a evitar</h4>
+              <ul>
+                <li>Contradizer o cliente ("não está caro não").</li>
+                <li>Usar <b>escassez falsa</b> — é ilegal e quebra a confiança. No outlet a escassez costuma ser real, use a verdadeira.</li>
+                <li>Desistir no primeiro "não" sem investigar.</li>
+              </ul>
+              <div class="anchor"><b>Valor Forum:</b> "o cliente nem sempre tem razão, mas nós sempre temos educação" — contorne com calma e respeito, nunca na defensiva. Veja o quadro completo de objeções abaixo.</div>
+            </div>
+          </details>
+
+          <details class="acc">
+            <summary><span class="step-n">5</span>Fechamento<span class="chev">▶</span></summary>
+            <div class="content">
+              <h4 class="do">O que fazer</h4>
+              <ul>
+                <li>Identifique <b>sinais de compra</b>: cliente se olha no espelho, pergunta forma de pagamento, separa a peça.</li>
+                <li>Conduza o fechamento de forma natural, com segurança e sem pressão agressiva.</li>
+              </ul>
+              <h4 class="say">Técnicas e falas</h4>
+              <div class="script"><b>Escolha alternativa:</b> "Vai levar a azul ou a preta?"</div>
+              <div class="script"><b>Resumo de benefícios:</b> "Então ficou: a calça que serve pro trabalho e a camisa que combina, as duas com preço de outlet. Fecho pra você?"</div>
+              <div class="script"><b>Urgência legítima:</b> "Essa é peça única nesse tamanho — se eu guardar, garanto pra você."</div>
+              <h4 class="dont">Erros a evitar</h4>
+              <ul>
+                <li>Ficar falando demais e "desvender" depois do sim.</li>
+                <li>Pressão agressiva que assusta o cliente.</li>
+                <li>Não pedir o fechamento (esperar o cliente decidir sozinho).</li>
+              </ul>
+            </div>
+          </details>
+
+          <details class="acc">
+            <summary><span class="step-n">6</span>Venda adicional — Cross-sell &amp; Up-sell (alavanca do PA)<span class="chev">▶</span></summary>
+            <div class="content">
+              <h4 class="do">O que fazer</h4>
+              <ul>
+                <li><b>Cross-sell</b> (complementar): ofereça peças que completam o look — cinto, segunda peça, acessório. É o que separa atendente (PA=1) de vendedor (PA=2 a 3).</li>
+                <li><b>Up-sell:</b> ofereça a versão melhor / de maior valor quando faz sentido.</li>
+                <li><b>"Leve mais por menos":</b> combos típicos de outlet (2ª peça com desconto, kits, leve 3 pague 2).</li>
+                <li>Sempre conectado à necessidade levantada na sondagem.</li>
+              </ul>
+              <h4 class="say">O que falar</h4>
+              <div class="script">"Essa calça ficou perfeita. Separei um cinto e uma camisa que fecham o look — e na 2ª peça você ganha desconto."</div>
+              <div class="script">"Já que é pra um evento, tem um sapato que combina e está em oferta. Quer ver junto?"</div>
+              <h4 class="dont">Erros a evitar</h4>
+              <ul>
+                <li>Empurrar item que não tem nada a ver com a necessidade.</li>
+                <li>Oferecer adicional só depois do cliente já estar saindo.</li>
+                <li>Insistir após um "não" claro.</li>
+              </ul>
+              <div class="anchor"><b>Valor Forum:</b> adicionar não é empurrar — é <b>completar a solução</b>. E "pensar com abundância": loja cheia e bem abastecida convida o cliente a levar mais.</div>
+            </div>
+          </details>
+
+          <details class="acc">
+            <summary><span class="step-n">7</span>Pós-venda e Fidelização<span class="chev">▶</span></summary>
+            <div class="content">
+              <h4 class="do">O que fazer</h4>
+              <ul>
+                <li>Despedida calorosa e agradecimento sincero.</li>
+                <li>Registrar o cliente (CRM/WhatsApp) <b>com consentimento</b> (LGPD).</li>
+                <li>Avisar novas coleções/ofertas, convidar para retorno, aplicar pesquisa de satisfação (NPS).</li>
+              </ul>
+              <h4 class="say">O que falar</h4>
+              <div class="script">"Posso te avisar pelo WhatsApp quando chegar coleção nova da sua marca? Sem spam, só as oportunidades boas."</div>
+              <h4 class="dont">Erros a evitar</h4>
+              <ul>
+                <li>Cadastrar sem pedir permissão.</li>
+                <li>Despedida fria que não convida o cliente a voltar.</li>
+                <li>Esquecer de registrar a venda/cliente para recompra.</li>
+              </ul>
+              <div class="anchor"><b>Valor Forum:</b> "o pior cliente não é o que reclama, é o que não volta" — o pós-venda transforma a venda em relacionamento que gera recompra e indicação.</div>
+            </div>
+          </details>
+
+        </div>
+      </div>
+
+      <div class="block">
+        <h3>Atender mais de um cliente ao mesmo tempo (parking) <span class="seqnote">— em dia de movimento / queima</span></h3>
+        <div class="body">
+          <details class="acc" open>
+            <summary><span class="step-n">★</span>Como "estacionar" o 2º cliente sem perder o 1º<span class="chev">▶</span></summary>
+            <div class="content">
+              <p class="lead" style="margin-bottom:10px">Em pico de movimento ninguém pode entrar e ficar sem ser visto. A técnica do <b>parking</b> é acolher o 2º cliente em ~10 segundos, dar a ele uma <b>tarefa de espera</b> e voltar ao 1º — assim você atende dois (ou três) em paralelo sem largar ninguém.</p>
+              <h4 class="do">O que fazer</h4>
+              <ul>
+                <li><b>Acolha em ~10s:</b> faça contato visual e sinalize que já vai atender. <i>"Oi! Já estou finalizando aqui e já te ajudo, viu?"</i></li>
+                <li><b>Dê uma tarefa de espera</b> ao cliente "estacionado": mandar provar uma peça, separar tamanhos/cores, olhar uma arara específica. <i>"Enquanto isso, vai experimentando essa — já te trago a numeração certa."</i></li>
+                <li>Volte ao 1º cliente, conclua e <b>retome o 2º pelo nome / pela peça</b> que ele estava vendo.</li>
+                <li>Em queima, combine com a equipe: quem cobre a porta, quem cobre o provador, quem cobre o caixa.</li>
+              </ul>
+              <h4 class="dont">Erros a evitar</h4>
+              <ul>
+                <li><b>Nunca deixar cliente sozinho no provador</b> sem assistência — é onde mais se perde venda (tamanho errado, peça que não fechou e ninguém para buscar outra).</li>
+                <li>Atender o 2º de costas para o 1º, dando a impressão de abandono.</li>
+                <li>Deixar formar fila desorganizada no caixa em dia de queima.</li>
+              </ul>
+              <div class="anchor"><b>Fila no caixa (dia de queima):</b> organize fila única e visível, avise o tempo de espera, mantenha alguém "puxando" a fila e oferecendo adicional/captura de contato enquanto o cliente aguarda. Cliente informado espera mais e reclama menos.</div>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <div class="block">
+        <h3>Banco de contorno de objeções</h3>
+        <div class="body">
+          <table>
+            <thead><tr><th>Objeção</th><th>Como ouvir / validar</th><th>Resposta</th><th>Redirecionamento</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><span class="q">"Está caro"</span></td>
+                <td>Nunca contradizer. <small>"Entendo. Caro comparado a quê?"</small></td>
+                <td>Reposicione como <b>valor</b> (qualidade, durabilidade, marca) e use a âncora de outlet (preço original × preço atual).</td>
+                <td>Se for orçamento real, ofereça alternativa de menor ticket. <small>"Tenho uma opção parecida mais em conta."</small></td>
+              </tr>
+              <tr>
+                <td><span class="q">"Vou pensar"</span></td>
+                <td>Identifique: insegurança? aprovação de terceiro? só tempo? <small>"O que ainda te deixa em dúvida?"</small></td>
+                <td>Reduza o risco percebido (lembre a política de troca) e remova a indecisão com recomendação clara.</td>
+                <td>Use a <b>escassez real</b>: "é a última da grade nesse tamanho — posso separar enquanto você decide?".</td>
+              </tr>
+              <tr>
+                <td><span class="q">"Não é para mim / não combina"</span></td>
+                <td>Acolha sem insistir na peça rejeitada. <small>"Entendi, não é o seu estilo."</small></td>
+                <td>Volte à sondagem: descubra o que combina de fato. Mostre 2 alternativas alinhadas ao gosto.</td>
+                <td>"Deixa eu te mostrar uma que tem mais a sua cara" — reabre a venda em vez de encerrá-la.</td>
+              </tr>
+              <tr>
+                <td><span class="q">"Só estou olhando"</span></td>
+                <td>Acolher e liberar, sem pressão.</td>
+                <td>Mantenha presença leve e disponível.</td>
+                <td>Plante uma semente: "fique à vontade — qualquer peça que te chamar atenção, te falo o preço de outlet".</td>
+              </tr>
+              <tr>
+                <td><span class="q">"Vi mais barato em outro outlet"</span></td>
+                <td>Não duvide nem rebaixe o concorrente. <small>"Pode ser — me conta qual peça, pra eu te comparar direito?"</small></td>
+                <td>Compare <b>peça igual</b> (mesma marca/coleção/grade). Reposicione no conjunto: atendimento, condição de pagamento, troca, e a peça certa no seu tamanho aqui e agora.</td>
+                <td>"Essa aqui é a sua numeração, última da grade. Levando hoje, fecho com a melhor condição." Use a escassez real.</td>
+              </tr>
+              <tr>
+                <td><span class="q">"Vou ver em outra loja e volto"</span></td>
+                <td>Acolha sem travar a saída. <small>"Claro, faz sentido comparar. O que pesaria pra você decidir?"</small></td>
+                <td>Remova o motivo da dúvida agora (tamanho, look, preço). Lembre que é ponta de estoque e a grade some.</td>
+                <td>"Posso <b>separar essa no seu nome</b> por hoje, sem compromisso — se voltar e não tiver, você perde a peça certa."</td>
+              </tr>
+              <tr>
+                <td><span class="q">"Tem em outra cor / numeração?"</span></td>
+                <td>Trate como <b>sinal de compra</b>, não como problema. <small>"Boa! Deixa eu checar a grade pra você."</small></td>
+                <td>Confira estoque/araras de verdade. Se houver, traga. Se não, mostre 1–2 alternativas próximas (cor/modelo) no tamanho certo.</td>
+                <td>"Nessa cor a grade fechou, mas tenho essa que cai igual e está na sua numeração — experimenta?" Ofereça o look completo.</td>
+              </tr>
+              <tr>
+                <td><span class="q">"Isso é coleção velha?"</span></td>
+                <td>Sem defensiva — é a essência do outlet. <small>"É coleção passada, sim — e é por isso que o preço é esse."</small></td>
+                <td>Reposicione "velho" como <b>mesma qualidade por uma fração do preço</b>: marca boa, peça atual no uso, fora do preço de vitrine.</td>
+                <td>"Ninguém vê 'coleção passada', vê a peça boa que você está usando. De R$ X por R$ Y — vale demais."</td>
+              </tr>
+              <tr>
+                <td><span class="q">"É original? Tem garantia?"</span></td>
+                <td>Acolha a dúvida com firmeza e tranquilidade. <small>"Pergunta importante — pode ficar tranquilo."</small></td>
+                <td>Confirme: produto <b>original</b>, com <b>nota fiscal</b>; defeito de fábrica é coberto por lei (CDC, art. 18 — 90 dias em roupa/calçado), inclusive em liquidação.</td>
+                <td>"Original, com nota e garantia contra defeito. Qualquer problema de fábrica, a gente resolve. Posso fechar pra você?"</td>
+              </tr>
+              <tr>
+                <td><span class="q">"Não tenho dinheiro hoje"</span></td>
+                <td>Não constranja. <small>"Sem problema — quer que eu veja uma forma de viabilizar?"</small></td>
+                <td>Ofereça <b>parcelamento</b> e, se a peça for certeira, <b>reserva</b> por um prazo combinado para não perder a grade.</td>
+                <td>"Posso parcelar pra caber, ou <b>reservo no seu nome</b> por X dias. Assim você garante a peça e o tamanho."</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="block">
+        <h3>Técnicas de adicional (PA) — combinações sugeridas</h3>
+        <div class="body">
+          <table>
+            <thead><tr><th>Peça âncora</th><th>Complementos a oferecer</th><th>Gatilho de outlet</th></tr></thead>
+            <tbody>
+              <tr><td>Calça / jeans</td><td>Cinto, camisa/camiseta, tênis</td><td>2ª peça com desconto</td></tr>
+              <tr><td>Vestido</td><td>Bolsa, sapato, acessório/bijuteria</td><td>"Leve o look completo por menos"</td></tr>
+              <tr><td>Blazer / casaco</td><td>Camisa por baixo, calça de alfaiataria</td><td>Up-sell para peça de maior valor</td></tr>
+              <tr><td>Camiseta básica</td><td>Segunda e terceira cor (combo)</td><td>"Leve 3, pague 2"</td></tr>
+              <tr><td>Tênis / calçado</td><td>Meias, peça de moda casual</td><td>Kit com desconto progressivo</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="block">
+        <h3>Checklist diário do vendedor (1 página) <span class="seqnote">— imprimível: use 🖨️ no rodapé</span></h3>
+        <div class="body">
+          <div class="checklist">
+            <div class="col">
+              <h4>Pré-abertura</h4>
+              <ul>
+                <li>Loja abastecida e araras repostas</li>
+                <li>Preços visíveis e corretos em todas as peças</li>
+                <li>Provadores limpos e sem peças esquecidas</li>
+                <li>Uniforme/aparência conforme o padrão</li>
+                <li>Caixa/maquininha funcionando; sacolas e etiquetas à mão</li>
+                <li>Saber as promoções e combos do dia</li>
+              </ul>
+            </div>
+            <div class="col">
+              <h4>Durante o atendimento</h4>
+              <ul>
+                <li>Saudar todo cliente em &lt;10s da entrada</li>
+                <li>Sondar a necessidade antes de mostrar produto</li>
+                <li>Levar ao provador e levar tamanhos alternativos</li>
+                <li>Oferecer adicional / completar o look (PA)</li>
+                <li>Aplicar parking em pico, sem largar ninguém</li>
+                <li>Oferecer captura de contato (com consentimento)</li>
+              </ul>
+            </div>
+            <div class="col">
+              <h4>Fechamento</h4>
+              <ul>
+                <li>Registrar a venda corretamente no sistema</li>
+                <li>Conferir troco / comprovante / nota fiscal</li>
+                <li>Agradecer e fazer despedida calorosa</li>
+                <li>Cadastrar/atualizar o cliente (CRM/WhatsApp)</li>
+                <li>Agendar follow-up / aviso de coleção nova</li>
+                <li>Repor a peça vendida na arara</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ ABA 2: PAINEL DE METAS (CALCULADORA) ============ -->
+    <div class="tab-pane" id="pane-metas">
+      <h2 class="print-title" style="color:var(--brand2)">Painel de Metas (Calculadora de KPIs)</h2>
+
+      <div class="block">
+        <h3>Entradas do período <span class="seqnote">— os KPIs recalculam ao vivo e salvam neste navegador</span></h3>
+        <div class="body">
+          <div class="calc-inputs">
+            <div class="f"><label>Atendimentos / entradas</label><input type="number" min="0" id="in_atend" placeholder="ex: 200"></div>
+            <div class="f"><label>Nº de vendas (cupons)</label><input type="number" min="0" id="in_vendas" placeholder="ex: 60"></div>
+            <div class="f"><label>Nº de peças vendidas</label><input type="number" min="0" id="in_pecas" placeholder="ex: 138"></div>
+            <div class="f"><label>Faturamento do período (R$)</label><input type="number" min="0" step="0.01" id="in_fat" placeholder="ex: 9540"></div>
+            <div class="f"><label>Nº de trocas / devoluções</label><input type="number" min="0" id="in_trocas" placeholder="ex: 3"></div>
+            <div class="f"><label>Horas trabalhadas (no período)</label><input type="number" min="0" step="0.5" id="in_horas" placeholder="ex: 8"></div>
+            <div class="f"><label>Nº de contatos capturados (com consentimento)</label><input type="number" min="0" id="in_contatos" placeholder="ex: 33"></div>
+            <div class="f"><label>Nome do vendedor (opcional)</label><input type="text" id="in_vendedor" placeholder="ex: Maria / Turno tarde"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="block">
+        <h3>Resultados — KPIs calculados</h3>
+        <div class="body">
+          <div class="kpis">
+            <div class="kpi">
+              <div class="name">Taxa de Conversão</div>
+              <div class="val" id="k_conv">—</div>
+              <div class="formula">(vendas ÷ atendimentos) × 100</div>
+              <div class="bench">Benchmark loja física de moda: <b>20% a 40%</b></div>
+            </div>
+            <div class="kpi">
+              <div class="name">Ticket Médio (TM)</div>
+              <div class="val" id="k_tm">—</div>
+              <div class="formula">faturamento ÷ nº de vendas</div>
+              <div class="bench">Meta: <b>crescer mês a mês</b> (use seu histórico)</div>
+            </div>
+            <div class="kpi">
+              <div class="name">PA — Peças por Atendimento</div>
+              <div class="val" id="k_pa">—</div>
+              <div class="formula">nº de peças ÷ nº de vendas</div>
+              <div class="bench">Atendente ≈ 1,0 · bom vendedor <b>2,0 a 3,0</b></div>
+            </div>
+            <div class="kpi">
+              <div class="name">Preço Médio da Peça</div>
+              <div class="val" id="k_pm">—</div>
+              <div class="formula">faturamento ÷ nº de peças</div>
+              <div class="bench">Apoia o TM e indica o mix vendido</div>
+            </div>
+            <div class="kpi">
+              <div class="name">Taxa de Troca / Devolução</div>
+              <div class="val" id="k_troca">—</div>
+              <div class="formula">(trocas ÷ nº de vendas) × 100</div>
+              <div class="bench">Quanto <b>menor melhor</b> — alta indica erro de sondagem/tamanho</div>
+            </div>
+            <div class="kpi">
+              <div class="name">SPH — Vendas por Hora <span id="k_sph_who" style="text-transform:none;letter-spacing:0;color:var(--muted);font-weight:600"></span></div>
+              <div class="val" id="k_sph">—</div>
+              <div class="formula">faturamento ÷ horas trabalhadas</div>
+              <div class="bench"><b>KPI de produtividade individual</b> — neutraliza diferença de jornada/turno. Meça por <b>vendedor/turno</b>, não só por loja.</div>
+            </div>
+            <div class="kpi">
+              <div class="name">% de Captura de Contato</div>
+              <div class="val" id="k_captura">—</div>
+              <div class="formula">(contatos capturados ÷ nº de vendas) × 100</div>
+              <div class="bench">Meta sugerida: <b>50% a 60%</b> — é a base do clienteling/recompra (CRM, WhatsApp com consentimento).</div>
+            </div>
+          </div>
+
+          <div class="relation">
+            <b>Relação-chave de moda:</b> Ticket Médio = Preço Médio da Peça × PA. Para crescer o faturamento, atue nas três alavancas: mais gente que compra (<b>Conversão</b>), mais peças por venda (<b>PA</b>) e peças de maior valor (<b>Preço Médio</b>).
+            <div id="check_relation" style="margin-top:8px;color:var(--green);font-size:12px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="block">
+        <h3>Mini-glossário — o que cada KPI mede</h3>
+        <div class="body">
+          <table>
+            <thead><tr><th>KPI</th><th>O que mede</th><th>Fórmula</th><th>Referência</th></tr></thead>
+            <tbody>
+              <tr><td class="q">Ticket Médio</td><td>quanto cada venda traz, em média</td><td>Faturamento ÷ nº de vendas</td><td>crescer mês a mês</td></tr>
+              <tr><td class="q">PA</td><td>itens por venda (poder de cross-sell)</td><td>Nº de peças ÷ nº de vendas</td><td>moda ≥ 2; bom vendedor 2–3</td></tr>
+              <tr><td class="q">Taxa de Conversão</td><td>% de visitantes que compram</td><td>(Vendas ÷ visitantes) × 100</td><td>loja física 20%–40%</td></tr>
+              <tr><td class="q">Taxa de Troca</td><td>% de vendas que voltam</td><td>(Trocas ÷ vendas) × 100</td><td>quanto menor melhor</td></tr>
+              <tr><td class="q">Preço Médio</td><td>posicionamento de mix</td><td>Faturamento ÷ nº de peças</td><td>apoia o TM</td></tr>
+              <tr><td class="q">Venda por m²</td><td>eficiência do espaço</td><td>Faturamento ÷ área (m²)</td><td>varia por formato</td></tr>
+              <tr><td class="q">Venda por Vendedor</td><td>produtividade individual</td><td>Faturamento ÷ nº de vendedores</td><td>base de metas e comissão</td></tr>
+              <tr><td class="q">NPS</td><td>lealdade / recomendação</td><td>% Promotores − % Detratores</td><td>setor 30–40; ideal &gt; 50</td></tr>
+            </tbody>
+          </table>
+          <div class="note" style="margin-top:14px">Meça os KPIs por <b>loja, turno e vendedor</b> — a análise individual revela perfis (ex.: alta conversão mas PA baixo = "fecha rápido mas não amplia"; treinar cross-sell). Metas devem ser realistas, baseadas no histórico de 12 meses. Não use um KPI isolado — olhe o conjunto.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ ABA 3: POLÍTICA DE TROCAS (CDC) ============ -->
+    <div class="tab-pane" id="pane-trocas">
+      <h2 class="print-title" style="color:var(--brand2)">Política de Trocas (CDC)</h2>
+
+      <div class="block">
+        <h3>A regra fundamental — dois mundos diferentes</h3>
+        <div class="body">
+          <p class="lead">O cliente costuma confundir <b>defeito</b> com <b>arrependimento</b>. É o erro nº 1 do varejo. Separe sempre os dois. <span class="legalref">Base legal: Lei 8.078/1990 (CDC) — arts. 18, 26 e 49.</span></p>
+          <div class="cards2">
+
+            <div class="card legal">
+              <span class="tag">Obrigação legal · sempre</span>
+              <h4>Produto com VÍCIO / DEFEITO</h4>
+              <p style="font-size:13px;margin:4px 0;color:var(--muted)">Defeito que torna o produto impróprio ou diminui seu valor: costura aberta, zíper quebrado, mancha, peça desbotada, defeito de fábrica.</p>
+              <ul>
+                <li><b>Prazo p/ reclamar (art. 26):</b> 30 dias (não duráveis) · <b>90 dias (duráveis</b> — roupas/calçados). Vício oculto: conta a partir de quando o defeito fica evidente.</li>
+                <li><b>Fluxo (art. 18, §1º):</b> a loja tem até <b>30 dias</b> para sanar. Não sanado, o cliente escolhe: (I) troca, (II) dinheiro de volta corrigido, ou (III) abatimento do preço.</li>
+                <li>Frete e custos correm por conta da loja.</li>
+                <li>Vale na loja física e online, <b>independe de boa vontade</b> — é lei. Vale até em liquidação.</li>
+              </ul>
+              <div class="saydo">Dizer ao cliente: "Como é defeito de fábrica, o senhor tem direito garantido. Vou resolver: troco a peça ou, se preferir, devolvo o valor."</div>
+            </div>
+
+            <div class="card arrep">
+              <span class="tag">Só FORA da loja · 7 dias</span>
+              <h4>ARREPENDIMENTO / "não gostei"</h4>
+              <p style="font-size:13px;margin:4px 0;color:var(--muted)">Mudou de ideia, cor, tamanho por escolha — sem defeito.</p>
+              <ul>
+                <li><b>Art. 49:</b> direito de desistir em <b>7 dias corridos</b> <b>só na compra fora da loja</b> (internet, telefone, catálogo, domicílio). Sem justificar; devolução integral e frete pela loja.</li>
+                <li><b>Compra em LOJA FÍSICA: NÃO há direito automático de arrependimento.</b> Se experimentou e só mudou de ideia, a loja não é obrigada por lei a trocar.</li>
+              </ul>
+              <div class="saydo">Dizer ao cliente: "Como a compra foi aqui na loja e a peça não tem defeito, a troca por mudança de ideia segue a nossa política de cortesia — que com prazer aplico, dentro destas condições."</div>
+            </div>
+
+            <div class="card cortesia">
+              <span class="tag">Regra interna · cortesia</span>
+              <h4>TROCA POR CORTESIA (loja física)</h4>
+              <p style="font-size:13px;margin:4px 0;color:var(--muted)">Não é obrigatória por lei, mas é padrão de mercado para fidelizar. As regras são definidas pela loja e, uma vez divulgadas, passam a obrigar a loja.</p>
+              <ul>
+                <li><b>Prazo sugerido:</b> 7, 15 ou 30 dias (defina e comunique).</li>
+                <li><b>Condições:</b> produto sem uso, com <b>etiqueta</b>, embalagem e <b>nota fiscal/comprovante</b>.</li>
+                <li><b>Forma:</b> troca por outra peça ou <b>vale-troca/crédito</b> (em vez de dinheiro).</li>
+                <li><b>Itens de liquidação / ponta de estoque:</b> pode-se <b>restringir ou excluir</b> a troca por arrependimento — <u>desde que avisado de forma clara antes da compra</u>. A restrição vale só para arrependimento; <b>defeito sempre dá direito</b>.</li>
+              </ul>
+              <div class="saydo">Dizer ao cliente: "Esta peça é de liquidação, então não entra em troca por arrependimento — mas se tiver qualquer defeito, o senhor está coberto. Posso confirmar o tamanho com você agora?"</div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="block">
+        <h3>FAQ de balcão — o que dizer ao cliente</h3>
+        <div class="body">
+          <table>
+            <thead><tr><th>Situação do cliente</th><th>Resposta correta</th></tr></thead>
+            <tbody>
+              <tr><td class="q">"A peça veio com defeito"</td><td>Troca, devolução ou abatimento — direito garantido (art. 18), em 30/90 dias, mesmo em liquidação. Frete por conta da loja.</td></tr>
+              <tr><td class="q">"Comprei aqui e mudei de ideia"</td><td>Não é obrigação legal. Aplicamos a <b>troca por cortesia</b> dentro do prazo e condições (etiqueta, nota, sem uso).</td></tr>
+              <tr><td class="q">"Comprei no site e quero devolver"</td><td>Direito de arrependimento (art. 49): 7 dias corridos, sem justificar, devolução integral, frete pela loja.</td></tr>
+              <tr><td class="q">"Item de liquidação, quero trocar de tamanho"</td><td>Se avisado antes, item de liquidação pode não entrar em troca por arrependimento. <b>Se for defeito, troca sempre.</b></td></tr>
+              <tr><td class="q">"Passou o prazo da cortesia"</td><td>Cortesia tem prazo definido pela loja. Mas se houver <b>defeito</b>, o prazo legal (30/90 dias) continua valendo.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
+      <button class="btn ghost" onclick="exportCSV()">⬇️ Exportar CSV</button>
+      <button class="btn ghost" onclick="exportData()">⬇️ Exportar dados (JSON)</button>
+      <button class="btn ghost" onclick="importData()">⬆️ Importar dados (JSON)</button>
+      <button class="btn ghost" onclick="resetCalc()">Limpar calculadora</button>
+      <input type="file" id="importFile" accept="application/json,.json" style="display:none">
+    </div>
+
+    <div class="note">
+      ⚖️ A <b>troca por cortesia</b> (mudança de ideia em loja física) é uma decisão da empresa — defina e comunique prazo e condições de forma clara e visível; uma vez divulgada, ela obriga a loja.
+      Já o <b>defeito/vício é sempre direito do consumidor</b> (art. 18 e 26 do CDC), inclusive em liquidação. Para itens de <b>liquidação / ponta de estoque</b>, a restrição de troca vale apenas para arrependimento e só se o cliente foi avisado antes da compra — <b>confira as regras internas de troca de itens de liquidação da SWN</b>. Esta página é referência operacional; em caso de dúvida jurídica, consulte a administração/jurídico.
+    </div>
+  </div>
+
+<script>
+  const TABS=[
+    {id:'atendimento',label:'🤝 Padrão de Atendimento'},
+    {id:'metas',label:'📊 Painel de Metas (calculadora)'},
+    {id:'trocas',label:'⚖️ Política de Trocas (CDC)'},
+  ];
+  const el=id=>document.getElementById(id);
+
+  function setTab(id,push){
+    TABS.forEach(t=>{
+      el('pane-'+t.id).classList.toggle('active',t.id===id);
+    });
+    document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('active',b.dataset.id===id));
+    if(push!==false) history.replaceState(null,'','#'+id);
+  }
+  function buildTabs(){
+    el('tabs').innerHTML=TABS.map(t=>`<button data-id="${t.id}" onclick="setTab('${t.id}')">${t.label}</button>`).join('');
+  }
+
+  /* ===== Calculadora de KPIs ===== */
+  const CALC_FIELDS=['in_atend','in_vendas','in_pecas','in_fat','in_trocas','in_horas','in_contatos','in_vendedor'];
+  function money(v){return v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});}
+
+  function calc(){
+    const atend=+el('in_atend').value||0;
+    const vendas=+el('in_vendas').value||0;
+    const pecas=+el('in_pecas').value||0;
+    const fat=+el('in_fat').value||0;
+    const trocas=+el('in_trocas').value||0;
+    const horas=+el('in_horas').value||0;
+    const contatos=+el('in_contatos').value||0;
+    const vendedor=(el('in_vendedor').value||'').trim();
+
+    el('k_conv').textContent = atend>0 ? ((vendas/atend*100).toFixed(1).replace('.',',')+'%') : '—';
+    el('k_tm').textContent   = vendas>0 ? money(fat/vendas) : '—';
+    el('k_pa').textContent   = vendas>0 ? (pecas/vendas).toFixed(2).replace('.',',') : '—';
+    el('k_pm').textContent   = pecas>0  ? money(fat/pecas) : '—';
+    el('k_troca').textContent= vendas>0 ? ((trocas/vendas*100).toFixed(1).replace('.',',')+'%') : '—';
+    el('k_sph').textContent  = horas>0  ? money(fat/horas)+'/h' : '—';
+    el('k_sph_who').textContent = vendedor ? '· '+vendedor : '';
+    el('k_captura').textContent = vendas>0 ? ((contatos/vendas*100).toFixed(1).replace('.',',')+'%') : '—';
+
+    // checagem da relação TM = Preço Médio × PA
+    const cr=el('check_relation');
+    if(vendas>0 && pecas>0){
+      const tm=fat/vendas, pm=fat/pecas, pa=pecas/vendas;
+      cr.textContent=`Conferência: Preço Médio (${money(pm)}) × PA (${pa.toFixed(2).replace('.',',')}) = ${money(pm*pa)} = Ticket Médio (${money(tm)}). ✓`;
+    } else { cr.textContent=''; }
+
+    // salvar
+    CALC_FIELDS.forEach(f=>localStorage.setItem('vendas_'+f, el(f).value));
+  }
+
+  function resetCalc(){
+    if(!confirm('Limpar os valores da calculadora?'))return;
+    CALC_FIELDS.forEach(f=>{el(f).value='';localStorage.removeItem('vendas_'+f);});
+    calc();
+  }
+
+  /* ===== Exportar CSV (abre no Excel BR: separador ';' + BOM UTF-8) =====
+     Exporta as entradas do período e os KPIs calculados em uma planilha. */
+  function csvCell(v){
+    v=String(v==null?'':v);
+    if(/[";\n\r]/.test(v)) v='"'+v.replace(/"/g,'""')+'"';
+    return v;
+  }
+  function exportCSV(){
+    const atend=+el('in_atend').value||0;
+    const vendas=+el('in_vendas').value||0;
+    const pecas=+el('in_pecas').value||0;
+    const fat=+el('in_fat').value||0;
+    const trocas=+el('in_trocas').value||0;
+    const horas=+el('in_horas').value||0;
+    const contatos=+el('in_contatos').value||0;
+    const vendedor=(el('in_vendedor').value||'').trim();
+
+    const num=v=>(v==null||v==='')?'':String(v).replace('.',',');
+    const conv = atend>0 ? (vendas/atend*100).toFixed(1).replace('.',',')+'%' : '';
+    const tm   = vendas>0 ? money(fat/vendas) : '';
+    const pa   = vendas>0 ? (pecas/vendas).toFixed(2).replace('.',',') : '';
+    const pm   = pecas>0  ? money(fat/pecas) : '';
+    const troca= vendas>0 ? (trocas/vendas*100).toFixed(1).replace('.',',')+'%' : '';
+    const sph  = horas>0  ? money(fat/horas)+'/h' : '';
+    const captura = vendas>0 ? (contatos/vendas*100).toFixed(1).replace('.',',')+'%' : '';
+
+    const rows=[
+      ['Indicador','Valor'],
+      ['Vendedor / período', vendedor],
+      ['', ''],
+      ['ENTRADAS', ''],
+      ['Atendimentos / entradas', num(el('in_atend').value)],
+      ['Nº de vendas (cupons)', num(el('in_vendas').value)],
+      ['Nº de peças vendidas', num(el('in_pecas').value)],
+      ['Faturamento do período (R$)', num(el('in_fat').value)],
+      ['Nº de trocas / devoluções', num(el('in_trocas').value)],
+      ['Horas trabalhadas', num(el('in_horas').value)],
+      ['Nº de contatos capturados', num(el('in_contatos').value)],
+      ['', ''],
+      ['KPIs CALCULADOS', ''],
+      ['Taxa de Conversão', conv],
+      ['Ticket Médio', tm],
+      ['PA — Peças por Atendimento', pa],
+      ['Preço Médio da Peça', pm],
+      ['Taxa de Troca / Devolução', troca],
+      ['SPH — Vendas por Hora', sph],
+      ['% de Captura de Contato', captura]
+    ];
+    const csv='﻿'+rows.map(r=>r.map(csvCell).join(';')).join('\r\n');
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download='vendas_swn_metas_'+new Date().toISOString().slice(0,10)+'.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  /* ===== Backup paliativo: exportar / importar localStorage (prefixo vendas_) ===== */
+  const STORE_PREFIX='vendas_';
+  function exportData(){
+    const data={};
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k && k.indexOf(STORE_PREFIX)===0) data[k]=localStorage.getItem(k);
+    }
+    const payload={_app:'VENDAS_SWN',_exportadoEm:new Date().toISOString(),dados:data};
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download='vendas_swn_backup_'+new Date().toISOString().slice(0,10)+'.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+  function importData(){ el('importFile').click(); }
+  el('importFile') && el('importFile').addEventListener('change',function(e){
+    const file=e.target.files && e.target.files[0];
+    if(!file)return;
+    const reader=new FileReader();
+    reader.onload=function(ev){
+      try{
+        const parsed=JSON.parse(ev.target.result);
+        const dados=(parsed && parsed.dados) ? parsed.dados : parsed;
+        if(!dados || typeof dados!=='object') throw new Error('formato');
+        if(!confirm('Importar dados do arquivo? Os valores atuais desta página serão substituídos.')) return;
+        Object.keys(dados).forEach(k=>{
+          if(k.indexOf(STORE_PREFIX)===0) localStorage.setItem(k,dados[k]);
+        });
+        CALC_FIELDS.forEach(f=>{
+          const v=localStorage.getItem('vendas_'+f);
+          el(f).value = (v!==null) ? v : '';
+        });
+        calc();
+        alert('Dados importados com sucesso.');
+      }catch(err){
+        alert('Arquivo inválido. Selecione um JSON exportado por esta página.');
+      }
+      e.target.value='';
+    };
+    reader.readAsText(file);
+  });
+
+  // init
+  buildTabs();
+  CALC_FIELDS.forEach(f=>{
+    const v=localStorage.getItem('vendas_'+f);
+    if(v!==null) el(f).value=v;
+    el(f).addEventListener('input',calc);
+  });
+  calc();
+
+  const hash=(location.hash||'').replace('#','');
+  setTab(TABS.some(t=>t.id===hash)?hash:'atendimento',false);
+  window.addEventListener('hashchange',()=>{
+    const h=(location.hash||'').replace('#','');
+    if(TABS.some(t=>t.id===h)) setTab(h,false);
+  });
+</script>
+</body>
+</html>

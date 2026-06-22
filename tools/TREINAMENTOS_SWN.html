@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Treinamentos · SWN · Premium Outlets</title>
+<style>
+  :root{
+    --bg:#0f1115;--panel:#161a22;--panel2:#1c2230;--line:#262d3a;
+    --txt:#e8ecf3;--muted:#9aa6b8;--brand:#b4d233;--brand2:#cbe465;
+    --green:#2ecc71;--red:#e74c3c;--blue:#4aa3ff;--radius:13px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.55}
+  a{color:var(--blue)}
+  .topbar{position:sticky;top:0;z-index:20;background:rgba(15,17,21,.95);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);padding:13px 22px;display:flex;align-items:center;gap:12px}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:16px}
+  .brand small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+  .wrap{max-width:920px;margin:0 auto;padding:22px}
+
+  .meta{display:flex;flex-wrap:wrap;gap:12px;background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--radius);padding:14px 16px;margin-bottom:16px;align-items:end}
+  .meta .f{display:flex;flex-direction:column;gap:4px}
+  .meta label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+  .meta input,.meta select{padding:8px 11px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--txt);font-size:13.5px;outline:none}
+  .meta input:focus,.meta select:focus{border-color:var(--brand)}
+  .progress{margin-left:auto;text-align:right;align-self:center}
+  .progress b{font-size:22px;color:var(--brand2)}
+  .progress small{display:block;color:var(--muted);font-size:11px}
+
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+  .tabs button{padding:9px 15px;border:1px solid var(--line);border-radius:10px;cursor:pointer;
+    background:var(--panel);color:var(--muted);font-weight:700;font-size:13px}
+  .tabs button.active{background:var(--brand);color:#1a1300;border-color:var(--brand)}
+
+  .block{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    margin-bottom:14px;overflow:hidden}
+  .block h3{margin:0;padding:12px 16px;font-size:13px;text-transform:uppercase;letter-spacing:.6px;
+    color:var(--brand2);background:var(--panel2);border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:9px}
+  .block .seqnote{font-size:10.5px;color:var(--muted);font-weight:600;text-transform:none;letter-spacing:0}
+  .block .body{padding:14px 16px}
+
+  /* lista de módulos (cards) */
+  .modlist{display:grid;gap:12px}
+  .modcard{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px 16px;display:flex;gap:14px;align-items:flex-start;cursor:pointer;transition:border-color .15s}
+  .modcard:hover{border-color:var(--brand)}
+  .modcard .num{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;flex-shrink:0;
+    background:linear-gradient(135deg,var(--brand),var(--brand2));color:#1a1300;font-weight:900;font-size:15px}
+  .modcard .info{flex:1}
+  .modcard .info h4{margin:0 0 3px;font-size:15px}
+  .modcard .info p{margin:0;font-size:12.5px;color:var(--muted)}
+  .modcard .status{align-self:center;font-size:12px;font-weight:700;text-align:right;white-space:nowrap}
+  .status.done{color:var(--green)}
+  .status.todo{color:var(--muted)}
+  .status.fail{color:#f29a90}
+
+  /* lição */
+  .lesson{font-size:14.5px}
+  .lesson h4{margin:16px 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--brand2)}
+  .lesson h4:first-child{margin-top:0}
+  .lesson ul{margin:6px 0 10px;padding-left:20px}
+  .lesson li{margin:5px 0}
+  .lesson p{margin:8px 0}
+  .lesson .script{background:rgba(180,210,51,.08);border-left:3px solid var(--brand);border-radius:0 8px 8px 0;
+    padding:8px 12px;margin:6px 0;font-size:13.5px;font-style:italic}
+  .lesson .warn{background:rgba(231,76,60,.08);border-left:3px solid var(--red);border-radius:0 8px 8px 0;
+    padding:8px 12px;margin:6px 0;font-size:13px}
+  .lesson .tip{background:linear-gradient(135deg,rgba(180,210,51,.10),rgba(74,163,255,.06));
+    border:1px dashed var(--line);border-radius:9px;padding:9px 12px;font-size:13px;color:var(--muted);margin:8px 0}
+  .lesson .tip b{color:var(--brand2)}
+  .lesson table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0}
+  .lesson th,.lesson td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  .lesson th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--brand2);background:var(--panel2)}
+  .values{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+  .values .chip{background:var(--panel2);border:1px solid var(--line);border-radius:20px;
+    padding:6px 13px;font-size:12px;font-weight:600;color:var(--brand2)}
+
+  /* quiz */
+  .quiz .q{border-top:1px solid var(--line);padding:14px 0}
+  .quiz .q:first-child{border-top:0;padding-top:4px}
+  .quiz .qtxt{font-weight:700;font-size:14px;margin-bottom:8px}
+  .quiz .qtxt .qn{color:var(--brand2);margin-right:6px}
+  .quiz .opt{display:flex;align-items:flex-start;gap:10px;padding:9px 11px;border:1px solid var(--line);
+    border-radius:10px;margin:6px 0;cursor:pointer;font-size:13.5px;background:var(--panel2)}
+  .quiz .opt:hover{border-color:var(--brand)}
+  .quiz .opt input{margin-top:2px;accent-color:var(--brand);flex-shrink:0}
+  .quiz .opt.correct{border-color:var(--green);background:rgba(46,204,113,.10)}
+  .quiz .opt.wrong{border-color:var(--red);background:rgba(231,76,60,.10)}
+  .quiz .feedback{font-size:12.5px;margin-top:6px;padding-left:2px;display:none}
+  .quiz .q.graded .feedback{display:block}
+  .quiz .feedback.ok{color:var(--green)}
+  .quiz .feedback.no{color:#f29a90}
+
+  .scorebox{margin-top:16px;padding:14px 16px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);display:none}
+  .scorebox.show{display:block}
+  .scorebox.pass{border-color:var(--green)}
+  .scorebox.failbx{border-color:var(--red)}
+  .scorebox .big{font-size:26px;font-weight:800}
+  .scorebox.pass .big{color:var(--green)}
+  .scorebox.failbx .big{color:#f29a90}
+  .scorebox small{color:var(--muted);display:block;margin-top:2px}
+
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
+  .btn{padding:10px 16px;border:0;border-radius:10px;cursor:pointer;font-weight:700;font-size:13px}
+  .btn.primary{background:var(--brand);color:#1a1300}
+  .btn.ghost{background:var(--panel2);border:1px solid var(--line);color:var(--txt)}
+  .btn.ghost:hover{border-color:var(--brand);color:var(--brand2)}
+  .btn.danger:hover{border-color:var(--red);color:#f29a90}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+
+  /* tabela progresso / gestor */
+  .dt{width:100%;border-collapse:collapse;font-size:13px}
+  .dt th,.dt td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  .dt th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--brand2);background:var(--panel2)}
+  .dt .ok{color:var(--green);font-weight:700}
+  .empty{padding:24px 16px;text-align:center;color:var(--muted);font-size:13.5px}
+
+  .note{background:linear-gradient(135deg,rgba(180,210,51,.08),rgba(74,163,255,.06));
+    border:1px dashed var(--line);border-radius:12px;padding:13px 15px;font-size:12.5px;color:var(--muted);margin-top:16px}
+
+  /* certificado */
+  .cert{display:none}
+  .cert .sheet{border:2px solid var(--brand);border-radius:16px;padding:34px 38px;background:var(--panel);text-align:center;margin:0 auto;max-width:760px}
+  .cert .sheet .ttl{font-size:13px;text-transform:uppercase;letter-spacing:3px;color:var(--brand2);font-weight:800}
+  .cert .sheet .name{font-size:30px;font-weight:800;margin:14px 0 4px}
+  .cert .sheet .mod{font-size:18px;color:var(--brand2);font-weight:700;margin:10px 0}
+  .cert .sheet .meta2{color:var(--muted);font-size:13px;margin-top:14px}
+  .cert .sheet .sig{margin-top:34px;display:flex;justify-content:space-around;gap:30px}
+  .cert .sheet .sig div{border-top:1px solid var(--line);padding-top:6px;font-size:12px;color:var(--muted);min-width:160px}
+
+  @media print{
+    body{background:#fff;color:#000}
+    .topbar,.tabs,.actions,.note,.meta,.quiz,.modlist,.scorebox,.lesson{display:none!important}
+    .cert{display:block!important}
+    .cert .sheet{background:#fff;border-color:#1a1300}
+    .cert .sheet .ttl,.cert .sheet .mod{color:#1a1300}
+  }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand"><svg width="58" height="28" viewBox="0 0 58 28" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SWN"><rect width="58" height="28" rx="7" fill="#fff"/><text x="6" y="22" font-family="Arial,Helvetica,sans-serif" font-weight="900" font-size="21" letter-spacing="-1.5"><tspan fill="#1b3c86">s</tspan><tspan fill="#b4d233">w</tspan><tspan fill="#2e241a">n</tspan></text></svg><div>Treinamentos <small>SWN · Premium Outlets</small></div></div>
+  </div>
+
+  <div class="wrap">
+    <div class="meta">
+      <div class="f"><label>Colaborador</label><input type="text" id="nome" placeholder="Seu nome"></div>
+      <div class="f"><label>Loja</label>
+        <select id="loja">
+          <option value="">Selecione…</option>
+          <option>Forum</option>
+          <option>Colcci</option>
+          <option>Lança Perfume</option>
+          <option>Outra loja SWN</option>
+        </select></div>
+      <div class="progress"><b id="pct">0%</b><small><span id="cnt">0/0</span> módulos concluídos</small></div>
+    </div>
+
+    <div class="tabs" id="tabs"></div>
+    <div id="content"></div>
+
+    <!-- certificado (somente impressão) -->
+    <div class="cert" id="cert"></div>
+
+    <div class="note" id="footnote">
+      💡 Conclusões salvam automaticamente neste navegador (<b>localStorage</b>). Nota de corte: <b>70%</b>.
+      Para certificar a equipe em vários computadores, exporte o CSV em "Gestor" e centralize. No Render, esse registro será compartilhado entre as lojas.
+    </div>
+  </div>
+
+<script>
+/* =================== CONTEÚDO DOS MÓDULOS =================== */
+/* Fontes: Padrão de Atendimento SWN (7 etapas), Pesquisa 03 (CDC/objeções),
+   Guia Definitivo para Vendedores Excepcionais (SPIN, processo, soft skills). */
+const MODULES = [
+  /* ---------- 1 ---------- */
+  {
+    id:"etapas7",
+    titulo:"As 7 etapas do atendimento SWN",
+    resumo:"O fluxo consultivo da entrada à fidelização — deixe de ser atendente e seja vendedor consultivo.",
+    licao:`
+      <p class="lead">No outlet, atendimento bom é o que diferencia. A regra de ouro é simples: <b>ouvir mais, falar menos, perguntar antes de argumentar</b>. Deixe de ser <b>atendente</b> (entrega só o que pediram) e seja <b>vendedor consultivo</b> (entende a necessidade e amplia a venda).</p>
+      <div class="values">
+        <span class="chip">Outlet não é sinônimo de atendimento ruim</span>
+        <span class="chip">Vendemos o que o cliente precisa</span>
+        <span class="chip">Pensar com abundância</span>
+      </div>
+      <h4>O fluxo das 7 etapas</h4>
+      <table>
+        <tr><th>#</th><th>Etapa</th><th>O essencial</th></tr>
+        <tr><td>1</td><td>Abordagem / Recepção</td><td>Cumprimente em ~10s, com sorriso e contato visual. <b>Nunca "Posso ajudar?"</b>. Acolha e dê espaço de respiro.</td></tr>
+        <tr><td>2</td><td>Sondagem</td><td>Perguntas abertas: ocasião, para quem, estilo, numeração, orçamento. Monte o mapa de necessidade.</td></tr>
+        <tr><td>3</td><td>Demonstração</td><td>Mostre benefício e caimento, não só características. Leve ao provador e leve tamanhos antes de pedirem.</td></tr>
+        <tr><td>4</td><td>Contorno de objeções</td><td>Ouvir → Validar → Investigar → Responder → Redirecionar. Resista ao impulso de discordar.</td></tr>
+        <tr><td>5</td><td>Fechamento</td><td>Leia sinais de compra e conduza naturalmente. Peça o fechamento, sem pressão agressiva.</td></tr>
+        <tr><td>6</td><td>Venda adicional (PA)</td><td>Cross-sell e up-sell ligados à necessidade. É o que separa PA=1 de PA=2 a 3.</td></tr>
+        <tr><td>7</td><td>Pós-venda</td><td>Despedida calorosa, cadastro com consentimento (LGPD), convite para voltar.</td></tr>
+      </table>
+      <div class="script">"Seja bem-vindo(a)! Hoje temos a coleção X com até 60% off — fique à vontade que já te mostro."</div>
+      <div class="warn"><b>Erro nº1:</b> abrir com "Posso ajudar?" gera o reflexo "só estou olhando" e mata a conversa.</div>
+      <div class="tip"><b>Específico de outlet:</b> ancore a oportunidade já na entrada — "tudo nessa arara é coleção passada com preço de outlet, pode garimpar à vontade".</div>
+    `,
+    quiz:[
+      {q:"Qual é a regra de ouro do atendimento consultivo SWN?",
+       opt:["Falar o máximo possível sobre o produto","Ouvir mais, falar menos, perguntar antes de argumentar","Oferecer sempre o maior desconto logo de cara","Deixar o cliente sozinho até ele chamar"],a:1},
+      {q:"Qual abordagem NÃO deve ser usada na recepção?",
+       opt:["Comentar uma peça em destaque","Ancorar a promoção do dia","Perguntar \"Posso ajudar?\"","Cumprimentar com sorriso e contato visual"],a:2},
+      {q:"Em quanto tempo, idealmente, o cliente deve ser cumprimentado ao entrar?",
+       opt:["Assim que ele pedir ajuda","Em cerca de 10 segundos","Depois de 5 minutos de respiro","Só no caixa"],a:1},
+      {q:"A etapa 6 (venda adicional / PA) deve estar conectada a quê?",
+       opt:["Ao item de maior comissão da loja","À necessidade levantada na sondagem","Ao que o gerente mandou empurrar","A qualquer peça em estoque parado"],a:1},
+      {q:"O que caracteriza o vendedor consultivo, em contraste com o atendente?",
+       opt:["Entrega só o que o cliente pediu","Entende a necessidade e amplia a venda","Evita perguntas para não incomodar","Foca apenas em fechar rápido"],a:1}
+    ]
+  },
+  /* ---------- 2 ---------- */
+  {
+    id:"spin",
+    titulo:"Sondagem com SPIN na prática",
+    resumo:"As 4 perguntas (Situação, Problema, Implicação, Necessidade) aplicadas no balcão do outlet.",
+    licao:`
+      <p class="lead">O <b>SPIN Selling</b> (Neil Rackham) faz o cliente <b>descobrir sozinho</b> a própria necessidade — sem pressão. São 4 tipos de pergunta em sequência. No balcão da SWN, é a etapa 2 (Sondagem) feita com profundidade.</p>
+      <h4>As 4 perguntas</h4>
+      <table>
+        <tr><th>Letra</th><th>Tipo</th><th>Objetivo</th></tr>
+        <tr><td>S</td><td>Situação</td><td>Entender o contexto. "O que você procura hoje?"</td></tr>
+        <tr><td>P</td><td>Problema</td><td>Fazer o cliente reconhecer uma dor. "O que costuma faltar no seu guarda-roupa?"</td></tr>
+        <tr><td>I</td><td>Implicação</td><td>Explorar a consequência da dor. "E quando precisa de uma peça assim e não tem, atrapalha?"</td></tr>
+        <tr><td>N</td><td>Necessidade de solução</td><td>Levar o cliente a verbalizar o valor. "Então uma peça versátil, que serve pro trabalho e pro fim de semana, resolveria, né?"</td></tr>
+      </table>
+      <div class="script">S → "É para uma ocasião especial ou para o dia a dia?"<br>P → "O que está faltando hoje no seu look?"<br>I → "E sem essa peça, você acaba deixando de sair / repetindo roupa?"<br>N → "Se eu te mostrar uma que cobre as duas ocasiões, fecha pra você?"</div>
+      <div class="tip"><b>Por que funciona:</b> quem "descobre" a própria necessidade confia mais no vendedor e compra com menos objeção. Vendedor vira conselheiro, não empurrador.</div>
+      <div class="warn">Não pule direto para mostrar produto. E evite perguntas fechadas de sim/não — elas travam a conversa.</div>
+    `,
+    quiz:[
+      {q:"O que significa a sigla SPIN?",
+       opt:["Situação, Problema, Implicação, Necessidade","Sondagem, Preço, Item, Negociação","Saudação, Produto, Indicação, Nota","Serviço, Pós-venda, Indicação, NPS"],a:0},
+      {q:"Qual o principal objetivo do SPIN Selling?",
+       opt:["Pressionar o cliente a fechar rápido","Fazer o cliente descobrir sozinho a própria necessidade","Oferecer o maior desconto possível","Falar mais que o cliente"],a:1},
+      {q:"A pergunta \"E quando você precisa dessa peça e não tem, atrapalha?\" é de qual tipo?",
+       opt:["Situação","Problema","Implicação","Necessidade de solução"],a:2},
+      {q:"Que tipo de pergunta deve ser EVITADO na sondagem?",
+       opt:["Perguntas abertas sobre ocasião de uso","Perguntas fechadas de sim/não que travam a conversa","Perguntas sobre numeração","Perguntas sobre estilo preferido"],a:1}
+    ]
+  },
+  /* ---------- 3 ---------- */
+  {
+    id:"objecoes",
+    titulo:"Contorno de objeções (caro / vou pensar / etc.)",
+    resumo:"A estrutura Ouvir→Validar→Investigar→Responder→Redirecionar e o banco de respostas.",
+    licao:`
+      <p class="lead">Objeção não é um "não" — é um pedido de mais informação. Use sempre a estrutura: <b>Ouvir → Validar → Investigar → Responder → Redirecionar</b>. Resista ao impulso de discordar.</p>
+      <h4>Banco de objeções</h4>
+      <table>
+        <tr><th>Objeção</th><th>Como agir</th></tr>
+        <tr><td>"Está caro"</td><td><b>Nunca contradiga.</b> Investigue: "caro comparado a quê?". Reposicione como valor (qualidade, marca, durabilidade) e use a âncora de outlet (preço original × preço atual). Se for orçamento real, ofereça menor ticket.</td></tr>
+        <tr><td>"Vou pensar"</td><td>Identifique: insegurança? aprovação de terceiro? só tempo? Reduza o risco (política de troca) e use a <b>escassez real</b>: "última da grade nesse tamanho — separo enquanto decide?".</td></tr>
+        <tr><td>"Só estou olhando"</td><td>Acolha e libere, mantenha presença leve. "Fique à vontade — qualquer peça que chamar atenção, te falo o preço de outlet."</td></tr>
+        <tr><td>"Vi mais barato em outro outlet"</td><td>Não duvide nem rebaixe o concorrente. Compare peça igual (mesma marca/coleção/grade). Reposicione no conjunto: atendimento, pagamento, troca, tamanho certo aqui e agora.</td></tr>
+        <tr><td>"Isso é coleção velha?"</td><td>Sem defensiva — é a essência do outlet. "É coleção passada, sim, e é por isso que o preço é esse. Mesma qualidade, sem o preço de vitrine."</td></tr>
+      </table>
+      <div class="warn"><b>Proibido:</b> escassez FALSA. É ilegal e quebra a confiança. No outlet a escassez costuma ser real (grade incompleta, peça única) — use a verdadeira.</div>
+      <div class="tip"><b>Valor SWN:</b> "o cliente nem sempre tem razão, mas nós sempre temos educação." Contorne com calma e respeito, nunca na defensiva.</div>
+    `,
+    quiz:[
+      {q:"Qual é a estrutura recomendada para contornar objeções?",
+       opt:["Discordar → insistir → fechar","Ouvir → Validar → Investigar → Responder → Redirecionar","Ignorar → mudar de assunto → dar desconto","Falar mais alto → repetir o preço"],a:1},
+      {q:"Diante de \"Está caro\", o que NÃO se deve fazer?",
+       opt:["Investigar o parâmetro de comparação","Contradizer dizendo \"não está caro não\"","Reposicionar como valor","Usar a âncora de preço de outlet"],a:1},
+      {q:"O uso de escassez FALSA (\"última peça\" mentirosa) é:",
+       opt:["Recomendado para fechar rápido","Ilegal e quebra a confiança — proibido","Indiferente, desde que venda","Obrigatório no outlet"],a:1},
+      {q:"Quando o cliente diz \"vou pensar\", a melhor conduta é:",
+       opt:["Deixá-lo ir sem investigar","Identificar a dúvida real e usar escassez legítima","Oferecer 50% de desconto imediato","Dizer que a peça não vai durar no estoque mesmo sem ser verdade"],a:1},
+      {q:"Como responder a \"isso é coleção velha?\"",
+       opt:["Negar que seja coleção passada","Ficar na defensiva","Assumir com naturalidade: é coleção passada e por isso o preço — mesma qualidade","Dizer que não sabe"],a:2}
+    ]
+  },
+  /* ---------- 4 ---------- */
+  {
+    id:"adicional",
+    titulo:"Venda adicional (PA) e cross-sell",
+    resumo:"Aumente o PA completando o look — cross-sell, up-sell e combos de outlet.",
+    licao:`
+      <p class="lead"><b>PA = Peças por Atendimento</b> (nº de peças ÷ nº de vendas). É a alavanca que separa atendente (PA≈1) de vendedor (PA 2 a 3). Adicionar <b>não é empurrar</b> — é completar a solução levantada na sondagem.</p>
+      <h4>Cross-sell vs Up-sell</h4>
+      <ul>
+        <li><b>Cross-sell</b> (complementar): peças que completam o look — cinto, segunda peça, acessório.</li>
+        <li><b>Up-sell</b>: oferecer a versão melhor / de maior valor quando faz sentido.</li>
+        <li><b>"Leve mais por menos"</b>: combos de outlet — 2ª peça com desconto, kits, "leve 3 pague 2".</li>
+      </ul>
+      <h4>Combinações sugeridas</h4>
+      <table>
+        <tr><th>Peça âncora</th><th>Complementos</th><th>Gatilho de outlet</th></tr>
+        <tr><td>Calça / jeans</td><td>Cinto, camisa, tênis</td><td>2ª peça com desconto</td></tr>
+        <tr><td>Vestido</td><td>Bolsa, sapato, bijuteria</td><td>"Leve o look completo por menos"</td></tr>
+        <tr><td>Camiseta básica</td><td>2ª e 3ª cor</td><td>"Leve 3, pague 2"</td></tr>
+      </table>
+      <div class="script">"Essa calça ficou perfeita. Separei um cinto e uma camisa que fecham o look — e na 2ª peça você ganha desconto."</div>
+      <div class="tip"><b>Relação-chave de moda:</b> Ticket Médio = Preço Médio da Peça × PA. Para crescer o faturamento, aumente o PA e o valor por peça.</div>
+      <div class="warn">Não empurre item sem relação com a necessidade, nem ofereça adicional só quando o cliente já está saindo. E não insista após um "não" claro.</div>
+    `,
+    quiz:[
+      {q:"O que significa PA?",
+       opt:["Preço Acumulado","Peças por Atendimento","Promoção Automática","Pós-Atendimento"],a:1},
+      {q:"Cross-sell é:",
+       opt:["Oferecer uma versão mais cara da mesma peça","Oferecer peças que completam o look (complementares)","Dar desconto no fechamento","Trocar a peça por defeito"],a:1},
+      {q:"Um bom vendedor de moda costuma ter PA em torno de:",
+       opt:["0,5","1,0","2,0 a 3,0","10 ou mais"],a:2},
+      {q:"A venda adicional bem feita é entendida como:",
+       opt:["Empurrar qualquer item para subir a comissão","Completar a solução ligada à necessidade do cliente","Oferecer adicional só quando o cliente já vai embora","Insistir mesmo após o cliente dizer não"],a:1},
+      {q:"Na relação Ticket Médio = Preço Médio × PA, para crescer o faturamento deve-se:",
+       opt:["Reduzir o número de peças por venda","Aumentar o PA e/ou o valor por peça","Baixar sempre o preço médio","Ignorar o PA"],a:1}
+    ]
+  },
+  /* ---------- 5 ---------- */
+  {
+    id:"trocas",
+    titulo:"Padrão de troca (CDC) — defeito × arrependimento × cortesia",
+    resumo:"Separe os dois mundos: defeito é lei (sempre); arrependimento em loja física é cortesia.",
+    licao:`
+      <p class="lead">O cliente costuma confundir <b>defeito</b> com <b>arrependimento</b> — é o erro nº1 do varejo. Separe sempre. <span style="font-size:11px;color:var(--muted)">Base: Lei 8.078/1990 (CDC), arts. 18, 26 e 49.</span></p>
+      <h4>1) Defeito / vício — OBRIGAÇÃO LEGAL (sempre, inclusive liquidação)</h4>
+      <ul>
+        <li>Costura aberta, zíper quebrado, mancha, desbotado, defeito de fábrica.</li>
+        <li><b>Prazo p/ reclamar (art. 26):</b> 30 dias (não duráveis) · <b>90 dias</b> (duráveis — roupas/calçados).</li>
+        <li><b>Fluxo (art. 18):</b> a loja tem até 30 dias para sanar. Não sanado, o cliente escolhe: troca, dinheiro de volta corrigido, ou abatimento.</li>
+        <li>Frete/custos por conta da loja. <b>Independe de boa vontade — é lei.</b></li>
+      </ul>
+      <h4>2) Arrependimento — só FORA da loja (7 dias)</h4>
+      <ul>
+        <li><b>Art. 49:</b> desistir em 7 dias corridos, só em compra fora do estabelecimento (internet, telefone, catálogo). Sem justificar; devolução integral.</li>
+        <li><b>Loja física: NÃO há direito automático de arrependimento.</b> Mudou de ideia/cor/tamanho por escolha, sem defeito — a lei não obriga a trocar.</li>
+      </ul>
+      <h4>3) Troca por cortesia (loja física)</h4>
+      <ul>
+        <li>Não é obrigatória por lei, mas é padrão de mercado para fidelizar. As regras são da loja e, uma vez divulgadas, passam a obrigá-la.</li>
+        <li>Condições típicas: prazo definido, produto sem uso, com etiqueta e nota fiscal; troca por outra peça ou vale-troca.</li>
+        <li><b>Liquidação / ponta de estoque:</b> pode-se restringir a troca por arrependimento, <u>desde que avisado antes da compra</u>. A restrição vale só para arrependimento — <b>defeito sempre dá direito</b>.</li>
+      </ul>
+      <div class="warn"><b>Nunca confunda:</b> arrependimento (só fora da loja) com defeito (sempre, inclusive em liquidação).</div>
+      <div class="script">"Como é defeito de fábrica, o senhor tem direito garantido: troco a peça ou devolvo o valor."</div>
+    `,
+    quiz:[
+      {q:"Produto com defeito de fábrica dá direito a troca/reparo:",
+       opt:["Só se a loja quiser, por boa vontade","Sempre, por lei (CDC) — inclusive em liquidação","Apenas em compras online","Somente nos primeiros 7 dias"],a:1},
+      {q:"O direito de arrependimento (art. 49, 7 dias) vale para:",
+       opt:["Qualquer compra, inclusive na loja física","Apenas compras feitas FORA da loja (internet, telefone, catálogo)","Apenas itens de liquidação","Somente produtos com defeito"],a:1},
+      {q:"Cliente comprou na LOJA FÍSICA e só mudou de ideia (sem defeito). A lei obriga a troca?",
+       opt:["Sim, sempre","Não — em loja física não há arrependimento automático; troca é cortesia da loja","Sim, em 7 dias","Sim, em 90 dias"],a:1},
+      {q:"Em item de LIQUIDAÇÃO, a restrição de troca por arrependimento:",
+       opt:["Também elimina o direito por defeito","Vale só para arrependimento, desde que avisado antes — defeito sempre dá direito","Nunca é permitida","Vale só para compras online"],a:1},
+      {q:"Qual é o \"erro nº1 do varejo\" em trocas?",
+       opt:["Pedir nota fiscal","Confundir defeito com arrependimento","Oferecer vale-troca","Definir prazo de cortesia"],a:1}
+    ]
+  },
+  /* ---------- 6 ---------- */
+  {
+    id:"conduta",
+    titulo:"Conduta e valores SWN",
+    resumo:"Postura, princípios e o jeito SWN de atender: premium no atendimento, acessível no preço.",
+    licao:`
+      <p class="lead">A SWN é uma rede de <b>premium outlets</b>: atendimento tão atencioso quanto o dos melhores shoppings, com custo-benefício muito superior. Os valores guiam cada atendimento.</p>
+      <h4>Valores SWN</h4>
+      <div class="values">
+        <span class="chip">Outlet não é sinônimo de atendimento ruim</span>
+        <span class="chip">Vendemos aquilo que o cliente precisa</span>
+        <span class="chip">O cliente nem sempre tem razão, mas nós sempre temos educação</span>
+        <span class="chip">Pensar com abundância</span>
+        <span class="chip">Roupa boa deve ser para todos</span>
+      </div>
+      <h4>Postura no salão</h4>
+      <ul>
+        <li>Uniforme e apresentação pessoal conforme o padrão da loja.</li>
+        <li>Não force a venda: se a peça ficou ruim ou o cliente não precisa, é melhor ele levar uma a menos e voltar sempre por confiança.</li>
+        <li><b>Parking:</b> em pico, acolha o 2º cliente em ~10s, dê uma tarefa de espera e volte ao 1º. Nunca largue ninguém — e nunca deixe cliente sozinho no provador.</li>
+        <li>Cadastro de cliente só <b>com consentimento</b> (LGPD).</li>
+      </ul>
+      <h4>Mentalidade do vendedor de alta performance</h4>
+      <ul>
+        <li><b>Escuta ativa</b> e empatia: o papel é mais servir do que convencer.</li>
+        <li><b>Mindset de crescimento</b>: transformar erros em aprendizado; ser consistente independente do humor.</li>
+        <li><b>Aprendizado contínuo</b>: produto, tendências e técnica — o bom vendedor é um aprendiz para a vida toda.</li>
+      </ul>
+      <div class="tip"><b>Lembre:</b> "o pior cliente não é o que reclama, é o que não volta." O pós-venda transforma a venda em relacionamento que gera recompra e indicação.</div>
+    `,
+    quiz:[
+      {q:"Como a SWN se posiciona quanto ao atendimento?",
+       opt:["Outlet pode ter atendimento ruim porque o preço é baixo","Premium no atendimento, acessível no preço","Sem foco em atendimento, só em desconto","Atendimento robotizado e padronizado ao extremo"],a:1},
+      {q:"Se a peça não ficou boa ou o cliente não precisa dela, o vendedor deve:",
+       opt:["Forçar a venda assim mesmo","Não forçar — preservar a confiança vale mais que uma peça a mais","Inventar um defeito no produto concorrente","Oferecer só com desconto agressivo"],a:1},
+      {q:"A técnica de \"parking\" serve para:",
+       opt:["Estacionar o carro do cliente","Atender mais de um cliente ao mesmo tempo sem largar ninguém","Guardar peças no estoque","Fechar o caixa no fim do dia"],a:1},
+      {q:"O cadastro de cliente (WhatsApp/CRM) exige:",
+       opt:["Nada, pode cadastrar todos","Consentimento do cliente (LGPD)","Apenas o nome do gerente","Pagamento à vista"],a:1},
+      {q:"Qual frase resume o valor SWN sobre lidar com o cliente difícil?",
+       opt:["O cliente sempre tem razão","O cliente nem sempre tem razão, mas nós sempre temos educação","O cliente não importa, só a meta","Discutir até ganhar"],a:1}
+    ]
+  }
+];
+const PASS = 70; // nota de corte %
+
+/* =================== ESTADO / STORAGE =================== */
+const PFX='lms:';
+const el=id=>document.getElementById(id);
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+function getProfile(){
+  return {nome:localStorage.getItem(PFX+'nome')||'', loja:localStorage.getItem(PFX+'loja')||''};
+}
+function saveProfile(){
+  localStorage.setItem(PFX+'nome', el('nome').value.trim());
+  localStorage.setItem(PFX+'loja', el('loja').value);
+}
+/* conclusões: array de {nome,loja,modId,modTitulo,data,pct} */
+function getCompletions(){
+  try{return JSON.parse(localStorage.getItem(PFX+'completions')||'[]');}catch(e){return [];}
+}
+function setCompletions(arr){localStorage.setItem(PFX+'completions',JSON.stringify(arr));}
+/* status do módulo para o colaborador atual: 'done' | 'fail' | 'todo' */
+function moduleStatus(modId){
+  const {nome,loja}=getProfile();
+  const recs=getCompletions().filter(c=>c.modId===modId && c.nome===nome && c.loja===loja);
+  if(recs.some(c=>c.pct>=PASS)) return 'done';
+  if(recs.length) return 'fail';
+  return 'todo';
+}
+function bestScore(modId){
+  const {nome,loja}=getProfile();
+  const recs=getCompletions().filter(c=>c.modId===modId && c.nome===nome && c.loja===loja);
+  return recs.length?Math.max(...recs.map(c=>c.pct)):null;
+}
+
+/* =================== NAVEGAÇÃO =================== */
+const TABS=[
+  {id:'treinar',label:'📚 Treinar'},
+  {id:'progresso',label:'📈 Meu progresso'},
+  {id:'gestor',label:'🗂️ Gestor'}
+];
+let curTab='treinar';
+let curMod=null; // id do módulo aberto, ou null = lista
+
+function buildTabs(){
+  el('tabs').innerHTML=TABS.map(t=>`<button class="${t.id===curTab?'active':''}" onclick="setTab('${t.id}')">${t.label}</button>`).join('');
+}
+function setTab(id){curTab=id;curMod=null;syncHash();render();}
+function openModule(id){curMod=id;syncHash();render();window.scrollTo(0,0);}
+function backToList(){curMod=null;syncHash();render();}
+
+function syncHash(){
+  let h=curTab;
+  if(curTab==='treinar'&&curMod) h='treinar/'+curMod;
+  history.replaceState(null,'','#'+h);
+}
+function applyHash(){
+  const h=(location.hash||'').replace(/^#/,'');
+  if(!h){curTab='treinar';curMod=null;return;}
+  const parts=h.split('/');
+  if(TABS.some(t=>t.id===parts[0])) curTab=parts[0];
+  if(curTab==='treinar'&&parts[1]&&MODULES.some(m=>m.id===parts[1])) curMod=parts[1]; else curMod=null;
+}
+
+/* =================== RENDER =================== */
+function render(){
+  buildTabs();
+  el('cert').innerHTML=''; el('cert').style.display='';
+  el('footnote').style.display='';
+  if(curTab==='treinar'){ curMod?renderModule(curMod):renderModuleList(); }
+  else if(curTab==='progresso'){ renderProgress(); }
+  else { renderGestor(); }
+  updateHeaderProgress();
+}
+
+function renderModuleList(){
+  let html='<div class="modlist">';
+  MODULES.forEach((m,i)=>{
+    const st=moduleStatus(m.id), best=bestScore(m.id);
+    let label,cls;
+    if(st==='done'){label='✓ Concluído'+(best!=null?` · ${best}%`:'');cls='done';}
+    else if(st==='fail'){label='✗ Reprovado'+(best!=null?` · ${best}%`:'');cls='fail';}
+    else {label='Não iniciado';cls='todo';}
+    html+=`<div class="modcard" onclick="openModule('${m.id}')">
+      <div class="num">${i+1}</div>
+      <div class="info"><h4>${esc(m.titulo)}</h4><p>${esc(m.resumo)}</p></div>
+      <div class="status ${cls}">${label}</div>
+    </div>`;
+  });
+  html+='</div>';
+  el('content').innerHTML=html;
+}
+
+function renderModule(id){
+  const m=MODULES.find(x=>x.id===id); if(!m){renderModuleList();return;}
+  const i=MODULES.findIndex(x=>x.id===id);
+  let html=`<div class="actions" style="margin-top:0"><button class="btn ghost" onclick="backToList()">← Voltar aos módulos</button></div>`;
+  html+=`<div class="block"><h3>Módulo ${i+1} · ${esc(m.titulo)}</h3><div class="body"><div class="lesson">${m.licao}</div></div></div>`;
+  // quiz
+  html+=`<div class="block"><h3>Quiz <span class="seqnote">— responda e clique em corrigir · corte ${PASS}%</span></h3><div class="body"><div class="quiz" id="quiz">`;
+  m.quiz.forEach((q,qi)=>{
+    html+=`<div class="q" id="q${qi}"><div class="qtxt"><span class="qn">${qi+1}.</span>${esc(q.q)}</div>`;
+    q.opt.forEach((o,oi)=>{
+      html+=`<label class="opt" id="q${qi}o${oi}"><input type="radio" name="q${qi}" value="${oi}"><span>${esc(o)}</span></label>`;
+    });
+    html+=`<div class="feedback" id="fb${qi}"></div></div>`;
+  });
+  html+=`</div>
+    <div class="scorebox" id="scorebox"></div>
+    <div class="actions">
+      <button class="btn primary" id="btnGrade" onclick="gradeQuiz('${m.id}')">✅ Corrigir e registrar</button>
+      <button class="btn ghost" onclick="openModule('${m.id}')">↺ Refazer</button>
+    </div>
+  </div></div>`;
+  el('content').innerHTML=html;
+}
+
+function gradeQuiz(modId){
+  const m=MODULES.find(x=>x.id===modId); if(!m)return;
+  const {nome,loja}=getProfile();
+  if(!nome){alert('Preencha seu nome no topo antes de registrar a conclusão.');el('nome').focus();return;}
+  if(!loja){alert('Selecione sua loja no topo antes de registrar a conclusão.');el('loja').focus();return;}
+  // verifica se respondeu tudo
+  let unanswered=[];
+  m.quiz.forEach((q,qi)=>{ if(!document.querySelector(`input[name="q${qi}"]:checked`)) unanswered.push(qi+1); });
+  if(unanswered.length){alert('Responda todas as questões. Faltou: '+unanswered.join(', '));return;}
+  // corrige
+  let acertos=0;
+  m.quiz.forEach((q,qi)=>{
+    const chosen=+document.querySelector(`input[name="q${qi}"]:checked`).value;
+    const correct=q.a;
+    const qEl=el('q'+qi); qEl.classList.add('graded');
+    // limpa marcações antigas
+    q.opt.forEach((_,oi)=>el(`q${qi}o${oi}`).classList.remove('correct','wrong'));
+    el(`q${qi}o${correct}`).classList.add('correct');
+    const fb=el('fb'+qi);
+    if(chosen===correct){acertos++;fb.className='feedback ok';fb.textContent='✓ Correto';}
+    else{el(`q${qi}o${chosen}`).classList.add('wrong');fb.className='feedback no';fb.textContent='✗ Resposta correta: '+(correct+1)+') '+m.quiz[correct].opt[correct];}
+  });
+  const pct=Math.round(acertos/m.quiz.length*100);
+  const aprovado=pct>=PASS;
+  // exibe score
+  const sb=el('scorebox');
+  sb.className='scorebox show '+(aprovado?'pass':'failbx');
+  sb.innerHTML=`<div class="big">${pct}% ${aprovado?'✓ Aprovado':'✗ Reprovado'}</div>
+    <small>${acertos} de ${m.quiz.length} corretas · nota de corte ${PASS}%.
+    ${aprovado?'Conclusão registrada. Você já pode emitir o certificado.':'Revise a lição e refaça o quiz para ser aprovado.'}</small>
+    ${aprovado?`<div class="actions" style="margin-bottom:0"><button class="btn primary" onclick="printCertificate('${modId}')">🖨️ Emitir certificado</button></div>`:''}`;
+  // registra conclusão sempre (aprovado ou não) para histórico/gestor
+  const recs=getCompletions();
+  recs.push({nome,loja,modId,modTitulo:m.titulo,data:new Date().toISOString(),pct});
+  setCompletions(recs);
+  updateHeaderProgress();
+  el('btnGrade').disabled=true;
+  sb.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+/* =================== MEU PROGRESSO =================== */
+function renderProgress(){
+  const {nome,loja}=getProfile();
+  if(!nome||!loja){
+    el('content').innerHTML=`<div class="block"><div class="empty">Preencha <b>nome</b> e <b>loja</b> no topo para ver o seu progresso.</div></div>`;
+    return;
+  }
+  let done=0;
+  let rows='';
+  MODULES.forEach((m,i)=>{
+    const st=moduleStatus(m.id), best=bestScore(m.id);
+    if(st==='done')done++;
+    let badge=st==='done'?'<span class="ok">✓ Concluído</span>':(st==='fail'?'<span style="color:#f29a90">✗ Reprovado</span>':'<span style="color:var(--muted)">—</span>');
+    rows+=`<tr><td>${i+1}</td><td>${esc(m.titulo)}</td><td>${best!=null?best+'%':'—'}</td><td>${badge}</td><td>${st==='done'?`<button class="btn ghost" style="padding:5px 10px" onclick="printCertificate('${m.id}')">Certificado</button>`:`<button class="btn ghost" style="padding:5px 10px" onclick="openModule('${m.id}')">${st==='fail'?'Refazer':'Iniciar'}</button>`}</td></tr>`;
+  });
+  const pct=Math.round(done/MODULES.length*100);
+  el('content').innerHTML=`<div class="block">
+    <h3>Progresso de ${esc(nome)} <span class="seqnote">— ${esc(loja)} · ${done}/${MODULES.length} módulos (${pct}%)</span></h3>
+    <div class="body" style="padding:0">
+      <table class="dt"><thead><tr><th>#</th><th>Módulo</th><th>Melhor nota</th><th>Status</th><th>Ação</th></tr></thead><tbody>${rows}</tbody></table>
+    </div></div>`;
+}
+
+/* =================== GESTOR =================== */
+function fmtDate(iso){const d=new Date(iso);if(isNaN(d))return iso;const p=n=>String(n).padStart(2,'0');return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;}
+function renderGestor(){
+  const recs=getCompletions().slice().sort((a,b)=>new Date(b.data)-new Date(a.data));
+  let body;
+  if(!recs.length){
+    body=`<div class="empty">Nenhuma conclusão registrada neste navegador ainda.</div>`;
+  }else{
+    let rows=recs.map(c=>`<tr>
+      <td>${esc(c.nome)}</td><td>${esc(c.loja)}</td><td>${esc(c.modTitulo)}</td>
+      <td>${c.pct}%</td>
+      <td>${c.pct>=PASS?'<span class="ok">Aprovado</span>':'<span style="color:#f29a90">Reprovado</span>'}</td>
+      <td>${fmtDate(c.data)}</td></tr>`).join('');
+    body=`<table class="dt"><thead><tr><th>Colaborador</th><th>Loja</th><th>Módulo</th><th>%</th><th>Resultado</th><th>Data</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+  const aprov=recs.filter(c=>c.pct>=PASS).length;
+  el('content').innerHTML=`<div class="block">
+    <h3>Conclusões registradas <span class="seqnote">— ${recs.length} registro(s) · ${aprov} aprovação(ões) · neste navegador</span></h3>
+    <div class="body" style="padding:0">${body}</div>
+  </div>
+  <div class="actions">
+    <button class="btn primary" onclick="exportCSV()">⬇️ Exportar CSV</button>
+    <button class="btn ghost" onclick="exportJSON()">⬇️ Exportar dados (JSON)</button>
+    <button class="btn ghost" onclick="el('importFile').click()">⬆️ Importar dados (JSON)</button>
+    <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importJSON(this)">
+    <button class="btn ghost danger" onclick="clearAll()">Limpar todas as conclusões</button>
+  </div>`;
+}
+
+/* =================== CSV / JSON =================== */
+function csvCell(v){v=String(v==null?'':v);if(/[";\n\r]/.test(v))v='"'+v.replace(/"/g,'""')+'"';return v;}
+function exportCSV(){
+  const recs=getCompletions();
+  if(!recs.length){alert('Não há conclusões para exportar.');return;}
+  const head=['Colaborador','Loja','Módulo','Acerto (%)','Resultado','Data'];
+  const rows=[head].concat(recs.map(c=>[
+    c.nome,c.loja,c.modTitulo,String(c.pct).replace('.',','),
+    (c.pct>=PASS?'Aprovado':'Reprovado'),fmtDate(c.data)
+  ]));
+  const csv='﻿'+rows.map(r=>r.map(csvCell).join(';')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='treinamentos_swn_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+}
+function exportJSON(){
+  const payload={_app:'TREINAMENTOS_SWN',_exportadoEm:new Date().toISOString(),completions:getCompletions()};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='treinamentos_swn_backup_'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+}
+function importJSON(input){
+  const file=input.files&&input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const parsed=JSON.parse(e.target.result);
+      const inc=Array.isArray(parsed)?parsed:(parsed.completions||[]);
+      if(!Array.isArray(inc)||!inc.length)throw new Error('vazio');
+      if(!confirm('Importar '+inc.length+' conclusão(ões)? Serão adicionadas às existentes (duplicatas exatas são ignoradas).')){input.value='';return;}
+      const cur=getCompletions();
+      const seen=new Set(cur.map(c=>c.nome+'|'+c.loja+'|'+c.modId+'|'+c.data+'|'+c.pct));
+      inc.forEach(c=>{const k=c.nome+'|'+c.loja+'|'+c.modId+'|'+c.data+'|'+c.pct;if(!seen.has(k)){cur.push(c);seen.add(k);}});
+      setCompletions(cur);
+      alert('✔️ Dados importados.');input.value='';render();
+    }catch(err){alert('Arquivo inválido. Selecione um JSON exportado por esta página.');input.value='';}
+  };
+  reader.readAsText(file);
+}
+function clearAll(){
+  if(!confirm('Apagar TODAS as conclusões salvas neste navegador? Esta ação não pode ser desfeita.'))return;
+  setCompletions([]);render();
+}
+
+/* =================== CERTIFICADO (impressão) =================== */
+function printCertificate(modId){
+  const m=MODULES.find(x=>x.id===modId);const {nome,loja}=getProfile();
+  const best=bestScore(modId);
+  const today=new Date();const p=n=>String(n).padStart(2,'0');
+  const dstr=`${p(today.getDate())}/${p(today.getMonth()+1)}/${today.getFullYear()}`;
+  el('cert').innerHTML=`<div class="sheet">
+    <svg width="86" height="42" viewBox="0 0 58 28" xmlns="http://www.w3.org/2000/svg" style="margin-bottom:8px"><rect width="58" height="28" rx="7" fill="#1c2230"/><text x="6" y="22" font-family="Arial,Helvetica,sans-serif" font-weight="900" font-size="21" letter-spacing="-1.5"><tspan fill="#1b3c86">s</tspan><tspan fill="#b4d233">w</tspan><tspan fill="#e8ecf3">n</tspan></text></svg>
+    <div class="ttl">Certificado de Conclusão · SWN Premium Outlets</div>
+    <div class="name">${esc(nome||'________________')}</div>
+    <div class="meta2">concluiu com aproveitamento o módulo de treinamento</div>
+    <div class="mod">${esc(m?m.titulo:'')}</div>
+    <div class="meta2">Loja: <b>${esc(loja||'—')}</b> &nbsp;·&nbsp; Aproveitamento: <b>${best!=null?best+'%':'—'}</b> &nbsp;·&nbsp; Data: <b>${dstr}</b></div>
+    <div class="sig"><div>Colaborador</div><div>Gestor / Treinamento SWN</div></div>
+  </div>`;
+  el('cert').style.display='block';
+  // esconde o resto na impressão já é tratado por @media print
+  setTimeout(()=>window.print(),120);
+}
+
+/* =================== HEADER PROGRESS =================== */
+function updateHeaderProgress(){
+  const {nome,loja}=getProfile();
+  let done=0;
+  if(nome&&loja){MODULES.forEach(m=>{if(moduleStatus(m.id)==='done')done++;});}
+  el('cnt').textContent=done+'/'+MODULES.length;
+  el('pct').textContent=Math.round(done/MODULES.length*100)+'%';
+}
+
+/* =================== INIT =================== */
+(function init(){
+  const prof=getProfile();
+  el('nome').value=prof.nome; el('loja').value=prof.loja;
+  ['nome','loja'].forEach(id=>el(id).addEventListener('change',()=>{saveProfile();render();}));
+  el('nome').addEventListener('input',()=>{saveProfile();updateHeaderProgress();});
+  applyHash();
+  render();
+  window.addEventListener('hashchange',()=>{applyHash();render();});
+})();
+</script>
+</body>
+</html>

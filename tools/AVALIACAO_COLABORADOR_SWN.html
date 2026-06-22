@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avaliação do Colaborador · SWN · Premium Outlets</title>
+<style>
+  :root{
+    --bg:#0f1115;--panel:#161a22;--panel2:#1c2230;--line:#262d3a;
+    --txt:#e8ecf3;--muted:#9aa6b8;--brand:#b4d233;--brand2:#cbe465;
+    --green:#2ecc71;--red:#e74c3c;--blue:#4aa3ff;--radius:13px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5}
+  a{color:var(--blue)}
+  .topbar{position:sticky;top:0;z-index:20;background:rgba(15,17,21,.95);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);padding:13px 22px;display:flex;align-items:center;gap:12px}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:16px}
+  .logo{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;
+    background:linear-gradient(135deg,var(--brand),var(--brand2));color:#1a1300;font-weight:900}
+  .brand small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+  .wrap{max-width:920px;margin:0 auto;padding:22px}
+
+  .meta{display:flex;flex-wrap:wrap;gap:12px;background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--radius);padding:14px 16px;margin-bottom:16px}
+  .meta .f{display:flex;flex-direction:column;gap:4px}
+  .meta label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+  .meta input,.meta select{padding:8px 11px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--txt);font-size:13.5px;outline:none}
+  .meta input:focus,.meta select:focus{border-color:var(--brand)}
+  .progress{margin-left:auto;text-align:right;align-self:center}
+  .progress b{font-size:22px;color:var(--brand2)}
+  .progress small{display:block;color:var(--muted);font-size:11px}
+
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+  .tabs button{padding:9px 15px;border:1px solid var(--line);border-radius:10px;cursor:pointer;
+    background:var(--panel);color:var(--muted);font-weight:700;font-size:13px}
+  .tabs button.active{background:var(--brand);color:#1a1300;border-color:var(--brand)}
+
+  .block{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    margin-bottom:14px;overflow:hidden}
+  .block h3{margin:0;padding:12px 16px;font-size:13px;text-transform:uppercase;letter-spacing:.6px;
+    color:var(--brand2);background:var(--panel2);border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:9px}
+  .block .seqnote{font-size:10.5px;color:var(--muted);font-weight:600;text-transform:none;letter-spacing:0}
+
+  /* critérios de nota */
+  .crit{padding:10px 14px;border-bottom:1px solid var(--line)}
+  .crit:last-child{border-bottom:0}
+  .crit .ctop{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}
+  .crit .clabel{flex:1;min-width:200px;font-size:14px;font-weight:600}
+  .crit .clabel .tip{display:block;font-size:11.5px;color:var(--muted);font-weight:400;margin-top:2px}
+  .scale{display:flex;gap:4px;flex-wrap:wrap}
+  .scale label{cursor:pointer}
+  .scale input{position:absolute;opacity:0;width:0;height:0}
+  .scale .pill{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:8px;
+    border:1px solid var(--line);background:var(--panel2);color:var(--muted);font-weight:700;font-size:13px}
+  .scale input:checked + .pill{background:var(--brand);color:#1a1300;border-color:var(--brand)}
+  .crit .cnote{width:100%;margin-top:8px;min-height:40px;padding:8px 10px;border-radius:9px;
+    border:1px solid var(--line);background:var(--panel2);color:var(--txt);font-size:13px;
+    font-family:inherit;resize:vertical}
+  .scalekey{font-size:10.5px;color:var(--muted);padding:8px 14px;font-style:italic}
+  .scalekey b{color:var(--brand2);font-style:normal}
+
+  /* âncoras comportamentais (BARS) expansíveis */
+  .crit .bars{margin-top:8px}
+  .crit .bars summary{cursor:pointer;font-size:11px;color:var(--brand2);font-weight:600;list-style:none;user-select:none}
+  .crit .bars summary::-webkit-details-marker{display:none}
+  .crit .bars summary::before{content:"▸ ";color:var(--muted)}
+  .crit .bars[open] summary::before{content:"▾ "}
+  .crit .barslist{margin-top:6px;display:flex;flex-direction:column;gap:4px;
+    background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:9px 11px;font-size:12px;color:var(--muted)}
+  .crit .barslist b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:6px;margin-right:7px;
+    background:var(--brand);color:#1a1300;font-size:11px;vertical-align:middle}
+
+  /* check-in semanal (👍 / ⚠️) */
+  .checkin{display:flex;gap:8px;flex-wrap:wrap}
+  .checkin .chk{cursor:pointer}
+  .checkin .chk input{position:absolute;opacity:0;width:0;height:0}
+  .checkin .chk span{display:inline-block;padding:7px 13px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--muted);font-weight:700;font-size:13px}
+  .checkin .chk.on span{border-color:var(--brand)}
+  .checkin .chk input:checked + span{background:var(--brand);color:#1a1300;border-color:var(--brand)}
+
+  /* ciência do avaliado */
+  .cienciagrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  .cienciagrid .f{display:flex;flex-direction:column;gap:4px}
+  .cienciagrid label{font-size:11px;color:var(--muted);font-weight:600}
+  .cinp{padding:8px 11px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);color:var(--txt);font-size:13.5px;outline:none}
+  .cinp:focus{border-color:var(--brand)}
+  .cienciahint{font-size:11px;color:var(--muted);margin-top:9px;font-style:italic}
+  @media (max-width:520px){.cienciagrid{grid-template-columns:1fr}}
+
+  /* campos numéricos KPI */
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:12px 14px}
+  .kpi-grid .f{display:flex;flex-direction:column;gap:4px}
+  .kpi-grid label{font-size:11px;color:var(--muted);font-weight:600}
+  .kpi-grid input{padding:8px 10px;border-radius:8px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--txt);font-size:13.5px;outline:none}
+  .kpi-grid input:focus{border-color:var(--brand)}
+
+  textarea.big{width:100%;min-height:80px;padding:10px;border-radius:10px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--txt);font-size:13.5px;font-family:inherit;resize:vertical;margin:0}
+  .blockpad{padding:12px 14px}
+
+  .scorebar{display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,rgba(180,210,51,.12),rgba(74,163,255,.06));
+    border:1px solid var(--line);border-radius:var(--radius);padding:14px 18px;margin:14px 0}
+  .scorebar .big{font-size:30px;font-weight:900;color:var(--brand2);line-height:1}
+  .scorebar .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;font-weight:700}
+  .scorebar .class{margin-left:auto;font-weight:800;font-size:15px;padding:6px 12px;border-radius:9px;
+    background:var(--panel2);border:1px solid var(--line)}
+
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
+  .btn{padding:10px 16px;border:0;border-radius:10px;cursor:pointer;font-weight:700;font-size:13px}
+  .btn.primary{background:var(--brand);color:#1a1300}
+  .btn.ghost{background:var(--panel2);border:1px solid var(--line);color:var(--txt)}
+  .btn.ghost:hover{border-color:var(--red);color:#f29a90}
+
+  .note{background:linear-gradient(135deg,rgba(180,210,51,.08),rgba(74,163,255,.06));
+    border:1px dashed var(--line);border-radius:12px;padding:13px 15px;font-size:12.5px;color:var(--muted);margin-top:16px}
+  .sbi{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:0 14px 12px;font-size:12.5px}
+  .sbi b{color:var(--brand2)}
+
+  @media print{
+    body{background:#fff;color:#000}
+    .topbar,.tabs,.actions,.note,.progress{display:none}
+    .block,.meta,.scorebar{border:1px solid #999;background:#fff;break-inside:avoid}
+    .block h3{background:#eee;color:#000}
+    .scale .pill{border:1px solid #999;color:#000}
+    .scale input:checked + .pill{background:#ddd;color:#000}
+    .scorebar .big,.progress b{color:#000}
+    .sbi,.kpi-grid input,.crit .cnote,textarea.big,.cinp,.crit .barslist,.checkin .chk span{background:#fff;border:1px solid #999;color:#000}
+    .crit .bars[open] summary,.crit .bars summary{color:#000}
+    .crit .barslist b{background:#ddd;color:#000}
+    .checkin .chk input:checked + span{background:#ddd;color:#000}
+    .crit .bars{display:block!important}
+    .crit .bars .barslist{display:flex!important}
+    .scalekey b{color:#000}
+    .pa-print{display:block!important}
+  }
+  .pa-print{display:none;text-align:center;font-weight:800;margin:6px 0 16px;font-size:18px}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand"><svg class="brandmark" width="58" height="28" viewBox="0 0 58 28" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SWN Premium Outlets"><rect width="58" height="28" rx="7" fill="#fff"/><text x="6" y="22" font-family="Arial,Helvetica,sans-serif" font-weight="900" font-size="21" letter-spacing="-1.5"><tspan fill="#1b3c86">s</tspan><tspan fill="#b4d233">w</tspan><tspan fill="#2e241a">n</tspan></text></svg><div>Avaliação do Colaborador <small>SWN · Premium Outlets</small></div></div>
+  </div>
+
+  <div class="wrap">
+    <div class="pa-print" id="printTitle"></div>
+    <div class="meta">
+      <div class="f"><label>Loja</label>
+        <input type="text" id="loja" placeholder="ex: SWN Loja 1"></div>
+      <div class="f"><label>Colaborador</label><input type="text" id="colab" placeholder="Nome do colaborador"></div>
+      <div class="f"><label>Cargo (ajusta competências)</label>
+        <select id="cargo">
+          <option value="vendedor">Vendedor(a)</option>
+          <option value="caixa">Caixa</option>
+          <option value="estoquista">Estoquista</option>
+          <option value="gerente">Gerente</option>
+        </select></div>
+      <div class="f"><label>Função (livre)</label><input type="text" id="funcao" placeholder="ex: Vendedor(a) sênior"></div>
+      <div class="f"><label>Avaliador</label><input type="text" id="avaliador" placeholder="Gerente / líder"></div>
+      <div class="f"><label>Período / Data</label><input type="text" id="periodo" placeholder="ex: Semana 21/06 ou Jun/2026"></div>
+    </div>
+
+    <div class="tabs" id="tabs"></div>
+    <div id="content"></div>
+
+    <div class="actions">
+      <button class="btn primary" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
+      <button class="btn ghost" onclick="exportCSV()">⬇️ Exportar CSV</button>
+      <button class="btn ghost" onclick="exportData()">⬇️ Exportar dados (JSON)</button>
+      <button class="btn ghost" onclick="document.getElementById('importFile').click()">⬆️ Importar dados (JSON)</button>
+      <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importData(this)">
+      <button class="btn ghost" onclick="resetTab()">Limpar esta avaliação</button>
+    </div>
+
+    <div class="note">
+      💡 A avaliação é uma <b>ferramenta de desenvolvimento</b>, não de punição. As metas devem ser <b>desafiadoras, mas atingíveis</b> — metas inatingíveis somadas a pressão excessiva podem configurar assédio moral. Na <b>avaliação de experiência</b>, alinhe aos marcos <b>30 / 60 / 90 dias</b> (parcial aos 30/45 para ajuste de rota, final aos 60/90 para decisão de efetivar). Na <b>mensal</b>, a nota final pondera <b>Resultados/KPIs (40%)</b> e <b>Competências (60%)</b> — assim o resultado de vendas pesa de verdade. ⚠️ Campos salvam só <b>neste navegador</b> (por colaborador + período + aba); ao limpar o navegador os dados se perdem — use Imprimir → PDF para guardar.
+    </div>
+  </div>
+
+<script>
+/* ===== Conteúdo: mescla Guia do Gerente + Guia do Colaborador (valores/conduta) + Pesquisa RH ===== */
+
+const ESCALA_KEY = "1 = Abaixo do esperado · 2 = Atende parcialmente · 3 = Atende · 4 = Acima do esperado · 5 = Supera / Referência";
+
+// Legenda rica com âncoras comportamentais genéricas (BARS) — o que é observável em cada nível
+const ESCALA_BARS = "Âncoras observáveis · <b>1 (Abaixo)</b>: não demonstra o comportamento / gera retrabalho ou reclamação · <b>3 (Atende)</b>: faz o esperado de forma consistente, sem precisar de cobrança · <b>5 (Referência)</b>: supera o padrão, é exemplo e ensina os colegas. (Notas 2 e 4 são intermediárias.)";
+
+/* Âncoras específicas por critério (BARS): aparecem no title ao passar o mouse e em linha expansível.
+   Chave = rótulo do critério. Cada item: [1,3,5] descrições observáveis. */
+const BARS = {
+  "Atendimento e abordagem ao cliente":["Não aborda, espera ser chamado ou trata com indiferença.","Aborda, faz sondagem e atende com cordialidade de forma consistente.","Encanta o cliente, gera recompra e é referência de atendimento para a equipe."],
+  "Atendimento no padrão":["Não aborda ou atende com indiferença / pressa.","Aborda, sonda e atende cordialmente de forma consistente.","Encanta o cliente e é referência de atendimento outlet para os colegas."],
+  "Resultado vs meta da semana":["Bem abaixo da meta, sem reação ou plano.","Atinge a meta individual e contribui com a loja.","Supera a meta com folga e puxa o resultado do time."],
+  "Vender o que o cliente precisa":["Força a venda ou empurra produto, gera troca/insatisfação.","Constrói relação de confiança e vende o que faz sentido.","Fideliza, gera recompra e indicação; é referência em venda consultiva."],
+  "Respeito, cordialidade e ética":["Tem atritos, falta com respeito ou integridade.","Trata todos com respeito e age com honestidade.","É exemplo de postura ética e harmoniza o ambiente."],
+  "Postura, apresentação e aderência aos valores":["Descumpre dress code/higiene ou destoa dos valores.","Cumpre dress code e age alinhado aos valores.","É espelho dos valores SWN para os colegas."],
+  "Liderança e desenvolvimento da equipe":["Não orienta, não dá feedback, deixa o time sem direção.","Orienta, dá feedback e mantém o time engajado.","Desenvolve pessoas, forma sucessores e inspira o time."],
+  "Gestão de indicadores e do resultado da loja":["Não acompanha os números nem age sobre eles.","Acompanha KPIs e age para corrigir a rota.","Antecipa tendências e bate resultado de forma sustentável."],
+  "Conferência de caixa e fechamento":["Comete erros de caixa / divergências recorrentes.","Confere e fecha o caixa corretamente, sem divergência.","Caixa impecável; ajuda a padronizar o processo no time."],
+  "Prevenção de perdas":["Negligencia procedimentos, expõe a loja a perdas.","Segue os procedimentos de prevenção de perdas.","Identifica riscos e propõe melhorias de prevenção."],
+  "Organização e recebimento de mercadoria":["Estoque desorganizado, recebimento com erros.","Recebe, confere e organiza a mercadoria corretamente.","Estoque exemplar; otimiza fluxo e abastecimento."],
+};
+function barsText(label){
+  const b=BARS[label];
+  if(!b)return null;
+  return `1 · ${b[0]}\n3 · ${b[1]}\n5 · ${b[2]}`;
+}
+
+// Aba SEMANAL — poucos critérios objetivos (base: rotina + valores SWN)
+// Mantido (compatível com a barra de nota), mas a aba agora exibe um check-in rápido (👍/⚠️) com opção de detalhar.
+const SEMANAL = [
+  ["Atendimento no padrão","“Outlet não é sinônimo de atendimento ruim” — cordial, sondagem, vendeu o que o cliente precisa."],
+  ["Proatividade e organização no salão","Atuou no salão, abordou clientes, araras/mesas organizadas e abastecidas."],
+  ["Resultado vs meta da semana","Atingimento da meta individual da semana e contribuição para a loja."],
+];
+
+// Aba MENSAL — KPIs (B) Competências comportamentais alinhadas aos VALORES SWN
+const KPIS = [
+  ["meta_meta","Meta do mês (R$)"],
+  ["meta_real","Realizado (R$)"],
+  ["meta_pct","% atingimento"],
+  ["ticket","Ticket médio (R$)"],
+  ["conv","Conversão (%)"],
+  ["pa","PA (peças/atend.)"],
+];
+
+// Núcleo comum de competências (todos os cargos)
+const COMPET_COMUM = [
+  ["Respeito, cordialidade e ética","Trata colegas, clientes e fornecedores com respeito; integridade e honestidade (Conduta 2.1)."],
+  ["Trabalho em equipe e colaboração","Coopera, compartilha, ajuda; comunicação construtiva, sem fofoca (Conduta 2.5)."],
+  ["Pontualidade e assiduidade","Cumprimento rigoroso de horários e comunicação de ausências (Conduta 2.2)."],
+  ["Postura, apresentação e aderência aos valores","Dress code, higiene e conduta alinhada aos valores da SWN (Conduta 2.3)."],
+  ["Cumprimento de processos","Trocas, LGPD e uso responsável de recursos da empresa."],
+];
+
+// Competências específicas por cargo (2–3 cada) — somadas ao núcleo comum
+const COMPET_CARGO = {
+  vendedor:[
+    ["Atendimento e abordagem ao cliente","Cordialidade, sondagem, fechamento — atendimento de shopping com preço de outlet."],
+    ["Vender o que o cliente precisa","Não força a venda; constrói relação de confiança e recompra (valor SWN)."],
+    ["PA e ticket — venda adicional","Oferece complementos com propósito; eleva PA e ticket médio."],
+  ],
+  caixa:[
+    ["Conferência de caixa e fechamento","Abertura, conferência e fechamento sem divergências; sangrias corretas."],
+    ["Prevenção de perdas","Atenção a trocas, estornos e fraudes; segue procedimentos de prevenção."],
+    ["Atendimento e abordagem ao cliente","Cordialidade e agilidade no caixa; finaliza a experiência de compra."],
+  ],
+  estoquista:[
+    ["Organização e recebimento de mercadoria","Recebimento, conferência, etiquetagem e organização do estoque."],
+    ["Organização, visual merchandising e cuidado com a loja","“Segunda casa” — loja abastecida, organizada; cuida do patrimônio."],
+    ["Prevenção de perdas","Controle de estoque, inventário e atenção a avarias/desvios."],
+  ],
+  gerente:[
+    ["Liderança e desenvolvimento da equipe","Orienta, dá feedback, engaja e desenvolve o time."],
+    ["Gestão de indicadores e do resultado da loja","Acompanha KPIs (conversão, PA, ticket, meta) e age sobre eles."],
+    ["Atendimento e abordagem ao cliente","Referência de atendimento; resolve casos críticos e dá o exemplo."],
+  ],
+};
+const CARGOS = {vendedor:"Vendedor(a)",caixa:"Caixa",estoquista:"Estoquista",gerente:"Gerente"};
+
+// Lista de competências ativas conforme o cargo selecionado
+function getCompet(){
+  const cargo=(localStorage.getItem('avc_meta:cargo')||'vendedor');
+  const esp=COMPET_CARGO[cargo]||COMPET_CARGO.vendedor;
+  return COMPET_COMUM.concat(esp);
+}
+
+let CURTAB = "semanal";
+const el = id => document.getElementById(id);
+const META_IDS = ['loja','colab','cargo','funcao','avaliador','periodo'];
+function ctxKey(){return (el('colab').value||'_')+'|'+(el('periodo').value||'_');}
+function k(suffix){return 'avc:'+ctxKey()+'|'+CURTAB+'|'+suffix;}
+
+/* ---- montar abas ---- */
+function buildTabs(){
+  const T={semanal:"📅 Avaliação Semanal",mensal:"📈 Avaliação Mensal"};
+  el('tabs').innerHTML=Object.entries(T).map(([key,nome])=>
+    `<button class="${key===CURTAB?'active':''}" onclick="setTab('${key}')">${nome}</button>`).join('');
+}
+function setTab(key){CURTAB=key;location.hash=key;buildTabs();render();}
+
+/* ---- componente de nota 1-5 (com âncoras comportamentais / BARS) ---- */
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function critRow(idx,label,tip){
+  const sk=k('c'+idx);const nk=k('n'+idx);
+  const sel=localStorage.getItem(sk)||'';
+  const anchor=barsText(label); // âncoras específicas, se houver
+  const anchorTitle=anchor?` title="${esc(anchor)}"`:'';
+  let pills='';
+  const PLBL={1:'1 = Abaixo do esperado',2:'2 = Atende parcialmente',3:'3 = Atende',4:'4 = Acima do esperado',5:'5 = Supera / Referência'};
+  for(let n=1;n<=5;n++){
+    pills+=`<label title="${PLBL[n]}"><input type="radio" name="${sk}" value="${n}" ${sel==String(n)?'checked':''}
+      onchange="setScore('${sk}',this.value)"><span class="pill">${n}</span></label>`;
+  }
+  // linha de âncora expansível (BARS) para critérios-chave
+  const anchorRow=anchor?`<details class="bars"><summary>O que significa cada nota?</summary>
+    <div class="barslist">
+      <div><b>1</b> ${BARS[label][0]}</div>
+      <div><b>3</b> ${BARS[label][1]}</div>
+      <div><b>5</b> ${BARS[label][2]}</div>
+    </div></details>`:'';
+  return `<div class="crit"><div class="ctop">
+    <div class="clabel"${anchorTitle}>${label}${tip?`<span class="tip">${tip}</span>`:''}</div>
+    <div class="scale">${pills}</div></div>
+    ${anchorRow}
+    <textarea class="cnote" placeholder="Comentário / evidência (fato concreto)..."
+      onchange="localStorage.setItem('${nk}',this.value)">${localStorage.getItem(nk)||''}</textarea></div>`;
+}
+
+function setScore(key,val){localStorage.setItem(key,val);updateScore();}
+
+/* ---- check-in rápido da semanal: 👍 (no caminho = nota 4) / ⚠️ (atenção = nota 2) ----
+   Mantém compatibilidade com a barra de nota (grava em c<idx> como nota numérica). */
+function checkinRow(idx,label,tip){
+  const sk=k('c'+idx);const nk=k('n'+idx);
+  const sel=localStorage.getItem(sk)||'';
+  const opts=[['4','👍','No caminho'],['2','⚠️','Atenção']];
+  let chips='';
+  opts.forEach(([val,emo,txt])=>{
+    chips+=`<label class="chk ${sel===val?'on':''}" title="${txt}">
+      <input type="radio" name="${sk}" value="${val}" ${sel===val?'checked':''}
+        onchange="setScore('${sk}',this.value)"><span>${emo} ${txt}</span></label>`;
+  });
+  return `<div class="crit"><div class="ctop">
+    <div class="clabel">${label}${tip?`<span class="tip">${tip}</span>`:''}</div>
+    <div class="checkin">${chips}</div></div>
+    <textarea class="cnote" placeholder="Detalhar (opcional) — fato concreto, se ⚠️ aponte o quê..."
+      onchange="localStorage.setItem('${nk}',this.value)">${localStorage.getItem(nk)||''}</textarea></div>`;
+}
+
+/* ---- textos livres ---- */
+function textArea(suffix,ph){
+  const tk=k(suffix);
+  return `<textarea class="big" placeholder="${ph}" onchange="localStorage.setItem('${tk}',this.value)">${localStorage.getItem(tk)||''}</textarea>`;
+}
+
+function render(){
+  el('printTitle').textContent =
+    `Avaliação ${CURTAB==='semanal'?'Semanal':'Mensal'} — ${el('colab').value||'________'} — ${el('funcao').value||''} — ${el('loja').value||''} — ${el('periodo').value||''}`;
+  let html='';
+
+  if(CURTAB==='semanal'){
+    html+=`<div class="block"><h3>📅 Check-in semanal <span class="seqnote">— rápido: 👍 no caminho / ⚠️ atenção (detalhe só se precisar)</span></h3>`;
+    SEMANAL.forEach((c,i)=>html+=checkinRow(i,c[0],c[1]));
+    html+='</div>';
+    html+=`<div class="block"><h3>📝 Combinado da semana</h3><div class="blockpad">${textArea('combinados','1 ação clara com prazo — feedforward: foco no que melhorar na próxima semana...')}</div></div>`;
+  }
+
+  if(CURTAB==='mensal'){
+    // A) Resultados / KPIs
+    html+=`<div class="block"><h3>A · Resultados / KPIs <span class="seqnote">— meta x realizado</span></h3><div class="kpi-grid">`;
+    KPIS.forEach(([id,lbl])=>{
+      const kk=k('kpi_'+id);
+      html+=`<div class="f"><label>${lbl}</label><input type="text" value="${localStorage.getItem(kk)||''}"
+        onchange="localStorage.setItem('${kk}',this.value);updateScore()" placeholder="—"></div>`;
+    });
+    html+=`</div><div class="scalekey" id="kpiNotaLine"></div></div>`;
+
+    // B) Competências comportamentais (valores SWN) — ajustadas ao cargo
+    const cargo=(localStorage.getItem('avc_meta:cargo')||'vendedor');
+    html+=`<div class="block"><h3>B · Competências comportamentais <span class="seqnote">— núcleo comum + específicas de ${CARGOS[cargo]||'Vendedor(a)'}</span></h3>`;
+    html+=`<div class="scalekey">${ESCALA_KEY}</div>`;
+    html+=`<div class="scalekey">${ESCALA_BARS}</div>`;
+    getCompet().forEach((c,i)=>html+=critRow(i,c[0],c[1]));
+    html+='</div>';
+
+    // C) Pontos fortes / a desenvolver
+    html+=`<div class="block"><h3>C · Pontos fortes / a desenvolver</h3><div class="blockpad">
+      <label style="font-size:11px;color:var(--muted);font-weight:600">PONTOS FORTES</label>
+      ${textArea('fortes','Reconhecer acertos com exemplos reais do período...')}
+      <div style="height:10px"></div>
+      <label style="font-size:11px;color:var(--muted);font-weight:600">PONTOS A DESENVOLVER</label>
+      ${textArea('desenvolver','Pontos de desenvolvimento com fatos — separar o comportamento da pessoa...')}
+      </div></div>`;
+
+    // D) Plano de desenvolvimento e combinados
+    html+=`<div class="block"><h3>D · Plano de desenvolvimento e combinados</h3><div class="blockpad">
+      ${textArea('plano','PDI: 1 a 3 ações (SMART), com prazo, apoio do gestor e data de acompanhamento. Para experiência, alinhar aos marcos 30/60/90 dias...')}
+      </div></div>`;
+
+    // E) Roteiro de feedback SBI (dica fixa)
+    html+=`<div class="block"><h3>E · Roteiro de feedback — modelo SBI <span class="seqnote">— dica fixa para a reunião 1:1</span></h3>
+      <div class="sbi">
+        <b>Situação</b> — descreva quando/onde ocorreu (“na semana passada, no horário de pico de sábado”).<br>
+        <b>Comportamento</b> — o que a pessoa fez, em fatos observáveis (não rótulos): “deixou a arara desabastecida e não abordou os clientes que entraram”.<br>
+        <b>Impacto</b> — o efeito daquilo: “perdemos atendimentos e a conversão caiu”.<br>
+        <span style="color:var(--muted)">Combine com <b>Feedforward</b>: foco no que melhorar à frente. Faça reservadamente, ouça a autoavaliação e construa o plano junto. Aplique o <b>SCI</b> formal por e-mail à direção/RH quando ocorrer algo grave fora da normalidade.</span>
+      </div></div>`;
+
+    // F) Autoavaliação do colaborador
+    html+=`<div class="block"><h3>F · Autoavaliação do colaborador <span class="seqnote">— preenchida pelo próprio colaborador</span></h3><div class="blockpad">
+      <label style="font-size:11px;color:var(--muted);font-weight:600">COMO EU AVALIO MEU PERÍODO (pontos fortes, dificuldades, o que quero desenvolver)</label>
+      ${textArea('autoaval','O colaborador descreve, com as próprias palavras, como avalia seu desempenho, conquistas e desafios do período...')}
+      </div></div>`;
+
+    // G) Ciência e manifestação do avaliado (engajamento + defesa trabalhista)
+    html+=`<div class="block"><h3>G · Ciência e manifestação do avaliado</h3><div class="blockpad">
+      <label style="font-size:11px;color:var(--muted);font-weight:600">MANIFESTAÇÃO / DISCORDÂNCIA DO COLABORADOR (opcional)</label>
+      ${textArea('cienciaManif','Espaço para o colaborador concordar, complementar ou registrar discordância sobre a avaliação...')}
+      <div class="cienciagrid">
+        <div class="f"><label>ASSINATURA DO AVALIADO</label>
+          <input type="text" class="cinp" placeholder="Nome / assinatura do colaborador"
+            value="${esc(localStorage.getItem(k('cienciaAssin'))||'')}"
+            onchange="localStorage.setItem('${k('cienciaAssin')}',this.value)"></div>
+        <div class="f"><label>DATA DA CIÊNCIA</label>
+          <input type="text" class="cinp" placeholder="dd/mm/aaaa"
+            value="${esc(localStorage.getItem(k('cienciaData'))||'')}"
+            onchange="localStorage.setItem('${k('cienciaData')}',this.value)"></div>
+      </div>
+      <div class="cienciahint">Ao assinar, o colaborador confirma <b>ciência</b> do conteúdo (a ciência não significa concordância). A discordância pode ser registrada no campo acima.</div>
+      </div></div>`;
+  }
+
+  // Barra de nota final
+  html+=`<div class="scorebar">
+    <div><div class="big" id="scoreVal">—</div><div class="lbl">Nota final (1–5)</div></div>
+    <div class="class" id="scoreClass">—</div>
+  </div>
+  <div class="scalekey" id="scoreDetail"></div>`;
+
+  el('content').innerHTML=html;
+  updateScore();
+}
+
+/* ---- cálculo da nota final ----
+   Semanal: média das competências respondidas.
+   Mensal: pondera Resultados/KPIs (40%) + Competências (60%).        */
+function critCount(){return CURTAB==='semanal'?SEMANAL.length:getCompet().length;}
+function compAvg(){
+  let sum=0,n=0;
+  for(let i=0;i<critCount();i++){const v=parseInt(localStorage.getItem(k('c'+i)));if(v>=1&&v<=5){sum+=v;n++;}}
+  return {avg:n?sum/n:null,n};
+}
+function pctToNota(p){if(p>=105)return 5;if(p>=95)return 4;if(p>=85)return 3;if(p>=70)return 2;return 1;}
+function kpiPct(){
+  if(CURTAB!=='mensal')return null;
+  const clean=s=>parseFloat(String(s||'').replace('%','').replace(/\./g,'').replace(',','.').trim());
+  let p=parseFloat(String(localStorage.getItem(k('kpi_meta_pct'))||'').replace('%','').replace(',','.').trim());
+  if(!(p>0)){
+    const meta=clean(localStorage.getItem(k('kpi_meta_meta')));
+    const real=clean(localStorage.getItem(k('kpi_meta_real')));
+    if(meta>0&&real>=0)p=real/meta*100;
+  }
+  return (p>0)?p:null;
+}
+function classify(avg){
+  if(avg<2)return '⚠️ Abaixo do esperado';
+  if(avg<3)return 'Atende parcialmente';
+  if(avg<4)return 'Atende';
+  if(avg<4.6)return 'Acima do esperado';
+  return '⭐ Supera / Referência';
+}
+function updateScore(){
+  const sv=el('scoreVal'),sc=el('scoreClass'),sd=el('scoreDetail'),kn=el('kpiNotaLine');
+  const {avg:comp,n}=compAvg();
+  if(CURTAB==='semanal'){
+    if(!sv)return;
+    if(n===0){sv.textContent='—';sc.textContent='— preencha as notas';if(sd)sd.textContent='';if(el('pct'))el('pct').textContent='0%';if(el('cnt'))el('cnt').textContent='0/'+critCount();return;}
+    sv.textContent=comp.toFixed(1).replace('.',',');sc.textContent=classify(comp);
+    if(sd)sd.textContent='';
+    if(el('pct'))el('pct').textContent=Math.round(comp/5*100)+'%';if(el('cnt'))el('cnt').textContent=n+'/'+critCount();
+    return;
+  }
+  // MENSAL
+  const pct=kpiPct();
+  const rNota=pct!=null?pctToNota(pct):null;
+  if(kn){kn.innerHTML = pct!=null
+    ? `Nota de resultados (automática, do % de atingimento ${pct.toFixed(0)}%): <b style="color:var(--brand2)">${rNota}/5</b> &nbsp;·&nbsp; faixas: &lt;70%→1 · 70–84%→2 · 85–94%→3 · 95–104%→4 · ≥105%→5`
+    : `Preencha o <b>% de atingimento</b> (ou Meta e Realizado) para a nota de resultados entrar no cálculo.`;}
+  if(!sv)return;
+  let final=null,detail='';
+  if(comp!=null&&rNota!=null){final=0.6*comp+0.4*rNota;detail=`Composição: Resultados ${rNota} (peso 40%) + Competências ${comp.toFixed(1).replace('.',',')} (peso 60%).`;}
+  else if(comp!=null){final=comp;detail='⚠️ Só competências — resultados/KPIs não informados, não entraram no cálculo.';}
+  else if(rNota!=null){final=rNota;detail='Só resultados — competências ainda não preenchidas.';}
+  if(final==null){sv.textContent='—';sc.textContent='— preencha notas e KPIs';if(sd)sd.textContent='';if(el('pct'))el('pct').textContent='0%';if(el('cnt'))el('cnt').textContent='0/'+critCount();return;}
+  sv.textContent=final.toFixed(1).replace('.',',');sc.textContent=classify(final);
+  if(sd)sd.textContent=detail;
+  if(el('pct'))el('pct').textContent=Math.round(final/5*100)+'%';if(el('cnt'))el('cnt').textContent=n+'/'+critCount();
+}
+
+/* ---- limpar aba atual ---- */
+function resetTab(){
+  if(!confirm('Limpar esta avaliação ('+(CURTAB==='semanal'?'Semanal':'Mensal')+') para este colaborador e período?'))return;
+  const prefix='avc:'+ctxKey()+'|'+CURTAB+'|';
+  Object.keys(localStorage).filter(key=>key.startsWith(prefix)).forEach(key=>localStorage.removeItem(key));
+  render();
+}
+
+/* ---- backup: exportar / importar todas as chaves com prefixo 'avc:' (e meta 'avc_meta:') ---- */
+function exportData(){
+  const data={_app:'avc',_exportado:new Date().toISOString(),dados:{}};
+  Object.keys(localStorage).forEach(key=>{
+    if(key.startsWith('avc:')||key.startsWith('avc_meta:'))data.dados[key]=localStorage.getItem(key);
+  });
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const stamp=new Date().toISOString().slice(0,10);
+  a.href=url;a.download='avaliacoes_swn_'+stamp+'.json';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+/* ---- exportar CSV (abre no Excel BR: separador ';' + BOM UTF-8) ----
+   Uma linha por avaliação salva (chave colaborador|período|aba), com cabeçalho,
+   nota final calculada e as notas por critério/KPIs que existirem. */
+function csvCell(v){
+  v=String(v==null?'':v);
+  if(/[";\n\r]/.test(v)) v='"'+v.replace(/"/g,'""')+'"';
+  return v;
+}
+// rótulos dos critérios por aba (reconstrói o nome a partir do índice salvo)
+function critLabelsFor(aba){
+  if(aba==='semanal') return SEMANAL.map(c=>c[0]);
+  // mensal usa o cargo salvo no cabeçalho global; é a melhor reconstrução possível
+  return getCompet().map(c=>c[0]);
+}
+// recalcula a nota final de uma avaliação a partir do localStorage (não altera nada na tela)
+function finalScoreFor(colab,periodo,aba){
+  const base='avc:'+colab+'|'+periodo+'|'+aba+'|';
+  const labels=critLabelsFor(aba);
+  let sum=0,n=0;
+  for(let i=0;i<labels.length;i++){
+    const v=parseInt(localStorage.getItem(base+'c'+i));
+    if(v>=1&&v<=5){sum+=v;n++;}
+  }
+  const comp=n?sum/n:null;
+  if(aba==='semanal') return {final:comp,comp:comp,rNota:null,pct:null,n:n};
+  // mensal: pondera Resultados/KPIs (40%) + Competências (60%) — mesma lógica do app
+  const clean=s=>parseFloat(String(s||'').replace('%','').replace(/\./g,'').replace(',','.').trim());
+  let p=parseFloat(String(localStorage.getItem(base+'kpi_meta_pct')||'').replace('%','').replace(',','.').trim());
+  if(!(p>0)){
+    const meta=clean(localStorage.getItem(base+'kpi_meta_meta'));
+    const real=clean(localStorage.getItem(base+'kpi_meta_real'));
+    if(meta>0&&real>=0)p=real/meta*100;
+  }
+  const pct=(p>0)?p:null;
+  const rNota=pct!=null?pctToNota(pct):null;
+  let final=null;
+  if(comp!=null&&rNota!=null) final=0.6*comp+0.4*rNota;
+  else if(comp!=null) final=comp;
+  else if(rNota!=null) final=rNota;
+  return {final:final,comp:comp,rNota:rNota,pct:pct,n:n};
+}
+function exportCSV(){
+  // descobre todas as avaliações salvas: chave = colaborador|periodo|aba
+  const avals={}; // 'colab|periodo|aba' -> true
+  Object.keys(localStorage).forEach(key=>{
+    if(!key.startsWith('avc:'))return;
+    const rest=key.slice(4);                  // colab|periodo|aba|suffix
+    const parts=rest.split('|');
+    if(parts.length<4)return;
+    const colab=parts[0],periodo=parts[1],aba=parts[2];
+    if(aba!=='semanal'&&aba!=='mensal')return;
+    avals[colab+'|'+periodo+'|'+aba]=true;
+  });
+  let combos=Object.keys(avals);
+  // se nada salvo ainda, exporta ao menos a avaliação atual (carregada na tela)
+  if(!combos.length){
+    saveMeta();
+    combos=[ (el('colab').value||'_')+'|'+(el('periodo').value||'_')+'|'+CURTAB ];
+  }
+
+  const cargoLabel=CARGOS[localStorage.getItem('avc_meta:cargo')||'vendedor']||'';
+  const lojaMeta=localStorage.getItem('avc_meta:loja')||'';
+  const avaliadorMeta=localStorage.getItem('avc_meta:avaliador')||'';
+  const funcaoMeta=localStorage.getItem('avc_meta:funcao')||'';
+
+  // colunas fixas + colunas dinâmicas de critérios (até o nº máx. de critérios entre as abas)
+  const KPI_LABELS={meta_meta:'Meta do mês (R$)',meta_real:'Realizado (R$)',meta_pct:'% atingimento',ticket:'Ticket médio (R$)',conv:'Conversão (%)',pa:'PA (peças/atend.)'};
+  const KPI_KEYS=Object.keys(KPI_LABELS);
+  const maxCrit=Math.max(SEMANAL.length,getCompet().length);
+
+  const header=['Colaborador','Período','Aba','Cargo','Função','Loja','Avaliador','Nota final','Composição'];
+  KPI_KEYS.forEach(k0=>header.push('KPI: '+KPI_LABELS[k0]));
+  for(let i=0;i<maxCrit;i++){header.push('Critério '+(i+1));header.push('Nota '+(i+1));header.push('Comentário '+(i+1));}
+
+  const rows=[header];
+  combos.forEach(combo=>{
+    const parts=combo.split('|');
+    const colab=parts[0],periodo=parts[1],aba=parts[2];
+    const base='avc:'+colab+'|'+periodo+'|'+aba+'|';
+    const score=finalScoreFor(colab,periodo,aba);
+    const finalTxt=score.final!=null?score.final.toFixed(1).replace('.',','):'';
+    let comp='';
+    if(aba==='mensal'){
+      if(score.comp!=null&&score.rNota!=null) comp='Resultados '+score.rNota+' (40%) + Competências '+score.comp.toFixed(1).replace('.',',')+' (60%)';
+      else if(score.comp!=null) comp='Só competências';
+      else if(score.rNota!=null) comp='Só resultados';
+    }
+    const row=[
+      colab==='_'?'':colab,
+      periodo==='_'?'':periodo,
+      aba==='semanal'?'Semanal':'Mensal',
+      cargoLabel, funcaoMeta, lojaMeta, avaliadorMeta,
+      finalTxt, comp
+    ];
+    // KPIs (só fazem sentido na mensal; ficam vazios na semanal)
+    KPI_KEYS.forEach(k0=>row.push(aba==='mensal'?(localStorage.getItem(base+'kpi_'+k0)||''):''));
+    // critérios + notas + comentários
+    const labels=critLabelsFor(aba);
+    for(let i=0;i<maxCrit;i++){
+      const lbl=labels[i]||'';
+      const nota=lbl?(localStorage.getItem(base+'c'+i)||''):'';
+      const note=lbl?(localStorage.getItem(base+'n'+i)||''):'';
+      row.push(lbl); row.push(nota); row.push(note);
+    }
+    rows.push(row);
+  });
+
+  const csv='﻿'+rows.map(r=>r.map(csvCell).join(';')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const stamp=new Date().toISOString().slice(0,10);
+  a.href=url;a.download='avaliacoes_swn_'+stamp+'.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function importData(input){
+  const file=input.files&&input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const parsed=JSON.parse(e.target.result);
+      const dados=parsed&&parsed.dados?parsed.dados:parsed;
+      const keys=Object.keys(dados||{}).filter(key=>key.startsWith('avc:')||key.startsWith('avc_meta:'));
+      if(!keys.length){alert('Arquivo sem dados de avaliação (prefixo avc:).');input.value='';return;}
+      if(!confirm('Importar '+keys.length+' registros? Os dados atuais com as mesmas chaves serão sobrescritos.')){input.value='';return;}
+      keys.forEach(key=>localStorage.setItem(key,dados[key]));
+      input.value='';
+      loadMeta();buildTabs();render();
+      alert('Importação concluída: '+keys.length+' registros.');
+    }catch(err){alert('Não foi possível ler o arquivo JSON: '+err.message);input.value='';}
+  };
+  reader.readAsText(file);
+}
+
+/* ---- progresso no topbar (reaproveita o slot de meta) ---- */
+// adiciona indicador de progresso ao bloco meta
+(function(){
+  const m=document.querySelector('.meta');
+  const div=document.createElement('div');
+  div.className='progress';
+  div.innerHTML='<b id="pct">0%</b><small><span id="cnt">0/0</span> critérios</small>';
+  m.appendChild(div);
+})();
+
+/* ---- persistir cabeçalho ---- */
+function loadMeta(){META_IDS.forEach(id=>{const v=localStorage.getItem('avc_meta:'+id);if(v)el(id).value=v;});}
+function saveMeta(){META_IDS.forEach(id=>localStorage.setItem('avc_meta:'+id,el(id).value));}
+
+/* ---- init + deep-link ---- */
+loadMeta();
+META_IDS.forEach(id=>el(id).addEventListener('change',()=>{saveMeta();render();}));
+const h=(location.hash||'').replace('#','');
+if(h==='semanal'||h==='mensal')CURTAB=h;
+buildTabs();
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checklist de Loja · SWN · Premium Outlets</title>
+<style>
+  :root{
+    --bg:#0f1115;--panel:#161a22;--panel2:#1c2230;--line:#262d3a;
+    --txt:#e8ecf3;--muted:#9aa6b8;--brand:#b4d233;--brand2:#cbe465;
+    --green:#2ecc71;--red:#e74c3c;--blue:#4aa3ff;--radius:13px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5}
+  a{color:var(--blue)}
+  .topbar{position:sticky;top:0;z-index:20;background:rgba(15,17,21,.95);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);padding:13px 22px;display:flex;align-items:center;gap:12px}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:16px}
+  .logo{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;
+    background:linear-gradient(135deg,var(--brand),var(--brand2));color:#1a1300;font-weight:900}
+  .brand small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+  .wrap{max-width:920px;margin:0 auto;padding:22px}
+
+  .meta{display:flex;flex-wrap:wrap;gap:12px;background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--radius);padding:14px 16px;margin-bottom:16px}
+  .meta .f{display:flex;flex-direction:column;gap:4px}
+  .meta label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+  .meta input,.meta select{padding:8px 11px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--txt);font-size:13.5px;outline:none}
+  .meta input:focus,.meta select:focus{border-color:var(--brand)}
+  .progress{margin-left:auto;text-align:right;align-self:center}
+  .progress b{font-size:22px;color:var(--brand2)}
+  .progress small{display:block;color:var(--muted);font-size:11px}
+
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+  .tabs button{padding:9px 15px;border:1px solid var(--line);border-radius:10px;cursor:pointer;
+    background:var(--panel);color:var(--muted);font-weight:700;font-size:13px}
+  .tabs button.active{background:var(--brand);color:#1a1300;border-color:var(--brand)}
+
+  .block{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    margin-bottom:14px;overflow:hidden}
+  .block h3{margin:0;padding:12px 16px;font-size:13px;text-transform:uppercase;letter-spacing:.6px;
+    color:var(--brand2);background:var(--panel2);border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:9px}
+  .block .seqnote{font-size:10.5px;color:var(--muted);font-weight:600;text-transform:none;letter-spacing:0}
+  ul{list-style:none;margin:0;padding:8px 10px}
+  li{display:flex;align-items:flex-start;gap:11px;padding:9px 10px;border-radius:9px;font-size:14px}
+  li:hover{background:var(--panel2)}
+  li input{margin-top:2px;width:18px;height:18px;accent-color:var(--green);cursor:pointer;flex-shrink:0}
+  li.done label{opacity:.5;text-decoration:line-through}
+  li label{cursor:pointer;flex:1}
+  li .tip{display:block;font-size:11.5px;color:var(--muted);margin-top:2px;text-decoration:none!important}
+
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
+  .btn{padding:10px 16px;border:0;border-radius:10px;cursor:pointer;font-weight:700;font-size:13px}
+  .btn.primary{background:var(--brand);color:#1a1300}
+  .btn.ghost{background:var(--panel2);border:1px solid var(--line);color:var(--txt)}
+  .btn.ghost:hover{border-color:var(--red);color:#f29a90}
+
+  .obs textarea{width:100%;min-height:64px;padding:10px;border-radius:10px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--txt);font-size:13.5px;font-family:inherit;resize:vertical}
+  .note{background:linear-gradient(135deg,rgba(180,210,51,.08),rgba(74,163,255,.06));
+    border:1px dashed var(--line);border-radius:12px;padding:13px 15px;font-size:12.5px;color:var(--muted);margin-top:16px}
+  .ac-row{display:flex;gap:10px;flex-wrap:wrap;align-items:end;padding:8px 12px}
+  .ac-row .f{display:flex;flex-direction:column;gap:4px}
+  .ac-row input,.ac-row select{padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--txt);font-size:13px}
+
+  /* assinatura / carimbo quem e quando */
+  .sign{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:12px 14px;background:var(--panel2);
+    border-top:1px solid var(--line)}
+  .sign .btn.sign-btn{background:var(--green);color:#06210f}
+  .sign .stamp{font-size:13px;font-weight:700;color:var(--green);display:flex;align-items:center;gap:7px}
+  .sign .stamp.empty{color:var(--muted);font-weight:600}
+  .sign .btn.clear-sign{background:transparent;border:1px solid var(--line);color:var(--muted);font-weight:600;padding:7px 11px}
+
+  /* caixa: campos financeiros do fechamento */
+  .cash-grid{display:flex;gap:12px;flex-wrap:wrap;padding:10px 12px}
+  .cash-grid .f{display:flex;flex-direction:column;gap:4px}
+  .cash-grid label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+  .cash-grid input,.cash-grid textarea{padding:8px 11px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--txt);font-size:13.5px;font-family:inherit}
+  .cash-diff{padding:8px 14px;font-size:13.5px;font-weight:700}
+  .cash-diff.ok{color:var(--green)}
+  .cash-diff.bad{color:var(--red)}
+  .cash-cause{padding:0 12px 10px}
+  .cash-cause textarea{width:100%;min-height:48px;padding:9px 11px;border-radius:9px;border:1px solid var(--red);
+    background:var(--panel2);color:var(--txt);font-size:13.5px;font-family:inherit;resize:vertical}
+  .cash-cause.hidden{display:none}
+  .cash-cause label{font-size:11px;color:var(--red);font-weight:700;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px}
+
+  /* sangrias: linhas dinâmicas */
+  .sang-row{display:flex;gap:8px;flex-wrap:wrap;align-items:end;padding:6px 12px}
+  .sang-row .f{display:flex;flex-direction:column;gap:3px}
+  .sang-row label{font-size:10.5px;color:var(--muted);font-weight:600}
+  .sang-row input{padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--txt);font-size:13px}
+  .sang-row .del{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:8px;cursor:pointer;padding:7px 10px;font-weight:700}
+  .sang-add{margin:4px 12px 12px}
+  .sang-add .btn{background:var(--panel2);border:1px solid var(--line);color:var(--txt);font-weight:700}
+
+  @media print{
+    body{background:#fff;color:#000}
+    .topbar,.tabs,.actions,.note,.progress{display:none}
+    .block,.meta{border:1px solid #999;background:#fff;break-inside:avoid}
+    .block h3{background:#eee;color:#000}
+    li input{-webkit-appearance:auto}
+    .pa-print{display:block!important}
+    .sign{background:#fff;border-top:1px solid #999}
+    .sign .stamp{color:#000}
+    .sign .btn,.sang-add,.sang-row .del{display:none}
+    .cash-grid input,.cash-grid textarea,.cash-cause textarea,.sang-row input{background:#fff;color:#000}
+    .cash-diff.ok,.cash-diff.bad{color:#000}
+  }
+  .pa-print{display:none;text-align:center;font-weight:800;margin:6px 0 16px;font-size:18px}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand"><svg class="brandmark" width="58" height="28" viewBox="0 0 58 28" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SWN Premium Outlets"><rect width="58" height="28" rx="7" fill="#fff"/><text x="6" y="22" font-family="Arial,Helvetica,sans-serif" font-weight="900" font-size="21" letter-spacing="-1.5"><tspan fill="#1b3c86">s</tspan><tspan fill="#b4d233">w</tspan><tspan fill="#2e241a">n</tspan></text></svg><div>Checklist de Loja <small>SWN · Premium Outlets</small></div></div>
+  </div>
+
+  <div class="wrap">
+    <div class="pa-print" id="printTitle"></div>
+    <div class="meta">
+      <div class="f"><label>Loja</label>
+        <select id="loja"><option>Loja 1</option><option>Loja 2</option><option>Loja 3</option><option>Outra</option></select></div>
+      <div class="f"><label>Data</label><input type="date" id="data"></div>
+      <div class="f"><label>Responsável</label><input type="text" id="resp" placeholder="Nome do gerente/líder"></div>
+      <div class="progress"><b id="pct">0%</b><small><span id="cnt">0/0</span> itens</small></div>
+    </div>
+
+    <div class="tabs" id="tabs"></div>
+    <div id="content"></div>
+
+    <div class="actions">
+      <button class="btn primary" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
+      <button class="btn ghost" onclick="exportData()" style="border-color:var(--line);color:var(--txt)">⬇️ Exportar dados (JSON)</button>
+      <button class="btn ghost" onclick="el('importFile').click()" style="border-color:var(--line);color:var(--txt)">⬆️ Importar dados (JSON)</button>
+      <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importData(this)">
+      <button class="btn ghost" onclick="resetTab()">Limpar este checklist</button>
+    </div>
+
+    <div class="note">
+      💡 As marcações salvam automaticamente neste navegador, por <b>loja + data + checklist</b>.
+      O bloco de <b>Depósito</b> segue o <a href="Manual de Regras para Depósito de Dinheiro das Vendas - SWN.pdf" target="_blank">Manual de Depósito SWN</a>:
+      transporte de 2ª a 6ª, Caixa <b>sempre</b> acompanhado do gerente/subgerente, foto do comprovante no grupo e registro no livro de controle.
+    </div>
+  </div>
+
+<script>
+/* ===== Conteúdo: mescla Guia do Gerente + Manual de Depósito + pesquisa de operação ===== */
+const TABS = {
+  abertura:{ nome:"🔓 Abertura", blocks:[
+    {h:"1 · Segurança e acesso", seq:"primeiro de tudo", items:[
+      ["Inspecionar fachada e porta antes de entrar (sinais de arrombamento)"],
+      ["Desarmar o alarme e conferir câmeras funcionando"],
+    ]},
+    {h:"2 · Ambiente", items:[
+      ["Acender luzes e ligar ar-condicionado","Registrar no controle de ar-condicionado (aba própria)"],
+      ["Conferir limpeza geral: piso, provadores e banheiros"],
+      ["Ligar música ambiente"],
+    ]},
+    {h:"3 · Equipamentos e sistemas", items:[
+      ["Ligar computadores, PDV/Almode e maquininhas de cartão"],
+      ["Testar Pix e máquina de cartão com um teste rápido"],
+    ]},
+    {h:"4 · Caixa", items:[
+      ["Conferir o fundo de troco","Contagem na presença de outro responsável"],
+      ["Abrir o caixa no sistema"],
+      ["Definir o TETO de dinheiro na gaveta e fazer SANGRIA INTRADAY ao ultrapassar","Retirar o excedente para o cofre durante o dia — reduz dinheiro acumulado na gaveta"],
+    ]},
+    {h:"5 · Produto e loja", items:[
+      ["Conferir vitrines e manequins"],
+      ["Repor e organizar araras e mesas — pensar com abundância (valor SWN)"],
+      ["Conferir etiquetas e preços visíveis"],
+    ]},
+    {h:"6 · Equipe", items:[
+      ["Briefing de 5 min: metas do dia, resultado de ontem, campanhas"],
+      ["Conferir uniforme e apresentação pessoal da equipe (dress code)"],
+    ]},
+  ]},
+  fechamento:{ nome:"🌙 Fechamento", blocks:[
+    {h:"1 · Caixa", items:[
+      ["Conferir vendas do dia no sistema x formas de pagamento"],
+      ["Comprovantes de Pix conferidos no app do banco","NÃO aceitar print como prova — golpe de comprovante falso"],
+      ["Fazer a sangria final e a conferência de caixa no app"],
+      ["Emitir relatório do dia e registrar o resultado"],
+    ]},
+    {h:"2 · Produto e loja", items:[
+      ["Recolher peças dos provadores"],
+      ["Reorganizar araras e mesas e repor para o dia seguinte"],
+    ]},
+    {h:"3 · Depósito do dinheiro", seq:"conforme Manual de Depósito SWN", items:[
+      ["Contar o dinheiro na presença do gerente e registrar no controle (data, valor, assinaturas)"],
+      ["Organizar por denominação em envelope identificado (período + valor)"],
+      ["Transporte só de 2ª a 6ª — Caixa + gerente/subgerente JUNTOS (nunca sozinho)"],
+      ["Depositar no caixa eletrônico em horário de menor movimento"],
+      ["Fotografar o comprovante, enviar no grupo e anexar ao livro de controle"],
+      ["Valor não reconhecido pelo caixa eletrônico: anotar, avisar no grupo e guardar no cofre"],
+    ]},
+    {h:"4 · Ambiente e equipamentos", items:[
+      ["Desligar ar-condicionado (registrar), luzes não essenciais e equipamentos"],
+    ]},
+    {h:"5 · Segurança", seq:"por último", items:[
+      ["Conferir que não há ninguém na loja"],
+      ["Trancar portas, armar o alarme e conferir câmeras"],
+    ]},
+  ]},
+  semanal:{ nome:"📅 Semanal", blocks:[
+    {h:"Rotina semanal do gerente", items:[
+      ["Montar e publicar a escala da semana seguinte (cobertura nos horários de pico)"],
+      ["Reunião de desempenho: metas da semana e feedback da equipe"],
+      ["Checagem de estoque: levantar reposições e rupturas"],
+      ["Manutenção preventiva: corrigir pequenos problemas antes de virarem urgência"],
+      ["Inventário cíclico dos itens de maior giro (curva A)","Boa prática de prevenção de perdas"],
+      ["Conferir etiquetas antifurto e divergências de caixa da semana"],
+    ]},
+  ]},
+  mensal:{ nome:"📈 Mensal", blocks:[
+    {h:"Rotina mensal do gerente", items:[
+      ["Revisar metas e indicadores: faturamento, ticket médio, conversão, PA e rotação de estoque"],
+      ["Treinamento e desenvolvimento da equipe (produto, tendências, técnicas de venda)"],
+      ["Inventário do mês (quando aplicável) e conferência de divergências"],
+      ["Avaliação individual de cada colaborador + plano de desenvolvimento"],
+      ["Revisar escala, folgas e férias"],
+      ["Fechamento financeiro com a administração"],
+    ]},
+  ]},
+  ar:{ nome:"❄️ Ar-condicionado", custom:"ar" },
+};
+
+let CURTAB="abertura";
+const el=id=>document.getElementById(id);
+function ctxKey(){return el('loja').value+'|'+el('data').value;}
+function keyFor(tab,bi,ii){return 'clk:'+ctxKey()+'|'+tab+'|'+bi+'|'+ii;}
+
+function buildTabs(){
+  el('tabs').innerHTML=Object.entries(TABS).map(([k,v])=>
+    `<button class="${k===CURTAB?'active':''}" onclick="setTab('${k}')">${v.nome}</button>`).join('');
+}
+function setTab(k){CURTAB=k;buildTabs();render();}
+
+function render(){
+  const t=TABS[CURTAB];
+  el('printTitle').textContent=`${t.nome.replace(/^[^ ]+ /,'')} — ${el('loja').value} — ${fmt(el('data').value)} — ${el('resp').value||'________'}`;
+  if(t.custom==='ar'){renderAr();updateProgress();return;}
+  let html='';
+  t.blocks.forEach((b,bi)=>{
+    html+=`<div class="block"><h3>${b.h}${b.seq?`<span class="seqnote">— ${b.seq}</span>`:''}</h3><ul>`;
+    b.items.forEach((it,ii)=>{
+      const k=keyFor(CURTAB,bi,ii);const done=localStorage.getItem(k)==='1';
+      html+=`<li class="${done?'done':''}"><input type="checkbox" ${done?'checked':''} onchange="toggle('${k}',this)">
+        <label>${it[0]}${it[1]?`<span class="tip">${it[1]}</span>`:''}</label></li>`;
+    });
+    html+='</ul></div>';
+  });
+  // bloco de caixa (apenas no fechamento)
+  if(CURTAB==='fechamento') html+=cashBlockHtml();
+  // campo de observações por dia/tab
+  const ok='obs:'+ctxKey()+'|'+CURTAB;
+  html+=`<div class="block obs"><h3>📝 Observações / ocorrências</h3><div style="padding:10px">
+    <textarea onchange="localStorage.setItem('${ok}',this.value)" placeholder="Anote divergências, manutenções, faltas, ocorrências...">${localStorage.getItem(ok)||''}</textarea></div></div>`;
+  // carimbo de assinatura por aba
+  html+=signBlockHtml(CURTAB);
+  el('content').innerHTML=html;
+  if(CURTAB==='fechamento') updateCashDiff();
+  updateProgress();
+}
+
+function renderAr(){
+  const ok='ar:'+ctxKey();
+  const items=[
+    ["Equipamento ligado e gelando normalmente"],
+    ["Sem ruído anormal ou vazamento"],
+    ["Filtro limpo (checagem semanal)"],
+    ["Controle/temperatura ajustados"],
+  ];
+  let html='<div class="block"><h3>❄️ Status do ar-condicionado</h3><ul>';
+  items.forEach((it,ii)=>{const k=keyFor('ar',0,ii);const done=localStorage.getItem(k)==='1';
+    html+=`<li class="${done?'done':''}"><input type="checkbox" ${done?'checked':''} onchange="toggle('${k}',this)"><label>${it[0]}</label></li>`;});
+  html+='</ul>';
+  html+=`<div class="ac-row"><div class="f"><label style="font-size:11px;color:var(--muted)">Temperatura (°C)</label><input id="acTemp" type="number" placeholder="ex: 23" value="${localStorage.getItem('actemp:'+ctxKey())||''}" onchange="localStorage.setItem('actemp:'+'${ctxKey()}',this.value)"></div>
+    <div class="f"><label style="font-size:11px;color:var(--muted)">Precisa de manutenção?</label><select id="acMan" onchange="localStorage.setItem('acman:'+'${ctxKey()}',this.value)"><option value="">—</option><option ${gv('acman:'+ctxKey(),'Não')}>Não</option><option ${gv('acman:'+ctxKey(),'Sim')}>Sim</option></select></div></div>`;
+  html+=`<div style="padding:10px"><textarea onchange="localStorage.setItem('${ok}',this.value)" placeholder="Observações sobre o ar-condicionado...">${localStorage.getItem(ok)||''}</textarea></div></div>`;
+  html+=signBlockHtml('ar');
+  el('content').innerHTML=html;
+}
+function gv(k,v){return localStorage.getItem(k)===v?'selected':'';}
+
+/* ===== 1 · Carimbo "quem e quando" (assinatura por aba) ===== */
+function signKey(tab){return 'sign:'+ctxKey()+'|'+tab;}
+function signBlockHtml(tab){
+  const raw=localStorage.getItem(signKey(tab));
+  let stamp,cls;
+  if(raw){try{const s=JSON.parse(raw);stamp=`✔️ Concluído por <b>${esc(s.resp)}</b> em ${s.when}`;cls='';}catch(e){stamp='';}}
+  if(!stamp){stamp='Checklist ainda não assinado';cls='empty';}
+  return `<div class="block"><div class="sign">
+    <button class="btn sign-btn" onclick="signTab('${tab}')">✔️ Concluir e assinar</button>
+    <span class="stamp ${cls}">${stamp}</span>
+    ${raw?`<button class="btn clear-sign" onclick="unsignTab('${tab}')">Refazer assinatura</button>`:''}
+  </div></div>`;
+}
+function signTab(tab){
+  const resp=(el('resp').value||'').trim();
+  if(!resp){alert('Preencha o campo "Responsável" no topo antes de assinar.');el('resp').focus();return;}
+  if(!el('data').value){alert('Selecione a Data antes de assinar.');return;}
+  const d=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  const when=`${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  localStorage.setItem(signKey(tab),JSON.stringify({resp,when,ts:d.toISOString()}));
+  if(tab==='ar')renderAr();else render();
+}
+function unsignTab(tab){
+  if(!confirm('Remover a assinatura deste checklist?'))return;
+  localStorage.removeItem(signKey(tab));
+  if(tab==='ar')renderAr();else render();
+}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+/* ===== 2 · Caixa: fechamento financeiro, quebra de caixa e sangrias ===== */
+function cashKey(f){return 'cash:'+ctxKey()+'|'+f;}
+function cashBlockHtml(){
+  const esp=localStorage.getItem(cashKey('esperado'))||'';
+  const cont=localStorage.getItem(cashKey('contado'))||'';
+  const causa=localStorage.getItem(cashKey('causa'))||'';
+  return `<div class="block"><h3>💰 Conferência de caixa<span class="seqnote">— esperado x contado · quebra de caixa</span></h3>
+    <div class="cash-grid">
+      <div class="f"><label>Valor esperado (R$)</label><input type="number" step="0.01" inputmode="decimal" value="${esc(esp)}" onchange="localStorage.setItem('${cashKey('esperado')}',this.value);updateCashDiff()" oninput="updateCashDiff()"></div>
+      <div class="f"><label>Valor contado (R$)</label><input type="number" step="0.01" inputmode="decimal" value="${esc(cont)}" onchange="localStorage.setItem('${cashKey('contado')}',this.value);updateCashDiff()" oninput="updateCashDiff()"></div>
+    </div>
+    <div class="cash-diff" id="cashDiff">—</div>
+    <div class="cash-cause hidden" id="cashCause">
+      <label>Causa da quebra (obrigatório)</label>
+      <textarea id="cashCauseTxt" placeholder="Descreva a causa da diferença de caixa..." onchange="localStorage.setItem('${cashKey('causa')}',this.value)">${esc(causa)}</textarea>
+    </div>
+    ${sangriasHtml()}
+    <div style="padding:10px 12px;border-top:1px solid var(--line)">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">🔗 <b style="color:var(--txt)">Integração — não digite duas vezes:</b> gere o resumo do caixa e leve para a Conferência / Depósito. <b style="color:var(--txt)">No Render, esse repasse será automático.</b></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn primary" onclick="copiarResumoCaixa()">📋 Copiar resumo do caixa</button>
+        <a class="btn ghost" href="deposito.html" target="_blank" rel="noopener">🏦 Abrir Depósito</a>
+        <a class="btn ghost" href="conciliacao_3vias.html" target="_blank" rel="noopener">🔁 Conciliação 3 vias</a>
+        <a class="btn ghost" href="Manual de Regras para Depósito de Dinheiro das Vendas - SWN.pdf" target="_blank" rel="noopener">📄 Manual de Depósito</a>
+      </div>
+    </div>
+  </div>`;
+}
+function copiarResumoCaixa(){
+  const loja=el('loja')?el('loja').value:''; const data=el('data')?el('data').value:'';
+  const esp=localStorage.getItem(cashKey('esperado'))||'—';
+  const cont=localStorage.getItem(cashKey('contado'))||'—';
+  let quebra='—'; const e=parseFloat(esp),c=parseFloat(cont);
+  if(!isNaN(e)&&!isNaN(c)){const d=c-e;quebra=(d<0?'falta ':d>0?'sobra ':'sem quebra ')+'R$ '+Math.abs(d).toFixed(2).replace('.',',');}
+  const causa=localStorage.getItem(cashKey('causa'))||'';
+  const sang=getSangrias().filter(s=>s.valor).map(s=>'  - R$ '+s.valor+' às '+(s.hora||'--:--')+' ('+(s.resp||'—')+')').join('\n')||'  - nenhuma';
+  const txt='CONFERÊNCIA DE CAIXA — '+(loja||'(loja)')+' — '+(data||'(data)')+'\n'+
+    'Esperado: R$ '+esp+'\nContado: R$ '+cont+'\nQuebra: '+quebra+(causa?'\nCausa: '+causa:'')+
+    '\nSangrias do dia:\n'+sang;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(()=>alert('Resumo copiado! Cole na Conferência de Caixa / Depósito.')).catch(()=>prompt('Copie o resumo do caixa:',txt));
+  }else{prompt('Copie o resumo do caixa:',txt);}
+}
+function updateCashDiff(){
+  const diffEl=el('cashDiff'),causeEl=el('cashCause');if(!diffEl)return;
+  const esp=parseFloat((el('content').querySelector('[onchange*="esperado"]')||{}).value);
+  const cont=parseFloat((el('content').querySelector('[onchange*="contado"]')||{}).value);
+  if(isNaN(esp)||isNaN(cont)){diffEl.textContent='Informe esperado e contado para calcular a quebra.';diffEl.className='cash-diff';if(causeEl)causeEl.classList.add('hidden');return;}
+  const d=cont-esp;
+  const f=v=>'R$ '+v.toFixed(2).replace('.',',');
+  if(Math.abs(d)<0.005){diffEl.textContent='✔️ Caixa bate certo (sem quebra).';diffEl.className='cash-diff ok';if(causeEl)causeEl.classList.add('hidden');}
+  else{diffEl.textContent=(d<0?'⚠️ QUEBRA DE CAIXA (falta): ':'⚠️ Sobra de caixa: ')+f(Math.abs(d));diffEl.className='cash-diff bad';if(causeEl)causeEl.classList.remove('hidden');}
+}
+
+/* sangrias do dia: array em JSON */
+function sangKey(){return 'sang:'+ctxKey();}
+function getSangrias(){try{return JSON.parse(localStorage.getItem(sangKey())||'[]');}catch(e){return [];}}
+function setSangrias(arr){localStorage.setItem(sangKey(),JSON.stringify(arr));}
+function sangriasHtml(){
+  const arr=getSangrias();
+  let h='<h3 style="margin-top:0">🔁 Sangrias do dia<span class="seqnote">— valor · hora · responsável</span></h3>';
+  arr.forEach((s,i)=>{
+    h+=`<div class="sang-row">
+      <div class="f"><label>Valor (R$)</label><input type="number" step="0.01" inputmode="decimal" value="${esc(s.valor||'')}" onchange="updateSangria(${i},'valor',this.value)"></div>
+      <div class="f"><label>Hora</label><input type="time" value="${esc(s.hora||'')}" onchange="updateSangria(${i},'hora',this.value)"></div>
+      <div class="f" style="flex:1"><label>Responsável</label><input type="text" value="${esc(s.resp||'')}" placeholder="Nome" onchange="updateSangria(${i},'resp',this.value)"></div>
+      <button class="del" onclick="delSangria(${i})" title="Remover">✕</button>
+    </div>`;
+  });
+  h+=`<div class="sang-add"><button class="btn" onclick="addSangria()">+ Adicionar sangria</button></div>`;
+  return h;
+}
+function addSangria(){const a=getSangrias();a.push({valor:'',hora:'',resp:''});setSangrias(a);render();}
+function delSangria(i){const a=getSangrias();a.splice(i,1);setSangrias(a);render();}
+function updateSangria(i,f,v){const a=getSangrias();if(a[i]){a[i][f]=v;setSangrias(a);}}
+
+function toggle(k,box){localStorage.setItem(k,box.checked?'1':'0');box.closest('li').classList.toggle('done',box.checked);updateProgress();}
+
+function updateProgress(){
+  const t=TABS[CURTAB];let total=0,done=0;
+  if(t.blocks){t.blocks.forEach((b,bi)=>b.items.forEach((it,ii)=>{total++;if(localStorage.getItem(keyFor(CURTAB,bi,ii))==='1')done++;}));}
+  else{const items=4;total=items;for(let i=0;i<items;i++)if(localStorage.getItem(keyFor('ar',0,i))==='1')done++;}
+  el('cnt').textContent=done+'/'+total;
+  el('pct').textContent=total?Math.round(done/total*100)+'%':'0%';
+}
+
+function resetTab(){
+  if(!confirm('Limpar as marcações deste checklist para esta loja e data?'))return;
+  Object.keys(localStorage).filter(k=>k.startsWith('clk:'+ctxKey()+'|'+CURTAB)).forEach(k=>localStorage.removeItem(k));
+  render();
+}
+
+function fmt(d){if(!d)return '___/___/___';const[a,m,x]=d.split('-');return `${x}/${m}/${a}`;}
+
+/* ===== 5 · Backup: exportar / importar dados desta página ===== */
+const DATA_PREFIXES=['clk:','obs:','ar:','sign:','cash:','sang:','actemp:','acman:'];
+function isAppKey(k){return DATA_PREFIXES.some(p=>k.startsWith(p));}
+function exportData(){
+  const data={};
+  Object.keys(localStorage).filter(isAppKey).forEach(k=>data[k]=localStorage.getItem(k));
+  const payload={_app:'CHECKLIST_LOJA_SWN',_versao:1,_exportadoEm:new Date().toISOString(),dados:data};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='checklist-swn-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+}
+function importData(input){
+  const file=input.files&&input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const parsed=JSON.parse(e.target.result);
+      const dados=parsed&&parsed.dados?parsed.dados:parsed;
+      if(!dados||typeof dados!=='object')throw new Error('formato');
+      const keys=Object.keys(dados).filter(isAppKey);
+      if(!keys.length){alert('Nenhum dado de checklist encontrado neste arquivo.');input.value='';return;}
+      if(!confirm('Importar '+keys.length+' registro(s)? As marcações atuais com as mesmas chaves serão sobrescritas.')){input.value='';return;}
+      keys.forEach(k=>localStorage.setItem(k,dados[k]));
+      alert('✔️ Dados importados com sucesso.');
+      input.value='';
+      if(CURTAB==='ar')renderAr();else render();
+      updateProgress();
+    }catch(err){alert('Arquivo inválido. Selecione um JSON exportado por esta página.');input.value='';}
+  };
+  reader.readAsText(file);
+}
+
+// init
+el('data').value=new Date().toISOString().slice(0,10);
+['loja','data','resp'].forEach(id=>el(id).addEventListener('change',render));
+buildTabs();render();
+</script>
+</body>
+</html>
