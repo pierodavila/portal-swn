@@ -118,11 +118,13 @@ def _schema_statements():
     """Retorna o DDL apropriado para o backend ativo."""
     if BACKEND == "postgres":
         pk = "SERIAL PRIMARY KEY"
-        boolt = "BOOLEAN"
+        boolt = "INTEGER"         # usamos 0/1 nos INSERT/UPDATE; INTEGER evita mismatch booleano
+        booldef = "1"
         ts = "TIMESTAMP"
     else:
         pk = "INTEGER PRIMARY KEY AUTOINCREMENT"
         boolt = "INTEGER"
+        booldef = "1"             # SQLite usa inteiro
         ts = "TEXT"
 
     return [
@@ -132,7 +134,7 @@ def _schema_statements():
             nome      TEXT NOT NULL,
             cnpj      TEXT,
             cidade_uf TEXT,
-            ativo     {boolt} DEFAULT 1
+            ativo     {boolt} DEFAULT {booldef}
         )
         """,
         f"""
@@ -143,7 +145,7 @@ def _schema_statements():
             senha_hash    TEXT NOT NULL,
             papel         TEXT NOT NULL,
             loja_id       INTEGER,
-            ativo         {boolt} DEFAULT 1,
+            ativo         {boolt} DEFAULT {booldef},
             criado_em     {ts},
             ultimo_acesso {ts}
         )
