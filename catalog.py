@@ -126,6 +126,14 @@ TOOLS = [
         "papeis": ["admin", "rh", "financeiro"],
     },
     {
+        "id": "escala",
+        "nome": "Escala mensal",
+        "icone": "🗓️",
+        "arquivo": "RH_DISCIPLINA_JORNADA_SWN.html",
+        "descricao": "Grade de turnos por loja e mês — salva no banco.",
+        "papeis": ["admin", "rh", "supervisor", "gerente", "subgerente"],
+    },
+    {
         "id": "kit_admissao",
         "nome": "Kit Admissão",
         "icone": "📝",

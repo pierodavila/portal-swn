@@ -241,6 +241,16 @@ def _schema_statements():
             criado_por     INTEGER
         )
         """,
+        f"""
+        CREATE TABLE IF NOT EXISTS escalas (
+            id          {pk},
+            loja_id     INTEGER,
+            competencia TEXT,
+            grade       TEXT,
+            criado_em   {ts},
+            criado_por  INTEGER
+        )
+        """,
         # Garante 1 checklist por loja+data+turno (evita duplicata em clique-duplo).
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_chk_unico ON checklists (loja_id, data, turno)",
         # Índices de performance nas colunas de junção (importam com volume).
@@ -249,6 +259,7 @@ def _schema_statements():
         "CREATE INDEX IF NOT EXISTS idx_adv_colab ON advertencias (colaborador_id)",
         "CREATE INDEX IF NOT EXISTS idx_chk_data ON checklists (data)",
         "CREATE INDEX IF NOT EXISTS idx_adi_colab ON adiantamentos (colaborador_id)",
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_escala_unico ON escalas (loja_id, competencia)",
     ]
 
 

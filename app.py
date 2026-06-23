@@ -15,6 +15,7 @@ import csv
 import json
 import time
 import secrets
+import calendar
 import logging
 from datetime import datetime, date, timedelta
 
@@ -902,6 +903,119 @@ Local e data: ____________________, {{ a.data_br }}
 
 
 # ----------------------------------------------------------------------------
+# Escala mensal — grade loja × colaboradores × dias do mês (Fase 3.8)
+# ----------------------------------------------------------------------------
+# Códigos sugeridos para as células (texto livre, mas com legenda).
+ESCALA_LEGENDA = "M = manhã · T = tarde · I = integral · F = folga · FE = férias · A = ausência"
+
+
+def _comp_partes(comp):
+    """'YYYY-MM' -> (ano, mes) ou (None, None)."""
+    try:
+        ano, mes = str(comp).split("-")[:2]
+        return int(ano), int(mes)
+    except (ValueError, AttributeError):
+        return None, None
+
+
+def _dias_do_mes(ano, mes):
+    """Lista de dicts {n, fds} para cada dia do mês (fds=fim de semana)."""
+    n = calendar.monthrange(ano, mes)[1]
+    out = []
+    for d in range(1, n + 1):
+        wd = date(ano, mes, d).weekday()  # 5,6 = sáb, dom
+        out.append({"n": d, "fds": wd >= 5})
+    return out
+
+
+MESES_PT = ["", "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+            "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
+
+
+ESCALA_HTML = r"""
+{% extends "base.html" %}
+{% block title %}Escala mensal{% endblock %}
+{% block body %}
+<style>
+  .e-form{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:6px 0 4px}
+  .e-form .f{display:flex;flex-direction:column;gap:4px}
+  .e-form label{font-size:11px;color:var(--muted);font-weight:600}
+  .e-form input,.e-form select{padding:8px 10px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--txt);font-size:14px}
+  .g-btn{padding:9px 16px;border-radius:9px;border:0;background:var(--brand);color:#13270a;font-weight:800;cursor:pointer;font-size:14px}
+  .scrollx{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table.esc{border-collapse:collapse;font-size:12px;margin-top:8px}
+  table.esc th,table.esc td{border:1px solid var(--line);padding:3px;text-align:center}
+  table.esc th.nome,table.esc td.nome{position:sticky;left:0;background:var(--panel);text-align:left;
+    min-width:150px;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;z-index:1}
+  table.esc th{color:var(--muted);font-size:11px;font-weight:700}
+  table.esc th.fds,table.esc td.fds{background:rgba(27,60,134,.18)}
+  table.esc input{width:34px;text-align:center;text-transform:uppercase;padding:5px 2px;border:1px solid var(--line);
+    border-radius:6px;background:var(--panel2);color:var(--txt);font-size:12px}
+  .leg{font-size:12px;color:var(--muted);margin-top:8px}
+  .msg{padding:10px 12px;border-radius:10px;margin-bottom:12px;font-size:13.5px}
+  .msg.ok{background:rgba(46,204,113,.12);color:#7ee2a8;border:1px solid rgba(46,204,113,.3)}
+</style>
+
+<div class="card">
+  <h1>Escala mensal</h1>
+  <p class="muted">Grade por loja e mês, salva no banco. Preencha o código de turno em cada dia.</p>
+</div>
+
+{% if ok %}<div class="msg ok">{{ ok }}</div>{% endif %}
+
+<div class="card">
+  <form method="get" action="{{ url_for('escala') }}" class="e-form">
+    <div class="f"><label>Loja</label>
+      <select name="loja" required>
+        <option value="">—</option>
+        {% for l in lojas %}<option value="{{ l.id }}" {{ 'selected' if sel_loja==l.id|string else '' }}>{{ l.nome }}</option>{% endfor %}
+      </select></div>
+    <div class="f"><label>Mês</label><input type="month" name="competencia" value="{{ sel_comp }}"></div>
+    <button class="g-btn" type="submit">Abrir escala</button>
+    {% if grade_dias %}<a class="g-btn" style="text-decoration:none;background:var(--panel2);color:var(--txt);border:1px solid var(--line)" href="{{ url_for('escala_csv') }}?loja={{ sel_loja }}&competencia={{ sel_comp }}">⬇ CSV</a>{% endif %}
+  </form>
+
+  {% if not sel_loja %}
+    <p class="muted" style="margin-top:10px">Selecione loja e mês para abrir a grade.</p>
+  {% elif not colabs %}
+    <p class="muted" style="margin-top:10px">Esta loja não tem colaboradores ativos. Cadastre em <a href="/gestao#colaboradores">Gestão</a>.</p>
+  {% else %}
+  <h2 style="margin-top:16px">{{ sel_loja_nome }} · {{ mes_nome }}/{{ ano }}</h2>
+  <form method="post" action="{{ url_for('escala_salvar') }}">
+    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+    <input type="hidden" name="loja_id" value="{{ sel_loja }}">
+    <input type="hidden" name="competencia" value="{{ sel_comp }}">
+    <div class="scrollx">
+      <table class="esc">
+        <thead>
+          <tr>
+            <th class="nome">Colaborador</th>
+            {% for d in grade_dias %}<th class="{{ 'fds' if d.fds else '' }}">{{ d.n }}</th>{% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+        {% for c in colabs %}
+          <tr>
+            <td class="nome" title="{{ c.nome }}">{{ c.nome }}</td>
+            {% for d in grade_dias %}
+              <td class="{{ 'fds' if d.fds else '' }}"><input name="c{{ c.id }}_d{{ d.n }}" maxlength="2" value="{{ grade.get(c.id|string, {}).get(d.n|string, '') }}"></td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="leg">{{ legenda }}</p>
+    <div style="margin-top:10px"><button class="g-btn" type="submit">Salvar escala</button></div>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}
+"""
+
+
+# ----------------------------------------------------------------------------
 # Cockpit do dono — agrega os dados que o portal já tem por loja (Fase 3.4)
 # ----------------------------------------------------------------------------
 def _is_mes_atual(s, hoje):
@@ -1408,6 +1522,9 @@ def create_app():
         # Adiantamento migrado para o Postgres (Fase 3.6).
         if tool_id == "adiantamento":
             return redirect("/adiantamentos")
+        # Escala mensal migrada para o Postgres (Fase 3.8).
+        if tool_id == "escala":
+            return redirect("/escala")
         u = current_user()
         meta = catalog.get_tool(tool_id)
         if meta is None or not meta.get("arquivo"):
@@ -2104,6 +2221,100 @@ def create_app():
         return Response(
             buf.getvalue(), mimetype="text/csv; charset=utf-8",
             headers={"Content-Disposition": "attachment; filename=adiantamentos_swn.csv"},
+        )
+
+    # ------------------------------------------------- Escala mensal (Fase 3.8)
+    ESCALA_ROLES = ("admin", "rh", "supervisor", "gerente", "subgerente")
+
+    def _escala_contexto():
+        """Resolve loja/competência/colaboradores/grade a partir da query."""
+        sel_loja = request.args.get("loja")
+        sel_comp = request.args.get("competencia") or _hoje().strftime("%Y-%m")
+        ano, mes = _comp_partes(sel_comp)
+        lojas = query("SELECT id, nome FROM lojas ORDER BY nome")
+        colabs, grade, grade_dias, sel_loja_nome = [], {}, [], ""
+        if sel_loja and ano:
+            hoje = _hoje()
+            todos = query(
+                "SELECT id, nome, admissao, desligamento FROM colaboradores WHERE loja_id = ? ORDER BY nome",
+                (sel_loja,),
+            )
+            colabs = [c for c in todos if _situacao(c, hoje) != "Desligado"]
+            grade_dias = _dias_do_mes(ano, mes)
+            existing = query(
+                "SELECT grade FROM escalas WHERE loja_id = ? AND competencia = ?",
+                (sel_loja, sel_comp), one=True,
+            )
+            if existing:
+                try:
+                    grade = json.loads(existing.get("grade") or "{}")
+                except (ValueError, TypeError):
+                    grade = {}
+            lj = query("SELECT nome FROM lojas WHERE id = ?", (sel_loja,), one=True)
+            sel_loja_nome = lj["nome"] if lj else ""
+        return sel_loja, sel_comp, ano, mes, lojas, colabs, grade, grade_dias, sel_loja_nome
+
+    @app.route("/escala")
+    @require_roles(*ESCALA_ROLES)
+    def escala():
+        sel_loja, sel_comp, ano, mes, lojas, colabs, grade, grade_dias, sel_loja_nome = _escala_contexto()
+        return render_template_string(
+            ESCALA_HTML, user=current_user(), lojas=lojas, colabs=colabs,
+            grade=grade, grade_dias=grade_dias, sel_loja=sel_loja, sel_comp=sel_comp,
+            sel_loja_nome=sel_loja_nome, ano=ano, mes_nome=(MESES_PT[mes] if mes else ""),
+            legenda=ESCALA_LEGENDA, ok=request.args.get("ok"),
+        )
+
+    @app.route("/escala/salvar", methods=["POST"])
+    @require_roles(*ESCALA_ROLES)
+    def escala_salvar():
+        u = current_user()
+        loja_id = request.form.get("loja_id")
+        comp = request.form.get("competencia")
+        ano, mes = _comp_partes(comp)
+        if not loja_id or not ano:
+            return redirect("/escala?ok=Selecione loja e mês")
+        hoje = _hoje()
+        todos = query("SELECT id, admissao, desligamento FROM colaboradores WHERE loja_id = ?", (loja_id,))
+        colabs = [c for c in todos if _situacao(c, hoje) != "Desligado"]
+        dias = _dias_do_mes(ano, mes)
+        grade = {}
+        for c in colabs:
+            linha = {}
+            for d in dias:
+                v = (request.form.get("c%s_d%s" % (c["id"], d["n"])) or "").strip().upper()
+                if v:
+                    linha[str(d["n"])] = v
+            if linha:
+                grade[str(c["id"])] = linha
+        payload = json.dumps(grade, ensure_ascii=False)
+        existing = query(
+            "SELECT id FROM escalas WHERE loja_id = ? AND competencia = ?",
+            (loja_id, comp), one=True,
+        )
+        if existing:
+            execute("UPDATE escalas SET grade = ?, criado_em = ?, criado_por = ? WHERE id = ?",
+                    (payload, _now(), u["id"], existing["id"]))
+        else:
+            execute("INSERT INTO escalas (loja_id, competencia, grade, criado_em, criado_por) "
+                    "VALUES (?, ?, ?, ?, ?)", (loja_id, comp, payload, _now(), u["id"]))
+        audit(u["id"], "escala_salvar", "loja=%s comp=%s" % (loja_id, comp))
+        return redirect("/escala?ok=Escala salva&loja=%s&competencia=%s" % (loja_id, comp))
+
+    @app.route("/escala.csv")
+    @require_roles(*ESCALA_ROLES)
+    def escala_csv():
+        sel_loja, sel_comp, ano, mes, lojas, colabs, grade, grade_dias, sel_loja_nome = _escala_contexto()
+        buf = io.StringIO()
+        buf.write("﻿")
+        w = csv.writer(buf, delimiter=";")
+        w.writerow(["Colaborador"] + [str(d["n"]) for d in grade_dias])
+        for c in colabs:
+            linha = grade.get(str(c["id"]), {})
+            w.writerow([_csv_safe(c["nome"])] + [_csv_safe(linha.get(str(d["n"]), "")) for d in grade_dias])
+        return Response(
+            buf.getvalue(), mimetype="text/csv; charset=utf-8",
+            headers={"Content-Disposition": "attachment; filename=escala_%s_%s.csv" % (sel_loja, sel_comp)},
         )
 
     # ------------------------------------------------- Cockpit do dono (Fase 3.4)
