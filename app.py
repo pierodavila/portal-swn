@@ -16,7 +16,7 @@ import json
 import time
 import secrets
 import logging
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 from flask import (
     Flask, request, session, redirect, url_for, render_template,
@@ -62,6 +62,14 @@ def _hoje():
 def _agora_iso():
     """Timestamp atual (Brasília) em ISO, segundos."""
     return datetime.now(BR_TZ).isoformat(timespec="seconds")
+
+
+def _csv_safe(v):
+    """Neutraliza fórmulas em exports CSV (CSV injection no Excel)."""
+    s = "" if v is None else str(v)
+    if s and s[0] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + s
+    return s
 
 
 # ----------------------------------------------------------------------------
@@ -411,6 +419,7 @@ AVAL_HTML = r"""
     {% endfor %}
     </tbody>
   </table>
+  {% if truncado %}<p class="muted" style="font-size:12.5px;margin-top:8px">Mostrando as 100 mais recentes de {{ total_avals }}. <a href="?todos=1{% if flt_loja %}&loja={{ flt_loja }}{% endif %}">Ver todas</a></p>{% endif %}
 </div>
 
 <div class="card">
@@ -467,6 +476,7 @@ AVAL_VER_HTML = r"""
   table.a{width:100%;border-collapse:collapse;font-size:14px;margin-top:6px}
   table.a th,table.a td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left}
   table.a th{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px}
+  @media(max-width:640px){table{display:block;overflow-x:auto;white-space:nowrap}}
   .big{font-size:34px;font-weight:800;color:var(--brand2)}
   .blk{white-space:pre-wrap;color:var(--txt)}
 </style>
@@ -637,6 +647,7 @@ DISCIPLINA_HTML = r"""
     {% endfor %}
     </tbody>
   </table>
+  {% if truncado %}<p class="muted" style="font-size:12.5px;margin-top:8px">Mostrando os 100 mais recentes de {{ total_advs }}. <a href="?todos=1{% if flt_loja %}&loja={{ flt_loja }}{% endif %}">Ver todos</a></p>{% endif %}
 </div>
 
 <div class="card">
@@ -1083,6 +1094,7 @@ def create_app():
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
         SESSION_COOKIE_SECURE=not debug,  # Secure em producao (fora do debug)
+        PERMANENT_SESSION_LIFETIME=timedelta(hours=12),  # expira após 12h de inatividade
     )
 
     app.teardown_appcontext(close_db)
@@ -1152,6 +1164,7 @@ def create_app():
             )
             if user and user.get("ativo") and check_password_hash(user["senha_hash"], senha):
                 _LOGIN_FAILS.pop(ip, None)  # zera o contador ao acertar
+                session.permanent = True  # aplica o PERMANENT_SESSION_LIFETIME (12h)
                 set_session(user)
                 session["_csrf"] = secrets.token_urlsafe(32)
                 execute(
@@ -1405,8 +1418,9 @@ def create_app():
         w = csv.writer(buf, delimiter=";")
         w.writerow(["Nome", "CPF", "Loja", "Cargo", "Admissão", "Desligamento", "Situação", "Contato"])
         for c in colabs:
-            w.writerow([c.get("nome"), c.get("cpf"), c.get("loja_nome") or "", c.get("cargo"),
-                        c.get("admissao"), c.get("desligamento"), _situacao(c, hoje), c.get("contato")])
+            w.writerow([_csv_safe(x) for x in [
+                c.get("nome"), c.get("cpf"), c.get("loja_nome") or "", c.get("cargo"),
+                c.get("admissao"), c.get("desligamento"), _situacao(c, hoje), c.get("contato")]])
         return Response(
             buf.getvalue(), mimetype="text/csv; charset=utf-8",
             headers={"Content-Disposition": "attachment; filename=colaboradores_swn.csv"},
@@ -1435,6 +1449,10 @@ def create_app():
             avals = [a for a in avals if str(a.get("loja_id")) == flt_loja]
         notas = [a["nota_final"] for a in avals if a.get("nota_final") is not None]
         media_geral = round(sum(notas) / len(notas), 2) if notas else None
+        total_avals = len(avals)
+        truncado = (not request.args.get("todos")) and total_avals > 100
+        if truncado:
+            avals = avals[:100]
         hoje = _hoje()
         colabs = query(
             "SELECT c.id, c.nome, c.admissao, c.desligamento, l.nome AS loja_nome "
@@ -1457,6 +1475,7 @@ def create_app():
             AVAL_HTML, user=current_user(), avals=avals, colabs=colabs, lojas=lojas,
             competencias=AVAL_COMPETENCIAS, tipos=AVAL_TIPOS, media_geral=media_geral,
             flt_loja=flt_loja, edit_av=edit_av, edit_comp=edit_comp,
+            truncado=truncado, total_avals=total_avals,
             ok=request.args.get("ok"), erro=request.args.get("erro"),
         )
 
@@ -1541,9 +1560,10 @@ def create_app():
         w.writerow(["Colaborador", "Loja", "Tipo", "Período", "Meta R$", "Realizado R$",
                     "Nota competências", "Nota resultado", "Nota final", "Conceito"])
         for a in avals:
-            w.writerow([a.get("colab_nome"), a.get("loja_nome") or "", a.get("tipo"), a.get("periodo"),
-                        a.get("kpi_meta"), a.get("kpi_real"), a.get("nota_comp"),
-                        a.get("nota_resultado"), a.get("nota_final"), _conceito(a.get("nota_final"))])
+            w.writerow([_csv_safe(x) for x in [
+                a.get("colab_nome"), a.get("loja_nome") or "", a.get("tipo"), a.get("periodo"),
+                a.get("kpi_meta"), a.get("kpi_real"), a.get("nota_comp"),
+                a.get("nota_resultado"), a.get("nota_final"), _conceito(a.get("nota_final"))]])
         return Response(
             buf.getvalue(), mimetype="text/csv; charset=utf-8",
             headers={"Content-Disposition": "attachment; filename=avaliacoes_swn.csv"},
@@ -1573,6 +1593,10 @@ def create_app():
         flt_loja = request.args.get("loja")
         if flt_loja:
             advs = [a for a in advs if str(a.get("loja_id")) == flt_loja]
+        total_advs = len(advs)
+        truncado = (not request.args.get("todos")) and total_advs > 100
+        if truncado:
+            advs = advs[:100]
         hoje = _hoje()
         colabs = query(
             "SELECT c.id, c.nome, c.admissao, c.desligamento, l.nome AS loja_nome "
@@ -1586,6 +1610,7 @@ def create_app():
             DISCIPLINA_HTML, user=current_user(), advs=advs, colabs=colabs, lojas=lojas,
             tipos=ADV_TIPOS, n_verbais=n_verbais, n_escritas=n_escritas, n_susp=n_susp,
             flt_loja=flt_loja, edit_adv=edit_adv,
+            truncado=truncado, total_advs=total_advs,
             ok=request.args.get("ok"),
         )
 
@@ -1652,9 +1677,10 @@ def create_app():
         w.writerow(["Colaborador", "Loja", "Tipo", "Data do fato", "Hora", "Local",
                     "Descrição", "Regra/dispositivo", "Antecedentes", "Ciência"])
         for a in advs:
-            w.writerow([a.get("colab_nome"), a.get("loja_nome") or "", a.get("tipo_label"),
-                        a.get("data_fato_br"), a.get("hora_fato"), a.get("local"),
-                        a.get("descricao"), a.get("regra"), a.get("antecedentes"), a.get("ciencia")])
+            w.writerow([_csv_safe(x) for x in [
+                a.get("colab_nome"), a.get("loja_nome") or "", a.get("tipo_label"),
+                a.get("data_fato_br"), a.get("hora_fato"), a.get("local"),
+                a.get("descricao"), a.get("regra"), a.get("antecedentes"), a.get("ciencia")]])
         return Response(
             buf.getvalue(), mimetype="text/csv; charset=utf-8",
             headers={"Content-Disposition": "attachment; filename=disciplina_swn.csv"},
@@ -1715,6 +1741,8 @@ def create_app():
                     feitos = set()
                 responsavel = existing.get("responsavel") or ""
                 obs = existing.get("obs") or ""
+            else:
+                responsavel = (current_user() or {}).get("nome") or ""  # pré-preenche com quem está logado
             lj = query("SELECT nome FROM lojas WHERE id = ?", (sel_loja,), one=True)
             sel_loja_nome = lj["nome"] if lj else ""
 
@@ -1774,8 +1802,9 @@ def create_app():
         for r in rows:
             tot = r.get("total") or 0
             pct = round((r.get("feitos") or 0) / tot * 100) if tot else 0
-            w.writerow([r.get("data"), r.get("loja_nome") or "", CHK_TURNO_LABEL.get(r.get("turno"), r.get("turno")),
-                        r.get("feitos"), r.get("total"), "%d%%" % pct, r.get("responsavel"), r.get("obs")])
+            w.writerow([_csv_safe(x) for x in [
+                r.get("data"), r.get("loja_nome") or "", CHK_TURNO_LABEL.get(r.get("turno"), r.get("turno")),
+                r.get("feitos"), r.get("total"), "%d%%" % pct, r.get("responsavel"), r.get("obs")]])
         return Response(
             buf.getvalue(), mimetype="text/csv; charset=utf-8",
             headers={"Content-Disposition": "attachment; filename=checklists_swn.csv"},
@@ -1869,6 +1898,18 @@ def create_app():
         return render_template("base.html", titulo="Não encontrado",
                                conteudo="404 — Página ou ferramenta não encontrada.",
                                user=current_user()), 404
+
+    @app.errorhandler(500)
+    def err_500(e):
+        try:
+            u = current_user()
+        except Exception:
+            u = None
+        return render_template(
+            "base.html", titulo="Erro interno",
+            conteudo="500 — Tivemos um problema ao processar. Tente novamente; "
+                     "se continuar, avise o administrador.",
+            user=u), 500
 
     return app
 

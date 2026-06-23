@@ -230,6 +230,11 @@ def _schema_statements():
         """,
         # Garante 1 checklist por loja+data+turno (evita duplicata em clique-duplo).
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_chk_unico ON checklists (loja_id, data, turno)",
+        # Índices de performance nas colunas de junção (importam com volume).
+        "CREATE INDEX IF NOT EXISTS idx_colab_loja ON colaboradores (loja_id)",
+        "CREATE INDEX IF NOT EXISTS idx_aval_colab ON avaliacoes (colaborador_id)",
+        "CREATE INDEX IF NOT EXISTS idx_adv_colab ON advertencias (colaborador_id)",
+        "CREATE INDEX IF NOT EXISTS idx_chk_data ON checklists (data)",
     ]
 
 
