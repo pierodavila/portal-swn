@@ -1015,9 +1015,28 @@ CHK_ITENS = {
         "Conferir que não há ninguém na loja",
         "Trancar portas, armar o alarme e conferir câmeras",
     ],
+    "semanal": [
+        "Montar e publicar a escala da semana seguinte (cobertura nos horários de pico)",
+        "Reunião de desempenho: metas da semana e feedback da equipe",
+        "Checagem de estoque: levantar reposições e rupturas",
+        "Manutenção preventiva: corrigir pequenos problemas antes de virarem urgência",
+        "Inventário cíclico dos itens de maior giro (curva A)",
+        "Conferir etiquetas antifurto e divergências de caixa da semana",
+    ],
+    "mensal": [
+        "Revisar metas e indicadores: faturamento, ticket médio, conversão, PA e rotação de estoque",
+        "Treinamento e desenvolvimento da equipe (produto, tendências, técnicas de venda)",
+        "Inventário do mês (quando aplicável) e conferência de divergências",
+        "Avaliação individual de cada colaborador + plano de desenvolvimento",
+        "Revisar escala, folgas e férias",
+        "Fechamento financeiro com a administração",
+    ],
 }
-CHK_TURNOS = [("abertura", "🔓 Abertura"), ("fechamento", "🌙 Fechamento")]
+CHK_TURNOS = [("abertura", "🔓 Abertura"), ("fechamento", "🌙 Fechamento"),
+              ("semanal", "📅 Semanal"), ("mensal", "📈 Mensal")]
 CHK_TURNO_LABEL = {k: v for k, v in CHK_TURNOS}
+# Só abertura/fechamento entram no "status de hoje" e no cockpit (são diários).
+CHK_TURNOS_DIARIOS = ("abertura", "fechamento")
 
 
 CHECKLIST_HTML = r"""
