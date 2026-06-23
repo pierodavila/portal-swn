@@ -119,11 +119,11 @@ TOOLS = [
     },
     {
         "id": "adiantamento",
-        "nome": "Modelo de Adiantamento",
+        "nome": "Adiantamento (vale)",
         "icone": "💵",
         "arquivo": "RH_DISCIPLINA_JORNADA_SWN.html",
-        "descricao": "Política + recibo de adiantamento.",
-        "papeis": ["admin", "rh"],
+        "descricao": "Vale/adiantamento (art. 462 CLT) — salvo no banco, com recibo.",
+        "papeis": ["admin", "rh", "financeiro"],
     },
     {
         "id": "kit_admissao",

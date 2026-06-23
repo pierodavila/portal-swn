@@ -732,6 +732,176 @@ Recusa de assinatura registrada com 2 testemunhas:
 
 
 # ----------------------------------------------------------------------------
+# Adiantamento (vale) — recibo com art. 462 da CLT e templates (Fase 3.6)
+# ----------------------------------------------------------------------------
+ADI_TIPOS = [("padrao", "Adiantamento padrão"), ("extra", "Vale extraordinário")]
+ADI_TIPO_LABEL = {k: v for k, v in ADI_TIPOS}
+
+
+def _valor_float(s):
+    """Converte valor digitado (formato BR: 1.234,56) para float; 0 se inválido."""
+    if s in (None, ""):
+        return 0.0
+    try:
+        return float(str(s).replace(".", "").replace(",", "."))
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _recibo_adiantamento(adi, colab_nome):
+    nome = colab_nome or "____________________"
+    valor = adi.get("valor") or "______"
+    comp = adi.get("competencia") or "____________"
+    return ("Eu, %s, declaro ter recebido a título de adiantamento salarial o valor de "
+            "R$ %s, e AUTORIZO o desconto integral desse valor na minha folha de pagamento "
+            "referente ao mês de competência %s, nos termos do art. 462 da CLT." % (nome, valor, comp))
+
+
+ADIANTAMENTO_HTML = r"""
+{% extends "base.html" %}
+{% block title %}Adiantamentos{% endblock %}
+{% block body %}
+<style>
+  .v-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+  .v-kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .v-kpi b{display:block;font-size:24px;color:var(--brand2);line-height:1.1}
+  .v-kpi span{font-size:12px;color:var(--muted)}
+  table.v{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  @media(max-width:640px){table{display:block;overflow-x:auto;white-space:nowrap}}
+  table.v th,table.v td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left}
+  table.v th{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px}
+  .v-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:12px}
+  .v-form .f{display:flex;flex-direction:column;gap:4px}
+  .v-form label{font-size:11px;color:var(--muted);font-weight:600}
+  .v-form input,.v-form select,.v-form textarea{padding:8px 10px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--txt);font-size:14px;font-family:inherit}
+  .full{grid-column:1/-1}
+  .g-btn{padding:9px 16px;border-radius:9px;border:0;background:var(--brand);color:#13270a;font-weight:800;cursor:pointer;font-size:14px}
+  .g-del{color:#f29a90;background:none;border:0;cursor:pointer;font-size:12.5px;padding:0}
+  .msg{padding:10px 12px;border-radius:10px;margin-bottom:12px;font-size:13.5px}
+  .msg.ok{background:rgba(46,204,113,.12);color:#7ee2a8;border:1px solid rgba(46,204,113,.3)}
+  .aviso{background:linear-gradient(135deg,rgba(180,210,51,.08),rgba(27,60,134,.10));
+    border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--muted);font-size:13px;margin-bottom:18px}
+</style>
+
+<div class="card">
+  <h1>Adiantamentos (vale)</h1>
+  <p class="muted">Registro de adiantamento salarial salvo no banco, com recibo (art. 462 CLT) pronto para impressão.
+    <a href="{{ url_for('adiantamentos_csv') }}">⬇ Exportar CSV</a></p>
+</div>
+
+<div class="aviso">⚠️ O "vale" é <b>antecipação de salário</b>, descontada integral no fechamento do mês (art. 462 CLT) — não é benefício novo. Percentual usual ~40% do bruto; <b>confira a CCT</b> da base de cada loja (quando há piso/data, prevalece). A autorização assinada é obrigatória.</div>
+
+{% if ok %}<div class="msg ok">{{ ok }}</div>{% endif %}
+
+<div class="v-kpis">
+  <div class="v-kpi"><b>{{ total_reg }}</b><span>registros</span></div>
+  <div class="v-kpi"><b>R$ {{ '%.2f'|format(soma_total) }}</b><span>total geral</span></div>
+  <div class="v-kpi"><b>R$ {{ '%.2f'|format(soma_mes) }}</b><span>no mês atual (por data)</span></div>
+</div>
+
+<div class="card">
+  <h2>Histórico</h2>
+  <form method="get" action="{{ url_for('adiantamentos') }}" class="v-form" style="margin:0 0 8px">
+    <div class="f"><label>Filtrar por loja</label>
+      <select name="loja" onchange="this.form.submit()">
+        <option value="">Todas as lojas</option>
+        {% for l in lojas %}<option value="{{ l.id }}" {{ 'selected' if flt_loja==l.id|string else '' }}>{{ l.nome }}</option>{% endfor %}
+      </select></div>
+  </form>
+  <table class="v">
+    <thead><tr><th>Colaborador</th><th>Valor</th><th>Competência</th><th>Data</th><th>Tipo</th><th>Ações</th></tr></thead>
+    <tbody>
+    {% for a in adis %}
+      <tr>
+        <td><b>{{ a.colab_nome or '—' }}</b><br><span class="muted" style="font-size:12px">{{ a.loja_nome or '' }}</span></td>
+        <td>R$ {{ a.valor or '—' }}</td>
+        <td>{{ a.competencia or '—' }}</td>
+        <td>{{ a.data_br }}</td>
+        <td>{{ a.tipo_label }}</td>
+        <td style="white-space:nowrap">
+          <a href="{{ url_for('adiantamento_ver', aid=a.id) }}">recibo</a> ·
+          <a href="?edit={{ a.id }}#nova">editar</a> ·
+          <form method="post" style="display:inline" action="{{ url_for('adiantamento_del', aid=a.id) }}" onsubmit="return confirm('Excluir este adiantamento?')"><input type="hidden" name="_csrf" value="{{ csrf_token }}"><button class="g-del">excluir</button></form>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="muted">Nenhum adiantamento{% if flt_loja %} para esta loja{% endif %}.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% if truncado %}<p class="muted" style="font-size:12.5px;margin-top:8px">Mostrando os 100 mais recentes de {{ total_reg }}. <a href="?todos=1{% if flt_loja %}&loja={{ flt_loja }}{% endif %}">Ver todos</a></p>{% endif %}
+</div>
+
+<div class="card">
+  <h2 id="nova">{{ '✏️ Editar adiantamento' if edit_adi else '➕ Novo adiantamento' }}</h2>
+  {% if colabs %}
+  <form method="post" action="{{ url_for('adiantamento_nova') }}">
+    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+    {% if edit_adi %}<input type="hidden" name="id" value="{{ edit_adi.id }}">{% endif %}
+    <div class="v-form">
+      <div class="f"><label>Colaborador *</label>
+        <select name="colaborador_id" required>
+          <option value="">—</option>
+          {% for c in colabs %}<option value="{{ c.id }}" {{ 'selected' if edit_adi and edit_adi.colaborador_id==c.id else '' }}>{{ c.nome }}{% if c.loja_nome %} · {{ c.loja_nome }}{% endif %}</option>{% endfor %}
+        </select></div>
+      <div class="f"><label>Valor R$ *</label><input name="valor" value="{{ edit_adi.valor if edit_adi else '' }}" inputmode="decimal" placeholder="ex: 1234,56" required></div>
+      <div class="f"><label>Competência *</label><input name="competencia" value="{{ edit_adi.competencia if edit_adi else '' }}" placeholder="ex: jun/2026" required></div>
+      <div class="f"><label>Data do pagamento</label><input type="date" name="data" value="{{ edit_adi.data if edit_adi else '' }}"></div>
+      <div class="f"><label>Tipo</label>
+        <select name="tipo">{% for k, lbl in tipos %}<option value="{{ k }}" {{ 'selected' if edit_adi and edit_adi.tipo==k else '' }}>{{ lbl }}</option>{% endfor %}</select></div>
+    </div>
+    <div class="v-form" style="margin-top:12px">
+      <div class="f full"><label>Observação</label><input name="observacao" value="{{ edit_adi.observacao if edit_adi else '' }}" placeholder="ex: vale emergencial aprovado por ..."></div>
+    </div>
+    <div style="margin-top:12px"><button class="g-btn" type="submit">{{ 'Salvar alterações' if edit_adi else 'Registrar' }}</button>
+      {% if edit_adi %}<a class="g-del" style="text-decoration:none;margin-left:10px" href="{{ url_for('adiantamentos') }}">cancelar</a>{% endif %}</div>
+  </form>
+  {% else %}
+    <p class="muted">Cadastre colaboradores em <a href="/gestao#colaboradores">Gestão</a> antes de lançar adiantamento.</p>
+  {% endif %}
+</div>
+{% endblock %}
+"""
+
+
+ADIANTAMENTO_VER_HTML = r"""
+{% extends "base.html" %}
+{% block title %}Recibo — {{ a.colab_nome }}{% endblock %}
+{% block body %}
+<style>
+  .termo{background:#fff;color:#111;border-radius:12px;padding:26px 30px;white-space:pre-wrap;
+    font-size:14.5px;line-height:1.6;font-family:Georgia,'Times New Roman',serif}
+  .sign{display:flex;gap:40px;margin-top:40px;flex-wrap:wrap;color:#111}
+  .sign .line{border-top:1px solid #444;padding-top:6px;font-size:12.5px;min-width:240px}
+  @media print{.no-print{display:none!important}.termo{box-shadow:none}}
+  .g-btn{padding:9px 16px;border-radius:9px;border:0;background:var(--brand);color:#13270a;font-weight:800;cursor:pointer;font-size:14px}
+</style>
+<div class="card no-print">
+  <p><a href="{{ url_for('adiantamentos') }}">← Voltar</a></p>
+  <h1>Recibo de adiantamento — {{ a.colab_nome or '—' }}</h1>
+  <p class="muted">{{ a.loja_nome or '' }} · R$ {{ a.valor }} · competência {{ a.competencia }}</p>
+  <button class="g-btn" onclick="window.print()">🖨️ Imprimir recibo</button>
+</div>
+
+<div class="termo">RECIBO DE ADIANTAMENTO SALARIAL
+
+{{ termo }}{% if a.observacao %}
+
+Obs.: {{ a.observacao }}{% endif %}
+
+Local e data: ____________________, {{ a.data_br }}
+
+<div class="sign">
+  <div class="line">{{ a.colab_nome }} — autorizo o desconto</div>
+  <div class="line">Responsável pelo pagamento (RH/DP)</div>
+</div></div>
+<p class="muted no-print" style="font-size:12.5px;margin-top:12px">Emitir em duas vias (empresa e colaborador) ou via eletrônica com aceite registrado. A rubrica "Adiantamento" deve constar no holerite.</p>
+{% endblock %}
+"""
+
+
+# ----------------------------------------------------------------------------
 # Cockpit do dono — agrega os dados que o portal já tem por loja (Fase 3.4)
 # ----------------------------------------------------------------------------
 def _is_mes_atual(s, hoje):
@@ -1216,6 +1386,9 @@ def create_app():
         # Advertências migradas para o Postgres (Fase 3.3).
         if tool_id == "advertencia":
             return redirect("/disciplina")
+        # Adiantamento migrado para o Postgres (Fase 3.6).
+        if tool_id == "adiantamento":
+            return redirect("/adiantamentos")
         u = current_user()
         meta = catalog.get_tool(tool_id)
         if meta is None or not meta.get("arquivo"):
@@ -1808,6 +1981,110 @@ def create_app():
         return Response(
             buf.getvalue(), mimetype="text/csv; charset=utf-8",
             headers={"Content-Disposition": "attachment; filename=checklists_swn.csv"},
+        )
+
+    # ------------------------------------------------- Adiantamento (Fase 3.6)
+    def _adis_join(where="", params=()):
+        rows = query(
+            "SELECT a.*, c.nome AS colab_nome, c.loja_id AS loja_id, l.nome AS loja_nome "
+            "FROM adiantamentos a "
+            "LEFT JOIN colaboradores c ON c.id = a.colaborador_id "
+            "LEFT JOIN lojas l ON l.id = c.loja_id "
+            + where + " ORDER BY a.id DESC", params,
+        )
+        for a in rows:
+            a["data_br"] = _fmt_data_br(a.get("data"))
+            a["tipo_label"] = ADI_TIPO_LABEL.get(a.get("tipo"), a.get("tipo") or "—")
+        return rows
+
+    @app.route("/adiantamentos")
+    @require_roles("admin", "rh", "financeiro")
+    def adiantamentos():
+        adis = _adis_join()
+        hoje = _hoje()
+        soma_total = sum(_valor_float(a.get("valor")) for a in adis)
+        soma_mes = sum(_valor_float(a.get("valor")) for a in adis if _is_mes_atual(a.get("data"), hoje))
+        flt_loja = request.args.get("loja")
+        if flt_loja:
+            adis = [a for a in adis if str(a.get("loja_id")) == flt_loja]
+        total_reg = len(adis)
+        truncado = (not request.args.get("todos")) and total_reg > 100
+        if truncado:
+            adis = adis[:100]
+        colabs = query(
+            "SELECT c.id, c.nome, c.admissao, c.desligamento, l.nome AS loja_nome "
+            "FROM colaboradores c LEFT JOIN lojas l ON l.id = c.loja_id ORDER BY c.nome"
+        )
+        colabs = [c for c in colabs if _situacao(c, hoje) != "Desligado"]
+        lojas = query("SELECT id, nome FROM lojas ORDER BY nome")
+        ev = request.args.get("edit")
+        edit_adi = query("SELECT * FROM adiantamentos WHERE id = ?", (ev,), one=True) if ev else None
+        return render_template_string(
+            ADIANTAMENTO_HTML, user=current_user(), adis=adis, colabs=colabs, lojas=lojas,
+            tipos=ADI_TIPOS, total_reg=total_reg, soma_total=soma_total, soma_mes=soma_mes,
+            flt_loja=flt_loja, edit_adi=edit_adi, truncado=truncado,
+            ok=request.args.get("ok"),
+        )
+
+    @app.route("/adiantamentos/nova", methods=["POST"])
+    @require_roles("admin", "rh", "financeiro")
+    def adiantamento_nova():
+        u = current_user()
+        aid = request.form.get("id")
+        cid = request.form.get("colaborador_id")
+        if not cid or not (request.form.get("valor") or "").strip():
+            return redirect("/adiantamentos?ok=Informe colaborador e valor#nova")
+        campos = (cid, request.form.get("valor") or "", request.form.get("competencia") or "",
+                  request.form.get("data") or "", request.form.get("tipo") or "padrao",
+                  request.form.get("observacao") or "")
+        if aid:
+            execute(
+                "UPDATE adiantamentos SET colaborador_id=?, valor=?, competencia=?, data=?, tipo=?, observacao=? WHERE id=?",
+                campos + (aid,),
+            )
+            audit(u["id"], "adiantamento_edit", aid)
+            return redirect("/adiantamentos?ok=Adiantamento atualizado")
+        execute(
+            "INSERT INTO adiantamentos (colaborador_id, valor, competencia, data, tipo, observacao, criado_em, criado_por) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            campos + (_now(), u["id"]),
+        )
+        audit(u["id"], "adiantamento_nova", str(cid))
+        return redirect("/adiantamentos?ok=Adiantamento registrado")
+
+    @app.route("/adiantamentos/<int:aid>/delete", methods=["POST"])
+    @require_roles("admin", "rh", "financeiro")
+    def adiantamento_del(aid):
+        u = current_user()
+        execute("DELETE FROM adiantamentos WHERE id = ?", (aid,))
+        audit(u["id"], "adiantamento_del", str(aid))
+        return redirect("/adiantamentos?ok=Adiantamento excluído")
+
+    @app.route("/adiantamentos/<int:aid>")
+    @require_roles("admin", "rh", "financeiro")
+    def adiantamento_ver(aid):
+        rows = _adis_join("WHERE a.id = ?", (aid,))
+        if not rows:
+            abort(404)
+        a = rows[0]
+        termo = _recibo_adiantamento(a, a.get("colab_nome"))
+        return render_template_string(ADIANTAMENTO_VER_HTML, user=current_user(), a=a, termo=termo)
+
+    @app.route("/adiantamentos.csv")
+    @require_roles("admin", "rh", "financeiro")
+    def adiantamentos_csv():
+        adis = _adis_join()
+        buf = io.StringIO()
+        buf.write("﻿")
+        w = csv.writer(buf, delimiter=";")
+        w.writerow(["Colaborador", "Loja", "Valor", "Competência", "Data", "Tipo", "Observação"])
+        for a in adis:
+            w.writerow([_csv_safe(x) for x in [
+                a.get("colab_nome"), a.get("loja_nome") or "", a.get("valor"), a.get("competencia"),
+                a.get("data_br"), a.get("tipo_label"), a.get("observacao")]])
+        return Response(
+            buf.getvalue(), mimetype="text/csv; charset=utf-8",
+            headers={"Content-Disposition": "attachment; filename=adiantamentos_swn.csv"},
         )
 
     # ------------------------------------------------- Cockpit do dono (Fase 3.4)
