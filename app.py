@@ -910,10 +910,13 @@ ESCALA_LEGENDA = "M = manhã · T = tarde · I = integral · F = folga · FE = f
 
 
 def _comp_partes(comp):
-    """'YYYY-MM' -> (ano, mes) ou (None, None)."""
+    """'YYYY-MM' -> (ano, mes) ou (None, None). Valida mês 1–12."""
     try:
         ano, mes = str(comp).split("-")[:2]
-        return int(ano), int(mes)
+        ano, mes = int(ano), int(mes)
+        if 1 <= mes <= 12 and 2000 <= ano <= 2100:
+            return ano, mes
+        return None, None
     except (ValueError, AttributeError):
         return None, None
 
@@ -982,6 +985,7 @@ ESCALA_HTML = r"""
     <p class="muted" style="margin-top:10px">Esta loja não tem colaboradores ativos. Cadastre em <a href="/gestao#colaboradores">Gestão</a>.</p>
   {% else %}
   <h2 style="margin-top:16px">{{ sel_loja_nome }} · {{ mes_nome }}/{{ ano }}</h2>
+  {% if not tem_escala %}<p class="muted" style="font-size:12.5px;margin:0 0 6px">Sem escala salva para este mês. <a href="?loja={{ sel_loja }}&competencia={{ sel_comp }}&copiar=1">Copiar do mês anterior</a> e ajustar.</p>{% endif %}
   <form method="post" action="{{ url_for('escala_salvar') }}">
     <input type="hidden" name="_csrf" value="{{ csrf_token }}">
     <input type="hidden" name="loja_id" value="{{ sel_loja }}">
@@ -1058,6 +1062,7 @@ COCKPIT_HTML = r"""
   <div class="k"><b>{{ rede.exper }}</b><span>em experiência</span></div>
   <div class="k"><b>{{ rede.adv_mes }}</b><span>advertências no mês</span></div>
   <div class="k"><b>{{ rede.nota_media or '—' }}</b><span>nota média (avaliações)</span></div>
+  <div class="k"><b>R$ {{ '%.0f'|format(rede.adi_mes) }}</b><span>adiantamentos no mês</span></div>
 </div>
 
 <div class="loja-grid">
@@ -1074,6 +1079,7 @@ COCKPIT_HTML = r"""
       <div><b>{{ L.nota_media or '—' }}</b><span>Nota média</span></div>
       <div><b>{{ L.chk_ab }}</b><span>Abertura hoje</span></div>
       <div><b>{{ L.chk_fe }}</b><span>Fechamento hoje</span></div>
+      <div><b>R$ {{ '%.0f'|format(L.adi_mes) }}</b><span>Vales no mês</span></div>
     </div>
     {% for a in L.alertas %}<div class="alert warn">⚠️ {{ a }}</div>{% endfor %}
     {% if not L.alertas %}<div class="alert ok">✓ Sem alertas no momento</div>{% endif %}
@@ -1710,9 +1716,20 @@ def create_app():
         # Remove também os registros dependentes para não deixar órfãos.
         execute("DELETE FROM avaliacoes WHERE colaborador_id = ?", (cid,))
         execute("DELETE FROM advertencias WHERE colaborador_id = ?", (cid,))
+        execute("DELETE FROM adiantamentos WHERE colaborador_id = ?", (cid,))
+        # Remove o colaborador das grades de escala (guardadas como JSON).
+        for e in query("SELECT id, grade FROM escalas"):
+            try:
+                g = json.loads(e.get("grade") or "{}")
+            except (ValueError, TypeError):
+                g = {}
+            if str(cid) in g:
+                del g[str(cid)]
+                execute("UPDATE escalas SET grade = ? WHERE id = ?",
+                        (json.dumps(g, ensure_ascii=False), e["id"]))
         execute("DELETE FROM colaboradores WHERE id = ?", (cid,))
-        audit(u["id"], "gestao_colab_del", "colaborador=%s (avaliações e advertências removidas)" % cid)
-        return redirect("/gestao?ok=Colaborador removido (avaliações e advertências também)#colaboradores")
+        audit(u["id"], "gestao_colab_del", "colaborador=%s (dependentes removidos)" % cid)
+        return redirect("/gestao?ok=Colaborador removido (avaliações, advertências, vales e escala também)#colaboradores")
 
     @app.route("/gestao/colaboradores.csv")
     @require_roles("admin", "rh", "supervisor")
@@ -2011,6 +2028,17 @@ def create_app():
             m.setdefault(r["loja_id"], {})[r["turno"]] = (r.get("feitos") or 0, r.get("total") or 0)
         return m
 
+    def _chk_data_norm(turno, data_iso):
+        """Normaliza a data: semanal -> segunda da semana; mensal -> dia 1 (dedupe)."""
+        d = _parse_date(data_iso)
+        if not d:
+            return data_iso
+        if turno == "semanal":
+            d = d - timedelta(days=d.weekday())
+        elif turno == "mensal":
+            d = d.replace(day=1)
+        return d.isoformat()
+
     @app.route("/checklist")
     @require_roles("admin", "rh", "supervisor", "gerente", "subgerente", "estoquista")
     def checklist():
@@ -2041,7 +2069,7 @@ def create_app():
             itens = CHK_ITENS[sel_turno]
             existing = query(
                 "SELECT * FROM checklists WHERE loja_id = ? AND data = ? AND turno = ? ORDER BY id DESC",
-                (sel_loja, sel_data, sel_turno), one=True,
+                (sel_loja, _chk_data_norm(sel_turno, sel_data), sel_turno), one=True,
             )
             if existing:
                 try:
@@ -2073,6 +2101,7 @@ def create_app():
         dia = request.form.get("data") or _hoje().isoformat()
         if not loja_id or turno not in CHK_ITENS:
             return redirect("/checklist?ok=Selecione loja e turno")
+        dia = _chk_data_norm(turno, dia)  # semanal/mensal dedupe por semana/mês
         itens = CHK_ITENS[turno]
         feitos = [i for i in range(len(itens)) if request.form.get("it_%d" % i)]
         payload = json.dumps(feitos)
@@ -2170,6 +2199,8 @@ def create_app():
         cid = request.form.get("colaborador_id")
         if not cid or not (request.form.get("valor") or "").strip():
             return redirect("/adiantamentos?ok=Informe colaborador e valor#nova")
+        if _valor_float(request.form.get("valor")) <= 0:
+            return redirect("/adiantamentos?ok=Valor inválido — use número (ex: 1234,56)#nova")
         campos = (cid, request.form.get("valor") or "", request.form.get("competencia") or "",
                   request.form.get("data") or "", request.form.get("tipo") or "padrao",
                   request.form.get("observacao") or "")
@@ -2232,7 +2263,7 @@ def create_app():
         sel_comp = request.args.get("competencia") or _hoje().strftime("%Y-%m")
         ano, mes = _comp_partes(sel_comp)
         lojas = query("SELECT id, nome FROM lojas ORDER BY nome")
-        colabs, grade, grade_dias, sel_loja_nome = [], {}, [], ""
+        colabs, grade, grade_dias, sel_loja_nome, tem_escala = [], {}, [], "", False
         if sel_loja and ano:
             hoje = _hoje()
             todos = query(
@@ -2250,19 +2281,36 @@ def create_app():
                     grade = json.loads(existing.get("grade") or "{}")
                 except (ValueError, TypeError):
                     grade = {}
+            elif request.args.get("copiar"):
+                # Pré-preenche com a escala do mês anterior (não salva até o usuário confirmar).
+                pmes = mes - 1 if mes > 1 else 12
+                pano = ano if mes > 1 else ano - 1
+                prev = query(
+                    "SELECT grade FROM escalas WHERE loja_id = ? AND competencia = ?",
+                    (sel_loja, "%04d-%02d" % (pano, pmes)), one=True,
+                )
+                if prev:
+                    try:
+                        grade = json.loads(prev.get("grade") or "{}")
+                    except (ValueError, TypeError):
+                        grade = {}
+            tem_escala = bool(existing)
             lj = query("SELECT nome FROM lojas WHERE id = ?", (sel_loja,), one=True)
             sel_loja_nome = lj["nome"] if lj else ""
-        return sel_loja, sel_comp, ano, mes, lojas, colabs, grade, grade_dias, sel_loja_nome
+        else:
+            tem_escala = False
+        return sel_loja, sel_comp, ano, mes, lojas, colabs, grade, grade_dias, sel_loja_nome, tem_escala
 
     @app.route("/escala")
     @require_roles(*ESCALA_ROLES)
     def escala():
-        sel_loja, sel_comp, ano, mes, lojas, colabs, grade, grade_dias, sel_loja_nome = _escala_contexto()
+        (sel_loja, sel_comp, ano, mes, lojas, colabs, grade, grade_dias,
+         sel_loja_nome, tem_escala) = _escala_contexto()
         return render_template_string(
             ESCALA_HTML, user=current_user(), lojas=lojas, colabs=colabs,
             grade=grade, grade_dias=grade_dias, sel_loja=sel_loja, sel_comp=sel_comp,
             sel_loja_nome=sel_loja_nome, ano=ano, mes_nome=(MESES_PT[mes] if mes else ""),
-            legenda=ESCALA_LEGENDA, ok=request.args.get("ok"),
+            legenda=ESCALA_LEGENDA, tem_escala=tem_escala, ok=request.args.get("ok"),
         )
 
     @app.route("/escala/salvar", methods=["POST"])
@@ -2304,7 +2352,8 @@ def create_app():
     @app.route("/escala.csv")
     @require_roles(*ESCALA_ROLES)
     def escala_csv():
-        sel_loja, sel_comp, ano, mes, lojas, colabs, grade, grade_dias, sel_loja_nome = _escala_contexto()
+        (sel_loja, sel_comp, ano, mes, lojas, colabs, grade, grade_dias,
+         sel_loja_nome, tem_escala) = _escala_contexto()
         buf = io.StringIO()
         buf.write("﻿")
         w = csv.writer(buf, delimiter=";")
@@ -2330,6 +2379,10 @@ def create_app():
         )
         advs = query(
             "SELECT a.data_fato, c.loja_id FROM advertencias a "
+            "LEFT JOIN colaboradores c ON c.id = a.colaborador_id"
+        )
+        adis = query(
+            "SELECT a.valor, a.data, c.loja_id FROM adiantamentos a "
             "LEFT JOIN colaboradores c ON c.id = a.colaborador_id"
         )
         chk_map = _chk_hoje_por_loja(lojas_raw, hoje.isoformat())
@@ -2359,6 +2412,8 @@ def create_app():
                 alertas.append("%s advertências neste mês" % adv_mes)
             if nota_media is not None and nota_media < 3:
                 alertas.append("Nota média de avaliação baixa (%s)" % nota_media)
+            adi_mes = sum(_valor_float(a.get("valor")) for a in adis
+                          if a.get("loja_id") == lid and _is_mes_atual(a.get("data"), hoje))
             chk = chk_map.get(lid, {})
             ab = chk.get("abertura")
             fe = chk.get("fechamento")
@@ -2370,7 +2425,7 @@ def create_app():
                 "nome": L["nome"], "cidade_uf": L.get("cidade_uf"),
                 "headcount": headcount, "pct_exper": pct_exper, "turnover": turnover,
                 "adv_mes": adv_mes, "adv_total": adv_total, "nota_media": nota_media,
-                "chk_ab": ab_txt, "chk_fe": fe_txt,
+                "chk_ab": ab_txt, "chk_fe": fe_txt, "adi_mes": round(adi_mes, 2),
                 "alertas": alertas,
             })
 
@@ -2381,6 +2436,7 @@ def create_app():
             "exper": sum(1 for c in colabs if c["situacao"] == "Experiência"),
             "adv_mes": sum(1 for a in advs if _is_mes_atual(a.get("data_fato"), hoje)),
             "nota_media": round(sum(todas_notas) / len(todas_notas), 2) if todas_notas else None,
+            "adi_mes": round(sum(_valor_float(a.get("valor")) for a in adis if _is_mes_atual(a.get("data"), hoje)), 2),
         }
         return render_template_string(COCKPIT_HTML, user=current_user(), lojas=lojas, rede=rede)
 
