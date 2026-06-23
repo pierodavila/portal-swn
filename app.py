@@ -36,6 +36,25 @@ log = logging.getLogger("portal_swn")
 PAPEIS_VALIDOS = catalog.ROLE_IDS  # 9 grupos definidos em catalog.ROLES
 TOOLS_DIR = os.path.join(os.path.dirname(__file__), "tools")
 
+# Fuso de Brasília — o Render roda em UTC; sem isto a "data de hoje" virava
+# 3h cedo demais (das 21h às 24h BRT o servidor já achava que era amanhã).
+try:
+    from zoneinfo import ZoneInfo
+    BR_TZ = ZoneInfo("America/Sao_Paulo")
+except Exception:  # fallback se a base de fusos não estiver instalada
+    from datetime import timezone, timedelta
+    BR_TZ = timezone(timedelta(hours=-3))
+
+
+def _hoje():
+    """Data de hoje no fuso de Brasília."""
+    return datetime.now(BR_TZ).date()
+
+
+def _agora_iso():
+    """Timestamp atual (Brasília) em ISO, segundos."""
+    return datetime.now(BR_TZ).isoformat(timespec="seconds")
+
 
 # ----------------------------------------------------------------------------
 # Gestão de pessoas — helpers (cálculo de situação e indicadores a partir do DB)
@@ -67,7 +86,7 @@ def _situacao(c, hoje):
 
 
 def _indicadores(colabs):
-    hoje = date.today()
+    hoje = _hoje()
     ym = (hoje.year, hoje.month)
     ativos, exper = [], 0
     adm_mes = desl_mes = 0
@@ -692,8 +711,8 @@ COCKPIT_HTML = r"""
 
 <div class="card">
   <h1>Cockpit do Dono</h1>
-  <p class="muted">Visão por loja com os dados que o portal já controla: gente, avaliações e disciplina.
-    Caixa e checklist diário ainda não entram aqui (caixa é app separado; checklist ainda é local no navegador).</p>
+  <p class="muted">Visão por loja com os dados que o portal já controla: gente, avaliações, disciplina e checklist diário.
+    O caixa não entra aqui (é app separado).</p>
 </div>
 
 <div class="c-top">
@@ -895,7 +914,7 @@ def create_app():
 
     # --------------------------------------------------------------- helpers
     def _now():
-        return datetime.utcnow().isoformat(timespec="seconds")
+        return _agora_iso()
 
     def _client_ip():
         fwd = request.headers.get("X-Forwarded-For", "")
@@ -1068,7 +1087,7 @@ def create_app():
             "SELECT c.*, l.nome AS loja_nome FROM colaboradores c "
             "LEFT JOIN lojas l ON l.id = c.loja_id ORDER BY c.nome"
         )
-        hoje = date.today()
+        hoje = _hoje()
         for c in colabs:
             c["situacao"] = _situacao(c, hoje)
         rollup = {}
@@ -1108,9 +1127,12 @@ def create_app():
     @require_roles("admin", "rh")
     def gestao_loja_del(lid):
         u = current_user()
+        # Não deixar colaboradores apontando para uma loja que deixou de existir.
+        n = query("SELECT COUNT(*) AS n FROM colaboradores WHERE loja_id = ?", (lid,), one=True)
+        execute("UPDATE colaboradores SET loja_id = NULL WHERE loja_id = ?", (lid,))
         execute("DELETE FROM lojas WHERE id = ?", (lid,))
-        audit(u["id"], "gestao_loja_del", str(lid))
-        return redirect("/gestao?ok=Loja removida#lojas")
+        audit(u["id"], "gestao_loja_del", "loja=%s; colaboradores desvinculados=%s" % (lid, (n or {}).get("n", 0)))
+        return redirect("/gestao?ok=Loja removida (colaboradores desvinculados)#lojas")
 
     @app.route("/gestao/colaborador", methods=["POST"])
     @require_roles("admin", "rh")
@@ -1144,9 +1166,12 @@ def create_app():
     @require_roles("admin", "rh")
     def gestao_colab_del(cid):
         u = current_user()
+        # Remove também os registros dependentes para não deixar órfãos.
+        execute("DELETE FROM avaliacoes WHERE colaborador_id = ?", (cid,))
+        execute("DELETE FROM advertencias WHERE colaborador_id = ?", (cid,))
         execute("DELETE FROM colaboradores WHERE id = ?", (cid,))
-        audit(u["id"], "gestao_colab_del", str(cid))
-        return redirect("/gestao?ok=Colaborador removido#colaboradores")
+        audit(u["id"], "gestao_colab_del", "colaborador=%s (avaliações e advertências removidas)" % cid)
+        return redirect("/gestao?ok=Colaborador removido (avaliações e advertências também)#colaboradores")
 
     @app.route("/gestao/colaboradores.csv")
     @require_roles("admin", "rh", "supervisor")
@@ -1155,7 +1180,7 @@ def create_app():
             "SELECT c.*, l.nome AS loja_nome FROM colaboradores c "
             "LEFT JOIN lojas l ON l.id = c.loja_id ORDER BY c.nome"
         )
-        hoje = date.today()
+        hoje = _hoje()
         buf = io.StringIO()
         buf.write("﻿")
         w = csv.writer(buf, delimiter=";")
@@ -1188,7 +1213,7 @@ def create_app():
             a["conceito"] = _conceito(a.get("nota_final"))
         notas = [a["nota_final"] for a in avals if a.get("nota_final") is not None]
         media_geral = round(sum(notas) / len(notas), 2) if notas else None
-        hoje = date.today()
+        hoje = _hoje()
         colabs = query(
             "SELECT c.id, c.nome, c.admissao, c.desligamento, l.nome AS loja_nome "
             "FROM colaboradores c LEFT JOIN lojas l ON l.id = c.loja_id ORDER BY c.nome"
@@ -1288,7 +1313,7 @@ def create_app():
         n_verbais = sum(1 for a in advs if a.get("tipo") == "verbal")
         n_escritas = sum(1 for a in advs if a.get("tipo") == "escrita")
         n_susp = sum(1 for a in advs if a.get("tipo") == "suspensao")
-        hoje = date.today()
+        hoje = _hoje()
         colabs = query(
             "SELECT c.id, c.nome, c.admissao, c.desligamento, l.nome AS loja_nome "
             "FROM colaboradores c LEFT JOIN lojas l ON l.id = c.loja_id ORDER BY c.nome"
@@ -1372,7 +1397,7 @@ def create_app():
     @app.route("/checklist")
     @require_roles("admin", "rh", "supervisor", "gerente", "subgerente", "estoquista")
     def checklist():
-        hoje = date.today()
+        hoje = _hoje()
         lojas = query("SELECT * FROM lojas ORDER BY nome")
         mapa = _chk_hoje_por_loja(lojas, hoje.isoformat())
         status = []
@@ -1426,7 +1451,7 @@ def create_app():
         u = current_user()
         loja_id = request.form.get("loja_id")
         turno = request.form.get("turno")
-        dia = request.form.get("data") or date.today().isoformat()
+        dia = request.form.get("data") or _hoje().isoformat()
         if not loja_id or turno not in CHK_ITENS:
             return redirect("/checklist?ok=Selecione loja e turno")
         itens = CHK_ITENS[turno]
@@ -1478,7 +1503,7 @@ def create_app():
     @app.route("/cockpit")
     @require_roles("admin", "supervisor")
     def cockpit():
-        hoje = date.today()
+        hoje = _hoje()
         lojas_raw = query("SELECT * FROM lojas ORDER BY nome")
         colabs = query("SELECT * FROM colaboradores")
         avals = query(
@@ -1580,7 +1605,7 @@ def _seed_admin():
         "INSERT INTO usuarios (nome, email, senha_hash, papel, ativo, criado_em) "
         "VALUES (?, ?, ?, ?, ?, ?)",
         ("Administrador", email, generate_password_hash(senha), "admin",
-         1, datetime.utcnow().isoformat(timespec="seconds")),
+         1, _agora_iso()),
     )
     log.warning(
         "SEED: admin inicial criado (%s). TROQUE A SENHA IMEDIATAMENTE via "
