@@ -137,6 +137,7 @@ GESTAO_HTML = r"""
   .g-kpi b{display:block;font-size:26px;color:var(--brand2);line-height:1.1}
   .g-kpi span{font-size:12px;color:var(--muted)}
   table.g{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  @media(max-width:640px){table{display:block;overflow-x:auto;white-space:nowrap}}
   table.g th,table.g td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left}
   table.g th{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px}
   .sit{font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px}
@@ -347,6 +348,7 @@ AVAL_HTML = r"""
   table.a{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
   table.a th,table.a td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left}
   table.a th{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px}
+  @media(max-width:640px){table{display:block;overflow-x:auto;white-space:nowrap}}
   .nota{font-weight:800;color:var(--brand2)}
   .a-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:12px}
   .a-form .f{display:flex;flex-direction:column;gap:4px}
@@ -380,8 +382,15 @@ AVAL_HTML = r"""
 
 <div class="card">
   <h2>Histórico</h2>
+  <form method="get" action="{{ url_for('avaliacoes') }}" class="a-form" style="margin:0 0 8px">
+    <div class="f"><label>Filtrar por loja</label>
+      <select name="loja" onchange="this.form.submit()">
+        <option value="">Todas as lojas</option>
+        {% for l in lojas %}<option value="{{ l.id }}" {{ 'selected' if flt_loja==l.id|string else '' }}>{{ l.nome }}</option>{% endfor %}
+      </select></div>
+  </form>
   <table class="a">
-    <thead><tr><th>Colaborador</th><th>Período</th><th>Tipo</th><th>Atingim.</th><th>Nota final</th><th>Conceito</th><th></th></tr></thead>
+    <thead><tr><th>Colaborador</th><th>Período</th><th>Tipo</th><th>Atingim.</th><th>Nota final</th><th>Conceito</th><th>Ações</th></tr></thead>
     <tbody>
     {% for a in avals %}
       <tr>
@@ -391,31 +400,36 @@ AVAL_HTML = r"""
         <td>{% if a.atingimento %}{{ '%.0f'|format(a.atingimento) }}%{% else %}—{% endif %}</td>
         <td class="nota">{{ a.nota_final if a.nota_final is not none else '—' }}</td>
         <td>{{ a.conceito }}</td>
-        <td><a href="{{ url_for('avaliacao_ver', aid=a.id) }}">ver</a></td>
+        <td style="white-space:nowrap">
+          <a href="{{ url_for('avaliacao_ver', aid=a.id) }}">ver</a> ·
+          <a href="?edit={{ a.id }}#nova">editar</a> ·
+          <form method="post" style="display:inline" action="{{ url_for('avaliacao_del', aid=a.id) }}" onsubmit="return confirm('Excluir esta avaliação?')"><input type="hidden" name="_csrf" value="{{ csrf_token }}"><button class="g-del">excluir</button></form>
+        </td>
       </tr>
     {% else %}
-      <tr><td colspan="7" class="muted">Nenhuma avaliação registrada ainda.</td></tr>
+      <tr><td colspan="7" class="muted">Nenhuma avaliação registrada{% if flt_loja %} para esta loja{% endif %}.</td></tr>
     {% endfor %}
     </tbody>
   </table>
 </div>
 
 <div class="card">
-  <h2 id="nova">➕ Nova avaliação</h2>
+  <h2 id="nova">{{ '✏️ Editar avaliação' if edit_av else '➕ Nova avaliação' }}</h2>
   {% if colabs %}
   <form method="post" action="{{ url_for('avaliacao_nova') }}">
     <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+    {% if edit_av %}<input type="hidden" name="id" value="{{ edit_av.id }}">{% endif %}
     <div class="a-form">
       <div class="f"><label>Colaborador *</label>
         <select name="colaborador_id" required>
           <option value="">—</option>
-          {% for c in colabs %}<option value="{{ c.id }}">{{ c.nome }}{% if c.loja_nome %} · {{ c.loja_nome }}{% endif %}</option>{% endfor %}
+          {% for c in colabs %}<option value="{{ c.id }}" {{ 'selected' if edit_av and edit_av.colaborador_id==c.id else '' }}>{{ c.nome }}{% if c.loja_nome %} · {{ c.loja_nome }}{% endif %}</option>{% endfor %}
         </select></div>
       <div class="f"><label>Tipo</label>
-        <select name="tipo">{% for t in tipos %}<option>{{ t }}</option>{% endfor %}</select></div>
-      <div class="f"><label>Período</label><input name="periodo" placeholder="ex: jun/2026" required></div>
-      <div class="f"><label>Meta R$ (opcional)</label><input name="kpi_meta" inputmode="decimal" placeholder="ex: 40000"></div>
-      <div class="f"><label>Realizado R$ (opcional)</label><input name="kpi_real" inputmode="decimal" placeholder="ex: 38000"></div>
+        <select name="tipo">{% for t in tipos %}<option {{ 'selected' if edit_av and edit_av.tipo==t else '' }}>{{ t }}</option>{% endfor %}</select></div>
+      <div class="f"><label>Período</label><input name="periodo" value="{{ edit_av.periodo if edit_av else '' }}" placeholder="ex: jun/2026" required></div>
+      <div class="f"><label>Meta R$ (opcional)</label><input name="kpi_meta" value="{{ edit_av.kpi_meta if edit_av else '' }}" inputmode="decimal" placeholder="ex: 40000"></div>
+      <div class="f"><label>Realizado R$ (opcional)</label><input name="kpi_real" value="{{ edit_av.kpi_real if edit_av else '' }}" inputmode="decimal" placeholder="ex: 38000"></div>
     </div>
 
     <p class="muted" style="margin:16px 0 0;font-weight:600">Competências (1 = muito abaixo · 5 = excelente)</p>
@@ -424,17 +438,18 @@ AVAL_HTML = r"""
       <div class="f"><label>{{ comp }}</label>
         <select name="comp__{{ loop.index0 }}">
           <option value="">—</option>
-          {% for n in [1,2,3,4,5] %}<option value="{{ n }}">{{ n }}</option>{% endfor %}
+          {% for n in [1,2,3,4,5] %}<option value="{{ n }}" {{ 'selected' if edit_comp.get(comp)==n else '' }}>{{ n }}</option>{% endfor %}
         </select></div>
       {% endfor %}
     </div>
 
     <div class="a-form" style="margin-top:14px">
-      <div class="f full"><label>Pontos fortes</label><textarea name="pontos_fortes"></textarea></div>
-      <div class="f full"><label>A desenvolver</label><textarea name="a_desenvolver"></textarea></div>
-      <div class="f full"><label>Plano de desenvolvimento (PDI)</label><textarea name="plano"></textarea></div>
+      <div class="f full"><label>Pontos fortes</label><textarea name="pontos_fortes">{{ edit_av.pontos_fortes if edit_av else '' }}</textarea></div>
+      <div class="f full"><label>A desenvolver</label><textarea name="a_desenvolver">{{ edit_av.a_desenvolver if edit_av else '' }}</textarea></div>
+      <div class="f full"><label>Plano de desenvolvimento (PDI)</label><textarea name="plano">{{ edit_av.plano if edit_av else '' }}</textarea></div>
     </div>
-    <div style="margin-top:14px"><button class="g-btn" type="submit">Salvar avaliação</button></div>
+    <div style="margin-top:14px"><button class="g-btn" type="submit">{{ 'Salvar alterações' if edit_av else 'Salvar avaliação' }}</button>
+      {% if edit_av %}<a class="g-del" style="text-decoration:none;margin-left:10px" href="{{ url_for('avaliacoes') }}">cancelar</a>{% endif %}</div>
   </form>
   {% else %}
     <p class="muted">Cadastre colaboradores em <a href="/gestao#colaboradores">Gestão</a> antes de avaliar.</p>
@@ -554,6 +569,7 @@ DISCIPLINA_HTML = r"""
   .d-kpi b{display:block;font-size:26px;color:var(--brand2);line-height:1.1}
   .d-kpi span{font-size:12px;color:var(--muted)}
   table.d{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  @media(max-width:640px){table{display:block;overflow-x:auto;white-space:nowrap}}
   table.d th,table.d td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left}
   table.d th{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px}
   .tag{font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px}
@@ -567,6 +583,7 @@ DISCIPLINA_HTML = r"""
     background:var(--panel2);color:var(--txt);font-size:14px;font-family:inherit}
   .d-form textarea{min-height:60px;resize:vertical}
   .g-btn{padding:9px 16px;border-radius:9px;border:0;background:var(--brand);color:#13270a;font-weight:800;cursor:pointer;font-size:14px}
+  .g-del{color:#f29a90;background:none;border:0;cursor:pointer;font-size:12.5px;padding:0}
   .full{grid-column:1/-1}
   .msg{padding:10px 12px;border-radius:10px;margin-bottom:12px;font-size:13.5px}
   .msg.ok{background:rgba(46,204,113,.12);color:#7ee2a8;border:1px solid rgba(46,204,113,.3)}
@@ -593,8 +610,15 @@ DISCIPLINA_HTML = r"""
 
 <div class="card">
   <h2>Histórico</h2>
+  <form method="get" action="{{ url_for('disciplina') }}" class="d-form" style="margin:0 0 8px">
+    <div class="f"><label>Filtrar por loja</label>
+      <select name="loja" onchange="this.form.submit()">
+        <option value="">Todas as lojas</option>
+        {% for l in lojas %}<option value="{{ l.id }}" {{ 'selected' if flt_loja==l.id|string else '' }}>{{ l.nome }}</option>{% endfor %}
+      </select></div>
+  </form>
   <table class="d">
-    <thead><tr><th>Colaborador</th><th>Data do fato</th><th>Tipo</th><th>Motivo</th><th></th></tr></thead>
+    <thead><tr><th>Colaborador</th><th>Data do fato</th><th>Tipo</th><th>Motivo</th><th>Ações</th></tr></thead>
     <tbody>
     {% for a in advs %}
       <tr>
@@ -602,50 +626,56 @@ DISCIPLINA_HTML = r"""
         <td>{{ a.data_fato_br }}</td>
         <td><span class="tag {{ a.tipo }}">{{ a.tipo_label }}</span></td>
         <td>{{ (a.descricao or '')[:60] }}{% if a.descricao and a.descricao|length > 60 %}…{% endif %}</td>
-        <td><a href="{{ url_for('disciplina_ver', aid=a.id) }}">ver termo</a></td>
+        <td style="white-space:nowrap">
+          <a href="{{ url_for('disciplina_ver', aid=a.id) }}">ver termo</a> ·
+          <a href="?edit={{ a.id }}#nova">editar</a> ·
+          <form method="post" style="display:inline" action="{{ url_for('disciplina_del', aid=a.id) }}" onsubmit="return confirm('Excluir este registro?')"><input type="hidden" name="_csrf" value="{{ csrf_token }}"><button class="g-del">excluir</button></form>
+        </td>
       </tr>
     {% else %}
-      <tr><td colspan="5" class="muted">Nenhum registro ainda.</td></tr>
+      <tr><td colspan="5" class="muted">Nenhum registro{% if flt_loja %} para esta loja{% endif %}.</td></tr>
     {% endfor %}
     </tbody>
   </table>
 </div>
 
 <div class="card">
-  <h2 id="nova">➕ Novo registro disciplinar</h2>
+  <h2 id="nova">{{ '✏️ Editar registro disciplinar' if edit_adv else '➕ Novo registro disciplinar' }}</h2>
   {% if colabs %}
   <form method="post" action="{{ url_for('disciplina_nova') }}">
     <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+    {% if edit_adv %}<input type="hidden" name="id" value="{{ edit_adv.id }}">{% endif %}
     <div class="d-form">
       <div class="f"><label>Colaborador *</label>
         <select name="colaborador_id" required>
           <option value="">—</option>
-          {% for c in colabs %}<option value="{{ c.id }}">{{ c.nome }}{% if c.loja_nome %} · {{ c.loja_nome }}{% endif %}</option>{% endfor %}
+          {% for c in colabs %}<option value="{{ c.id }}" {{ 'selected' if edit_adv and edit_adv.colaborador_id==c.id else '' }}>{{ c.nome }}{% if c.loja_nome %} · {{ c.loja_nome }}{% endif %}</option>{% endfor %}
         </select></div>
       <div class="f"><label>Tipo *</label>
-        <select name="tipo" required>{% for k, lbl in tipos %}<option value="{{ k }}">{{ lbl }}</option>{% endfor %}</select></div>
-      <div class="f"><label>Dias de suspensão (só p/ suspensão)</label><input name="sus_dias" inputmode="numeric" placeholder="ex: 1"></div>
-      <div class="f"><label>Data do fato *</label><input type="date" name="data_fato" required></div>
-      <div class="f"><label>Hora do fato</label><input name="hora_fato" placeholder="ex: 14:30"></div>
-      <div class="f"><label>Local</label><input name="local" placeholder="ex: caixa da loja"></div>
+        <select name="tipo" required>{% for k, lbl in tipos %}<option value="{{ k }}" {{ 'selected' if edit_adv and edit_adv.tipo==k else '' }}>{{ lbl }}</option>{% endfor %}</select></div>
+      <div class="f"><label>Dias de suspensão (só p/ suspensão)</label><input name="sus_dias" value="{{ edit_adv.sus_dias if edit_adv else '' }}" inputmode="numeric" placeholder="ex: 1"></div>
+      <div class="f"><label>Data do fato *</label><input type="date" name="data_fato" value="{{ edit_adv.data_fato if edit_adv else '' }}" required></div>
+      <div class="f"><label>Hora do fato</label><input name="hora_fato" value="{{ edit_adv.hora_fato if edit_adv else '' }}" placeholder="ex: 14:30"></div>
+      <div class="f"><label>Local</label><input name="local" value="{{ edit_adv.local if edit_adv else '' }}" placeholder="ex: caixa da loja"></div>
     </div>
     <div class="d-form" style="margin-top:12px">
-      <div class="f full"><label>Descrição do fato *</label><textarea name="descricao" required placeholder="O que ocorreu, com data/hora e a regra interna ou dispositivo da CLT violado."></textarea></div>
-      <div class="f full"><label>Regra interna / dispositivo violado</label><input name="regra" placeholder="ex.: item X do Manual de Caixa / art. 482 CLT"></div>
-      <div class="f full"><label>Antecedentes (se reincidência: citar advertência anterior e data)</label><textarea name="antecedentes" placeholder="ex.: Advertência verbal em ../../.. pelo mesmo tipo de conduta."></textarea></div>
+      <div class="f full"><label>Descrição do fato *</label><textarea name="descricao" required placeholder="O que ocorreu, com data/hora e a regra interna ou dispositivo da CLT violado.">{{ edit_adv.descricao if edit_adv else '' }}</textarea></div>
+      <div class="f full"><label>Regra interna / dispositivo violado</label><input name="regra" value="{{ edit_adv.regra if edit_adv else '' }}" placeholder="ex.: item X do Manual de Caixa / art. 482 CLT"></div>
+      <div class="f full"><label>Antecedentes (se reincidência: citar advertência anterior e data)</label><textarea name="antecedentes" placeholder="ex.: Advertência verbal em ../../.. pelo mesmo tipo de conduta.">{{ edit_adv.antecedentes if edit_adv else '' }}</textarea></div>
     </div>
     <div class="d-form" style="margin-top:12px">
       <div class="f"><label>Ciência (medida formal)</label>
         <select name="ciencia">
           <option value="">—</option>
-          <option value="assinou">Deu ciência e assinou</option>
-          <option value="recusou">Recusou-se a assinar (2 testemunhas)</option>
+          <option value="assinou" {{ 'selected' if edit_adv and edit_adv.ciencia=='assinou' else '' }}>Deu ciência e assinou</option>
+          <option value="recusou" {{ 'selected' if edit_adv and edit_adv.ciencia=='recusou' else '' }}>Recusou-se a assinar (2 testemunhas)</option>
         </select></div>
-      <div class="f"><label>Testemunha 1 (nome / CPF)</label><input name="testemunha1"></div>
-      <div class="f"><label>Testemunha 2 (nome / CPF)</label><input name="testemunha2"></div>
+      <div class="f"><label>Testemunha 1 (nome / CPF)</label><input name="testemunha1" value="{{ edit_adv.testemunha1 if edit_adv else '' }}"></div>
+      <div class="f"><label>Testemunha 2 (nome / CPF)</label><input name="testemunha2" value="{{ edit_adv.testemunha2 if edit_adv else '' }}"></div>
     </div>
     <p class="muted" style="font-size:12.5px;margin-top:10px">Na <b>verbal</b>, não se colhe assinatura — é registro interno de gestão. Suspensão e reincidência citam a possibilidade de justa causa (art. 482).</p>
-    <div style="margin-top:6px"><button class="g-btn" type="submit">Registrar</button></div>
+    <div style="margin-top:6px"><button class="g-btn" type="submit">{{ 'Salvar alterações' if edit_adv else 'Registrar' }}</button>
+      {% if edit_adv %}<a class="g-del" style="text-decoration:none;margin-left:10px" href="{{ url_for('disciplina') }}">cancelar</a>{% endif %}</div>
   </form>
   {% else %}
     <p class="muted">Cadastre colaboradores em <a href="/gestao#colaboradores">Gestão</a> antes de registrar.</p>
@@ -821,6 +851,7 @@ CHECKLIST_HTML = r"""
     background:var(--panel2);color:var(--txt);font-size:14px}
   .g-btn{padding:9px 16px;border-radius:9px;border:0;background:var(--brand);color:#13270a;font-weight:800;cursor:pointer;font-size:14px}
   table.ck{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  @media(max-width:640px){table{display:block;overflow-x:auto;white-space:nowrap}}
   table.ck th,table.ck td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left}
   table.ck th{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px}
   .st{font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px}
@@ -1336,7 +1367,7 @@ def create_app():
     # ------------------------------------------------- Avaliações (Fase 3.2: DB)
     def _avals_join(where="", params=()):
         return query(
-            "SELECT a.*, c.nome AS colab_nome, l.nome AS loja_nome "
+            "SELECT a.*, c.nome AS colab_nome, c.loja_id AS loja_id, l.nome AS loja_nome "
             "FROM avaliacoes a "
             "LEFT JOIN colaboradores c ON c.id = a.colaborador_id "
             "LEFT JOIN lojas l ON l.id = c.loja_id "
@@ -1351,6 +1382,9 @@ def create_app():
             _, ating = _nota_resultado(a.get("kpi_meta"), a.get("kpi_real"))
             a["atingimento"] = ating
             a["conceito"] = _conceito(a.get("nota_final"))
+        flt_loja = request.args.get("loja")
+        if flt_loja:
+            avals = [a for a in avals if str(a.get("loja_id")) == flt_loja]
         notas = [a["nota_final"] for a in avals if a.get("nota_final") is not None]
         media_geral = round(sum(notas) / len(notas), 2) if notas else None
         hoje = _hoje()
@@ -1359,9 +1393,22 @@ def create_app():
             "FROM colaboradores c LEFT JOIN lojas l ON l.id = c.loja_id ORDER BY c.nome"
         )
         colabs = [c for c in colabs if _situacao(c, hoje) != "Desligado"]
+        lojas = query("SELECT id, nome FROM lojas ORDER BY nome")
+        # edição: pré-carrega a avaliação e suas competências
+        ev = request.args.get("edit")
+        edit_av = None
+        edit_comp = {}
+        if ev:
+            edit_av = query("SELECT * FROM avaliacoes WHERE id = ?", (ev,), one=True)
+            if edit_av:
+                try:
+                    edit_comp = json.loads(edit_av.get("competencias") or "{}")
+                except (ValueError, TypeError):
+                    edit_comp = {}
         return render_template_string(
-            AVAL_HTML, user=current_user(), avals=avals, colabs=colabs,
+            AVAL_HTML, user=current_user(), avals=avals, colabs=colabs, lojas=lojas,
             competencias=AVAL_COMPETENCIAS, tipos=AVAL_TIPOS, media_geral=media_geral,
+            flt_loja=flt_loja, edit_av=edit_av, edit_comp=edit_comp,
             ok=request.args.get("ok"), erro=request.args.get("erro"),
         )
 
@@ -1369,6 +1416,7 @@ def create_app():
     @require_roles("admin", "rh", "gerente", "supervisor")
     def avaliacao_nova():
         u = current_user()
+        aid = request.form.get("id")
         cid = request.form.get("colaborador_id")
         if not cid:
             return redirect("/avaliacoes?erro=Selecione o colaborador#nova")
@@ -1380,6 +1428,19 @@ def create_app():
         meta = request.form.get("kpi_meta") or ""
         real = request.form.get("kpi_real") or ""
         calc = _calc_avaliacao(competencias, meta, real)
+        comp_json = json.dumps(competencias, ensure_ascii=False)
+        if aid:
+            execute(
+                "UPDATE avaliacoes SET colaborador_id=?, tipo=?, periodo=?, kpi_meta=?, kpi_real=?, "
+                "nota_resultado=?, nota_comp=?, nota_final=?, competencias=?, "
+                "pontos_fortes=?, a_desenvolver=?, plano=? WHERE id=?",
+                (cid, request.form.get("tipo") or "", request.form.get("periodo") or "",
+                 meta, real, calc["nota_resultado"], calc["nota_comp"], calc["nota_final"],
+                 comp_json, request.form.get("pontos_fortes") or "",
+                 request.form.get("a_desenvolver") or "", request.form.get("plano") or "", aid),
+            )
+            audit(u["id"], "avaliacao_edit", aid)
+            return redirect("/avaliacoes?ok=Avaliação atualizada")
         execute(
             "INSERT INTO avaliacoes "
             "(colaborador_id, avaliador_id, tipo, periodo, kpi_meta, kpi_real, "
@@ -1388,12 +1449,20 @@ def create_app():
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (cid, u["id"], request.form.get("tipo") or "", request.form.get("periodo") or "",
              meta, real, calc["nota_resultado"], calc["nota_comp"], calc["nota_final"],
-             json.dumps(competencias, ensure_ascii=False),
+             comp_json,
              request.form.get("pontos_fortes") or "", request.form.get("a_desenvolver") or "",
              request.form.get("plano") or "", _now(), u["id"]),
         )
         audit(u["id"], "avaliacao_nova", str(cid))
         return redirect("/avaliacoes?ok=Avaliação registrada")
+
+    @app.route("/avaliacoes/<int:aid>/delete", methods=["POST"])
+    @require_roles("admin", "rh", "gerente", "supervisor")
+    def avaliacao_del(aid):
+        u = current_user()
+        execute("DELETE FROM avaliacoes WHERE id = ?", (aid,))
+        audit(u["id"], "avaliacao_del", str(aid))
+        return redirect("/avaliacoes?ok=Avaliação excluída")
 
     @app.route("/avaliacoes/<int:aid>")
     @require_roles("admin", "rh", "gerente", "supervisor")
@@ -1435,7 +1504,7 @@ def create_app():
     # ------------------------------------------------- Disciplina (Fase 3.3: DB)
     def _advs_join(where="", params=()):
         rows = query(
-            "SELECT a.*, c.nome AS colab_nome, c.cargo AS cargo, l.nome AS loja_nome "
+            "SELECT a.*, c.nome AS colab_nome, c.cargo AS cargo, c.loja_id AS loja_id, l.nome AS loja_nome "
             "FROM advertencias a "
             "LEFT JOIN colaboradores c ON c.id = a.colaborador_id "
             "LEFT JOIN lojas l ON l.id = c.loja_id "
@@ -1453,15 +1522,22 @@ def create_app():
         n_verbais = sum(1 for a in advs if a.get("tipo") == "verbal")
         n_escritas = sum(1 for a in advs if a.get("tipo") == "escrita")
         n_susp = sum(1 for a in advs if a.get("tipo") == "suspensao")
+        flt_loja = request.args.get("loja")
+        if flt_loja:
+            advs = [a for a in advs if str(a.get("loja_id")) == flt_loja]
         hoje = _hoje()
         colabs = query(
             "SELECT c.id, c.nome, c.admissao, c.desligamento, l.nome AS loja_nome "
             "FROM colaboradores c LEFT JOIN lojas l ON l.id = c.loja_id ORDER BY c.nome"
         )
         colabs = [c for c in colabs if _situacao(c, hoje) != "Desligado"]
+        lojas = query("SELECT id, nome FROM lojas ORDER BY nome")
+        ev = request.args.get("edit")
+        edit_adv = query("SELECT * FROM advertencias WHERE id = ?", (ev,), one=True) if ev else None
         return render_template_string(
-            DISCIPLINA_HTML, user=current_user(), advs=advs, colabs=colabs,
+            DISCIPLINA_HTML, user=current_user(), advs=advs, colabs=colabs, lojas=lojas,
             tipos=ADV_TIPOS, n_verbais=n_verbais, n_escritas=n_escritas, n_susp=n_susp,
+            flt_loja=flt_loja, edit_adv=edit_adv,
             ok=request.args.get("ok"),
         )
 
@@ -1469,24 +1545,42 @@ def create_app():
     @require_roles("admin", "rh", "supervisor", "gerente")
     def disciplina_nova():
         u = current_user()
+        aid = request.form.get("id")
         cid = request.form.get("colaborador_id")
         tipo = request.form.get("tipo") or "escrita"
         if not cid or not (request.form.get("descricao") or "").strip():
             return redirect("/disciplina?ok=Informe colaborador e descrição#nova")
+        campos = (cid, tipo, request.form.get("data_fato") or "", request.form.get("hora_fato") or "",
+                  request.form.get("local") or "", request.form.get("descricao") or "",
+                  request.form.get("regra") or "", request.form.get("antecedentes") or "",
+                  request.form.get("sus_dias") or "", request.form.get("ciencia") or "",
+                  request.form.get("testemunha1") or "", request.form.get("testemunha2") or "")
+        if aid:
+            execute(
+                "UPDATE advertencias SET colaborador_id=?, tipo=?, data_fato=?, hora_fato=?, local=?, "
+                "descricao=?, regra=?, antecedentes=?, sus_dias=?, ciencia=?, testemunha1=?, testemunha2=? "
+                "WHERE id=?",
+                campos + (aid,),
+            )
+            audit(u["id"], "disciplina_edit", aid)
+            return redirect("/disciplina?ok=Registro disciplinar atualizado")
         execute(
             "INSERT INTO advertencias "
             "(colaborador_id, tipo, data_fato, hora_fato, local, descricao, regra, "
             " antecedentes, sus_dias, ciencia, testemunha1, testemunha2, criado_em, criado_por) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (cid, tipo, request.form.get("data_fato") or "", request.form.get("hora_fato") or "",
-             request.form.get("local") or "", request.form.get("descricao") or "",
-             request.form.get("regra") or "", request.form.get("antecedentes") or "",
-             request.form.get("sus_dias") or "", request.form.get("ciencia") or "",
-             request.form.get("testemunha1") or "", request.form.get("testemunha2") or "",
-             _now(), u["id"]),
+            campos + (_now(), u["id"]),
         )
         audit(u["id"], "disciplina_nova", "%s/%s" % (cid, tipo))
         return redirect("/disciplina?ok=Registro disciplinar salvo")
+
+    @app.route("/disciplina/<int:aid>/delete", methods=["POST"])
+    @require_roles("admin", "rh", "supervisor", "gerente")
+    def disciplina_del(aid):
+        u = current_user()
+        execute("DELETE FROM advertencias WHERE id = ?", (aid,))
+        audit(u["id"], "disciplina_del", str(aid))
+        return redirect("/disciplina?ok=Registro disciplinar excluído")
 
     @app.route("/disciplina/<int:aid>")
     @require_roles("admin", "rh", "supervisor", "gerente")
