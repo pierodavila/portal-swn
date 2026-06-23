@@ -13,6 +13,8 @@ import os
 import io
 import csv
 import json
+import time
+import secrets
 import logging
 from datetime import datetime, date
 
@@ -35,6 +37,12 @@ log = logging.getLogger("portal_swn")
 
 PAPEIS_VALIDOS = catalog.ROLE_IDS  # 9 grupos definidos em catalog.ROLES
 TOOLS_DIR = os.path.join(os.path.dirname(__file__), "tools")
+
+# Rate-limit de login (em memória; 1 worker no Render). Bloqueia após N falhas
+# por IP dentro da janela, para frear tentativa de força bruta.
+_LOGIN_FAILS = {}
+LOGIN_MAX_FALHAS = 5
+LOGIN_JANELA_SEG = 600  # 10 minutos
 
 # Fuso de Brasília — o Render roda em UTC; sem isto a "data de hoje" virava
 # 3h cedo demais (das 21h às 24h BRT o servidor já achava que era amanhã).
@@ -199,7 +207,7 @@ GESTAO_HTML = r"""
         <td><span class="sit {{ c.situacao }}">{{ c.situacao }}</span></td>
         <td style="white-space:nowrap">
           <a class="g-del" style="text-decoration:none" href="?edit_colab={{ c.id }}#form-colab">editar</a>
-          <form method="post" style="display:inline" action="{{ url_for('gestao_colab_del', cid=c.id) }}" onsubmit="return confirm('Remover {{ c.nome }}?')"><button class="g-del">remover</button></form>
+          <form method="post" style="display:inline" action="{{ url_for('gestao_colab_del', cid=c.id) }}" onsubmit="return confirm('Remover {{ c.nome }}?')"><input type="hidden" name="_csrf" value="{{ csrf_token }}"><button class="g-del">remover</button></form>
         </td>
       </tr>
     {% else %}
@@ -210,6 +218,7 @@ GESTAO_HTML = r"""
 
   <h2 style="margin-top:16px" id="form-colab">{{ '✏️ Editar colaborador' if edit_colab else '➕ Novo colaborador' }}</h2>
   <form class="g-form" method="post" action="{{ url_for('gestao_colab_add') }}">
+    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
     {% if edit_colab %}<input type="hidden" name="id" value="{{ edit_colab.id }}">{% endif %}
     <div class="f"><label>Nome *</label><input name="nome" required value="{{ edit_colab.nome if edit_colab else '' }}"></div>
     <div class="f"><label>CPF</label><input name="cpf" value="{{ edit_colab.cpf if edit_colab else '' }}"></div>
@@ -233,7 +242,7 @@ GESTAO_HTML = r"""
         <td><b>{{ l.nome }}</b></td><td>{{ l.cnpj or '—' }}</td><td>{{ l.cidade_uf or '—' }}</td>
         <td style="white-space:nowrap">
           <a class="g-del" style="text-decoration:none" href="?edit_loja={{ l.id }}#form-loja">editar</a>
-          <form method="post" style="display:inline" action="{{ url_for('gestao_loja_del', lid=l.id) }}" onsubmit="return confirm('Remover {{ l.nome }}?')"><button class="g-del">remover</button></form>
+          <form method="post" style="display:inline" action="{{ url_for('gestao_loja_del', lid=l.id) }}" onsubmit="return confirm('Remover {{ l.nome }}?')"><input type="hidden" name="_csrf" value="{{ csrf_token }}"><button class="g-del">remover</button></form>
         </td>
       </tr>
     {% else %}
@@ -243,6 +252,7 @@ GESTAO_HTML = r"""
   </table>
   <h2 style="margin-top:16px" id="form-loja">{{ '✏️ Editar loja' if edit_loja else '➕ Nova loja' }}</h2>
   <form class="g-form" method="post" action="{{ url_for('gestao_loja_add') }}">
+    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
     {% if edit_loja %}<input type="hidden" name="id" value="{{ edit_loja.id }}">{% endif %}
     <div class="f"><label>Nome *</label><input name="nome" required value="{{ edit_loja.nome if edit_loja else '' }}" placeholder="ex: Forum / Colcci ..."></div>
     <div class="f"><label>CNPJ</label><input name="cnpj" value="{{ edit_loja.cnpj if edit_loja else '' }}"></div>
@@ -394,6 +404,7 @@ AVAL_HTML = r"""
   <h2 id="nova">➕ Nova avaliação</h2>
   {% if colabs %}
   <form method="post" action="{{ url_for('avaliacao_nova') }}">
+    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
     <div class="a-form">
       <div class="f"><label>Colaborador *</label>
         <select name="colaborador_id" required>
@@ -604,6 +615,7 @@ DISCIPLINA_HTML = r"""
   <h2 id="nova">➕ Novo registro disciplinar</h2>
   {% if colabs %}
   <form method="post" action="{{ url_for('disciplina_nova') }}">
+    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
     <div class="d-form">
       <div class="f"><label>Colaborador *</label>
         <select name="colaborador_id" required>
@@ -865,6 +877,7 @@ CHECKLIST_HTML = r"""
 
   {% if itens %}
   <form method="post" action="{{ url_for('checklist_salvar') }}" style="margin-top:14px">
+    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
     <input type="hidden" name="loja_id" value="{{ sel_loja }}">
     <input type="hidden" name="turno" value="{{ sel_turno }}">
     <input type="hidden" name="data" value="{{ sel_data }}">
@@ -890,6 +903,104 @@ CHECKLIST_HTML = r"""
 """
 
 
+ADMIN_USUARIOS_HTML = r"""
+{% extends "base.html" %}
+{% block title %}Usuários{% endblock %}
+{% block body %}
+  <style>
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    @media(max-width:680px){.row{grid-template-columns:1fr}}
+    label{display:block;font-size:13px;color:var(--muted);margin:10px 0 5px}
+    input,select{width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:9px;
+      background:var(--panel2);color:var(--txt);font-size:14px}
+    .btn{margin-top:14px;padding:10px 16px;border:0;border-radius:9px;cursor:pointer;
+      font-weight:800;background:var(--brand);color:#1a1300}
+    .btn.small{margin:0;padding:6px 10px;font-size:12px}
+    .btn.gray{background:var(--panel2);color:var(--txt);border:1px solid var(--line)}
+    table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
+    th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line)}
+    th{color:var(--muted);font-weight:600}
+    .tag{padding:2px 8px;border-radius:999px;font-size:11px;border:1px solid var(--line);background:var(--panel2)}
+    .on{color:#7ee2a8}.no{color:#f29a90}
+    .ok{background:rgba(46,204,113,.15);color:#7ee2a8;border:1px solid rgba(46,204,113,.3);
+      padding:9px 12px;border-radius:9px;font-size:13px;margin-bottom:12px}
+    .er{background:rgba(231,76,60,.15);color:#f29a90;border:1px solid rgba(231,76,60,.3);
+      padding:9px 12px;border-radius:9px;font-size:13px;margin-bottom:12px}
+    form.inline{display:inline}
+    .tbl-wrap{overflow-x:auto}
+  </style>
+
+  <div class="card">
+    <h1>Administração de usuários</h1>
+    <p class="muted">Crie logins, defina o papel (que determina as ferramentas visíveis),
+      ative/desative e redefina senhas.</p>
+  </div>
+
+  {% if ok %}<div class="ok">{{ ok }}</div>{% endif %}
+  {% if erro %}<div class="er">{{ erro }}</div>{% endif %}
+
+  <div class="card">
+    <h2>Novo usuário</h2>
+    <form method="post" action="{{ url_for('admin_usuarios') }}">
+      <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+      <div class="row">
+        <div><label>Nome</label><input name="nome" required></div>
+        <div><label>E-mail</label><input name="email" type="email" required></div>
+      </div>
+      <div class="row">
+        <div><label>Senha inicial</label><input name="senha" type="text" required></div>
+        <div>
+          <label>Papel</label>
+          <select name="papel" required>
+            {% for pid, plabel in papeis %}<option value="{{ pid }}">{{ plabel }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div><label>Loja (opcional)</label><input name="loja_id" type="number"></div>
+        <div></div>
+      </div>
+      <button class="btn" type="submit">Criar usuário</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Usuários cadastrados</h2>
+    <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>Nome</th><th>E-mail</th><th>Papel</th><th>Status</th><th>Último acesso</th><th>Ações</th></tr>
+      </thead>
+      <tbody>
+        {% for u in usuarios %}
+        <tr>
+          <td>{{ u.nome }}</td>
+          <td>{{ u.email }}</td>
+          <td><span class="tag">{{ roles.get(u.papel, u.papel) }}</span></td>
+          <td>{% if u.ativo %}<span class="on">ativo</span>{% else %}<span class="no">inativo</span>{% endif %}</td>
+          <td class="muted">{{ u.ultimo_acesso or "—" }}</td>
+          <td>
+            <form class="inline" method="post" action="{{ url_for('admin_toggle', uid=u.id) }}">
+              <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+              <button class="btn small gray" type="submit">{{ "Desativar" if u.ativo else "Ativar" }}</button>
+            </form>
+            <form class="inline" method="post" action="{{ url_for('admin_reset', uid=u.id) }}"
+                  onsubmit="this.senha.value=prompt('Nova senha para {{ u.email }}:')||''; return !!this.senha.value;">
+              <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+              <input type="hidden" name="senha">
+              <button class="btn small gray" type="submit">Redefinir senha</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+{% endblock %}
+"""
+
+
 # ----------------------------------------------------------------------------
 # Factory
 # ----------------------------------------------------------------------------
@@ -906,6 +1017,21 @@ def create_app():
     )
 
     app.teardown_appcontext(close_db)
+
+    # ----------------------------------------------------------------- CSRF
+    @app.context_processor
+    def _inject_csrf():
+        return {"csrf_token": session.get("_csrf", "")}
+
+    @app.before_request
+    def _csrf_guard():
+        # Garante um token por sessão logada.
+        if "uid" in session and not session.get("_csrf"):
+            session["_csrf"] = secrets.token_urlsafe(32)
+        # Valida o token em qualquer POST (login é protegido por rate-limit).
+        if request.method == "POST" and request.path != url_for("login"):
+            if not session.get("_csrf") or request.form.get("_csrf") != session.get("_csrf"):
+                abort(400)
 
     # ------------------------------------------------------------------ init
     with app.app_context():
@@ -940,20 +1066,34 @@ def create_app():
     @app.route("/login", methods=["GET", "POST"])
     def login():
         if request.method == "POST":
+            ip = _client_ip()
+            agora = time.time()
+            fails = [t for t in _LOGIN_FAILS.get(ip, []) if agora - t < LOGIN_JANELA_SEG]
+            if len(fails) >= LOGIN_MAX_FALHAS:
+                _LOGIN_FAILS[ip] = fails
+                audit(None, "login_bloqueado", "ip=%s" % ip)
+                return render_template(
+                    "login.html",
+                    erro="Muitas tentativas. Aguarde alguns minutos e tente de novo."
+                ), 429
             email = (request.form.get("email") or "").strip().lower()
             senha = request.form.get("senha") or ""
             user = query(
                 "SELECT * FROM usuarios WHERE email = ?", (email,), one=True
             )
             if user and user.get("ativo") and check_password_hash(user["senha_hash"], senha):
+                _LOGIN_FAILS.pop(ip, None)  # zera o contador ao acertar
                 set_session(user)
+                session["_csrf"] = secrets.token_urlsafe(32)
                 execute(
                     "UPDATE usuarios SET ultimo_acesso = ? WHERE id = ?",
                     (_now(), user["id"]),
                 )
                 audit(user["id"], "login", "login com sucesso")
                 return redirect(url_for("portal"))
-            audit(None, "login_falhou", "email=%s" % email)
+            fails.append(agora)
+            _LOGIN_FAILS[ip] = fails
+            audit(None, "login_falhou", "email=%s ip=%s" % (email, ip))
             return render_template(
                 "login.html", erro="E-mail ou senha inválidos, ou usuário inativo."
             ), 401
@@ -1043,8 +1183,8 @@ def create_app():
             "SELECT id, nome, email, papel, loja_id, ativo, criado_em, ultimo_acesso "
             "FROM usuarios ORDER BY criado_em DESC"
         )
-        return render_template(
-            "admin_usuarios.html", user=u, usuarios=usuarios,
+        return render_template_string(
+            ADMIN_USUARIOS_HTML, user=u, usuarios=usuarios,
             papeis=list(catalog.ROLES.items()), roles=catalog.ROLES,
             erro=erro, ok=ok,
         )
