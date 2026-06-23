@@ -964,7 +964,7 @@ ADMIN_USUARIOS_HTML = r"""
   <div class="card">
     <h1>Administração de usuários</h1>
     <p class="muted">Crie logins, defina o papel (que determina as ferramentas visíveis),
-      ative/desative e redefina senhas.</p>
+      ative/desative e redefina senhas. <a href="{{ url_for('admin_auditoria') }}">Ver auditoria →</a></p>
   </div>
 
   {% if ok %}<div class="ok">{{ ok }}</div>{% endif %}
@@ -1028,6 +1028,44 @@ ADMIN_USUARIOS_HTML = r"""
     </table>
     </div>
   </div>
+{% endblock %}
+"""
+
+
+ADMIN_AUDIT_HTML = r"""
+{% extends "base.html" %}
+{% block title %}Auditoria{% endblock %}
+{% block body %}
+<style>
+  table.au{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+  table.au th,table.au td{text-align:left;padding:8px 9px;border-bottom:1px solid var(--line)}
+  table.au th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+  .acao{font-weight:700}
+  @media(max-width:640px){table{display:block;overflow-x:auto;white-space:nowrap}}
+</style>
+<div class="card">
+  <h1>Auditoria</h1>
+  <p class="muted">Últimos {{ logs|length }} eventos registrados (logins, cadastros, edições, exclusões).
+    <a href="{{ url_for('admin_usuarios') }}">← Usuários</a></p>
+</div>
+<div class="card">
+  <table class="au">
+    <thead><tr><th>Quando</th><th>Usuário</th><th>Ação</th><th>Detalhe</th><th>IP</th></tr></thead>
+    <tbody>
+    {% for l in logs %}
+      <tr>
+        <td class="muted">{{ l.criado_em or '—' }}</td>
+        <td>{{ l.usuario_nome or ('#' ~ l.usuario_id if l.usuario_id else '—') }}</td>
+        <td class="acao">{{ l.acao }}</td>
+        <td class="muted">{{ l.detalhe or '' }}</td>
+        <td class="muted">{{ l.ip or '' }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" class="muted">Sem eventos ainda.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
 {% endblock %}
 """
 
@@ -1248,6 +1286,16 @@ def create_app():
         )
         audit(u["id"], "reset_senha", alvo["email"])
         return redirect(url_for("admin_usuarios"))
+
+    @app.route("/admin/auditoria")
+    @require_roles("admin")
+    def admin_auditoria():
+        logs = query(
+            "SELECT a.criado_em, a.usuario_id, a.acao, a.detalhe, a.ip, u.nome AS usuario_nome "
+            "FROM audit_log a LEFT JOIN usuarios u ON u.id = a.usuario_id "
+            "ORDER BY a.id DESC LIMIT 200"
+        )
+        return render_template_string(ADMIN_AUDIT_HTML, user=current_user(), logs=logs)
 
     # ------------------------------------------------- Gestão (Fase 3: dados no DB)
     @app.route("/gestao")

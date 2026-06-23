@@ -228,6 +228,8 @@ def _schema_statements():
             criado_por   INTEGER
         )
         """,
+        # Garante 1 checklist por loja+data+turno (evita duplicata em clique-duplo).
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_chk_unico ON checklists (loja_id, data, turno)",
     ]
 
 
