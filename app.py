@@ -1040,6 +1040,97 @@ MESES_PT = ["", "janeiro", "fevereiro", "março", "abril", "maio", "junho",
             "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
 
 
+# --- Pulso semanal (avaliação rápida pelo líder) ----------------------------
+def _segunda_da_semana(data_iso):
+    """Retorna a segunda-feira (ISO) da semana da data informada."""
+    d = _parse_date(data_iso) or _hoje()
+    return (d - timedelta(days=d.weekday())).isoformat()
+
+
+PULSO_FLAGS = [("", "—"), ("destaque", "⭐ Destaque"), ("atencao", "⚠️ Atenção")]
+
+
+PULSO_HTML = r"""
+{% extends "base.html" %}
+{% block title %}Pulso da semana{% endblock %}
+{% block body %}
+<style>
+  .p-form{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:6px 0 4px}
+  .p-form .f{display:flex;flex-direction:column;gap:4px}
+  .p-form label{font-size:11px;color:var(--muted);font-weight:600}
+  .p-form input,.p-form select{padding:8px 10px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--txt);font-size:14px}
+  .g-btn{padding:9px 16px;border-radius:9px;border:0;background:var(--brand);color:#13270a;font-weight:800;cursor:pointer;font-size:14px}
+  .scrollx{overflow-x:auto}
+  table.p{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;min-width:680px}
+  table.p th,table.p td{border-bottom:1px solid var(--line);padding:7px 8px;text-align:left}
+  table.p th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.3px}
+  table.p select,table.p input{padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--txt);font-size:13px}
+  table.p .nm{min-width:150px;font-weight:600}
+  .msg{padding:10px 12px;border-radius:10px;margin-bottom:12px;font-size:13.5px}
+  .msg.ok{background:rgba(46,204,113,.12);color:#7ee2a8;border:1px solid rgba(46,204,113,.3)}
+  .hint{font-size:12.5px;color:var(--muted);margin-top:8px}
+</style>
+
+<div class="card">
+  <h1>Pulso da semana</h1>
+  <p class="muted">Avaliação rápida pelo líder — 1 a 5 em três pontos + um destaque/atenção. É um registro de contexto (não entra na nota mensal).</p>
+</div>
+
+{% if ok %}<div class="msg ok">{{ ok }}</div>{% endif %}
+
+<div class="card">
+  <form method="get" action="{{ url_for('pulso') }}" class="p-form">
+    <div class="f"><label>Loja</label>
+      <select name="loja" required>
+        <option value="">—</option>
+        {% for l in lojas %}<option value="{{ l.id }}" {{ 'selected' if sel_loja==l.id|string else '' }}>{{ l.nome }}</option>{% endfor %}
+      </select></div>
+    <div class="f"><label>Semana (qualquer dia dela)</label><input type="date" name="semana" value="{{ sel_semana }}"></div>
+    <button class="g-btn" type="submit">Abrir</button>
+  </form>
+
+  {% if not sel_loja %}
+    <p class="hint">Selecione a loja para abrir a equipe.</p>
+  {% elif not colabs %}
+    <p class="hint">Sem colaboradores ativos nesta loja. Cadastre em <a href="/gestao#colaboradores">Gestão</a>.</p>
+  {% else %}
+  <h2 style="margin-top:14px">{{ sel_loja_nome }} · semana de {{ sel_semana_br }}</h2>
+  <form method="post" action="{{ url_for('pulso_salvar') }}">
+    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+    <input type="hidden" name="loja_id" value="{{ sel_loja }}">
+    <input type="hidden" name="semana" value="{{ sel_semana }}">
+    <div class="scrollx">
+      <table class="p">
+        <thead><tr><th>Colaborador</th><th>Atend. &amp; postura</th><th>Ritmo/entrega</th><th>Pontualidade</th><th>Marcador</th><th>Observação</th></tr></thead>
+        <tbody>
+        {% for c in colabs %}
+          {% set p = pulsos.get(c.id) %}
+          <tr>
+            <td class="nm">{{ c.nome }}</td>
+            {% for campo in ['atendimento','ritmo','pontualidade'] %}
+            <td><select name="{{ campo[0] }}{{ c.id }}">
+              <option value="">—</option>
+              {% for n in [1,2,3,4,5] %}<option value="{{ n }}" {{ 'selected' if p and p[campo]==n else '' }}>{{ n }}</option>{% endfor %}
+            </select></td>
+            {% endfor %}
+            <td><select name="flag{{ c.id }}">
+              {% for k, lbl in flags %}<option value="{{ k }}" {{ 'selected' if p and (p.flag or '')==k else '' }}>{{ lbl }}</option>{% endfor %}
+            </select></td>
+            <td><input name="obs{{ c.id }}" value="{{ p.obs if p else '' }}" placeholder="destaque ou ponto de atenção" style="min-width:200px"></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:12px"><button class="g-btn" type="submit">Salvar pulso da semana</button></div>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}
+"""
+
+
 ESCALA_HTML = r"""
 {% extends "base.html" %}
 {% block title %}Escala mensal{% endblock %}
@@ -1636,6 +1727,8 @@ def create_app():
         # Escala mensal migrada para o Postgres (Fase 3.8).
         if tool_id == "escala":
             return redirect("/escala")
+        if tool_id == "pulso":
+            return redirect("/pulso")
         u = current_user()
         meta = catalog.get_tool(tool_id)
         if meta is None or not meta.get("arquivo"):
@@ -2573,6 +2666,80 @@ def create_app():
             buf.getvalue(), mimetype="text/csv; charset=utf-8",
             headers={"Content-Disposition": "attachment; filename=escala_%s_%s.csv" % (sel_loja, sel_comp)},
         )
+
+    # ------------------------------------------------- Pulso semanal
+    PULSO_ROLES = ("admin", "rh", "supervisor", "gerente", "subgerente")
+
+    def _pulso_colabs(loja_id):
+        hoje = _hoje()
+        todos = query(
+            "SELECT id, nome, admissao, desligamento FROM colaboradores WHERE loja_id = ? ORDER BY nome",
+            (loja_id,),
+        )
+        return [c for c in todos if _situacao(c, hoje) != "Desligado"]
+
+    @app.route("/pulso")
+    @require_roles(*PULSO_ROLES)
+    def pulso():
+        lojas = query("SELECT id, nome FROM lojas ORDER BY nome")
+        sel_loja = request.args.get("loja")
+        sel_semana = _segunda_da_semana(request.args.get("semana") or _hoje().isoformat())
+        colabs, pulsos, sel_loja_nome = [], {}, ""
+        if sel_loja:
+            colabs = _pulso_colabs(sel_loja)
+            pulsos = {p["colaborador_id"]: p
+                      for p in query("SELECT * FROM pulsos WHERE semana = ?", (sel_semana,))}
+            lj = query("SELECT nome FROM lojas WHERE id = ?", (sel_loja,), one=True)
+            sel_loja_nome = lj["nome"] if lj else ""
+        return render_template_string(
+            PULSO_HTML, user=current_user(), lojas=lojas, colabs=colabs, pulsos=pulsos,
+            sel_loja=sel_loja, sel_semana=sel_semana, sel_loja_nome=sel_loja_nome,
+            sel_semana_br=_fmt_data_br(sel_semana), flags=PULSO_FLAGS, ok=request.args.get("ok"),
+        )
+
+    @app.route("/pulso/salvar", methods=["POST"])
+    @require_roles(*PULSO_ROLES)
+    def pulso_salvar():
+        u = current_user()
+        loja_id = request.form.get("loja_id")
+        semana = _segunda_da_semana(request.form.get("semana") or _hoje().isoformat())
+        if not loja_id:
+            return redirect("/pulso?ok=Selecione a loja")
+        salvos = 0
+        for c in _pulso_colabs(loja_id):
+            cid = c["id"]
+            def _n(prefixo):
+                v = request.form.get("%s%s" % (prefixo, cid))
+                try:
+                    return int(v) if v else None
+                except ValueError:
+                    return None
+            a, r, p = _n("a"), _n("r"), _n("p")
+            flag = request.form.get("flag%s" % cid) or ""
+            obs = (request.form.get("obs%s" % cid) or "").strip()
+            if a is None and r is None and p is None and not flag and not obs:
+                continue  # linha vazia, não grava
+            notas = [x for x in (a, r, p) if x is not None]
+            media = round(sum(notas) / len(notas), 2) if notas else None
+            existing = query(
+                "SELECT id FROM pulsos WHERE colaborador_id = ? AND semana = ?",
+                (cid, semana), one=True,
+            )
+            if existing:
+                execute(
+                    "UPDATE pulsos SET atendimento=?, ritmo=?, pontualidade=?, media=?, flag=?, obs=?, "
+                    "criado_em=?, criado_por=? WHERE id=?",
+                    (a, r, p, media, flag, obs, _now(), u["id"], existing["id"]),
+                )
+            else:
+                execute(
+                    "INSERT INTO pulsos (colaborador_id, semana, atendimento, ritmo, pontualidade, media, flag, obs, criado_em, criado_por) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (cid, semana, a, r, p, media, flag, obs, _now(), u["id"]),
+                )
+            salvos += 1
+        audit(u["id"], "pulso_salvar", "loja=%s semana=%s (%d)" % (loja_id, semana, salvos))
+        return redirect("/pulso?ok=Pulso salvo (%d colaborador(es))&loja=%s&semana=%s" % (salvos, loja_id, semana))
 
     # ------------------------------------------------- Cockpit do dono (Fase 3.4)
     @app.route("/cockpit")

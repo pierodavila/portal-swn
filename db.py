@@ -251,6 +251,49 @@ def _schema_statements():
             criado_por  INTEGER
         )
         """,
+        f"""
+        CREATE TABLE IF NOT EXISTS pulsos (
+            id             {pk},
+            colaborador_id INTEGER,
+            semana         TEXT,
+            atendimento    INTEGER,
+            ritmo          INTEGER,
+            pontualidade   INTEGER,
+            media          REAL,
+            flag           TEXT,
+            obs            TEXT,
+            criado_em      {ts},
+            criado_por     INTEGER
+        )
+        """,
+        f"""
+        CREATE TABLE IF NOT EXISTS avaliacoes_tri (
+            id             {pk},
+            colaborador_id INTEGER,
+            trimestre      TEXT,
+            evolucao       TEXT,
+            pdi            TEXT,
+            promocao       TEXT,
+            metas_prox     TEXT,
+            criado_em      {ts},
+            criado_por     INTEGER
+        )
+        """,
+        f"""
+        CREATE TABLE IF NOT EXISTS clima (
+            id            {pk},
+            loja_id       INTEGER,
+            trimestre     TEXT,
+            lideranca     INTEGER,
+            comunicacao   INTEGER,
+            condicoes     INTEGER,
+            reconhecimento INTEGER,
+            ambiente      INTEGER,
+            enps          INTEGER,
+            sugestao      TEXT,
+            criado_em     {ts}
+        )
+        """,
         # Garante 1 checklist por loja+data+turno (evita duplicata em clique-duplo).
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_chk_unico ON checklists (loja_id, data, turno)",
         # Índices de performance nas colunas de junção (importam com volume).
@@ -260,6 +303,9 @@ def _schema_statements():
         "CREATE INDEX IF NOT EXISTS idx_chk_data ON checklists (data)",
         "CREATE INDEX IF NOT EXISTS idx_adi_colab ON adiantamentos (colaborador_id)",
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_escala_unico ON escalas (loja_id, competencia)",
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_pulso_unico ON pulsos (colaborador_id, semana)",
+        "CREATE INDEX IF NOT EXISTS idx_tri_colab ON avaliacoes_tri (colaborador_id)",
+        "CREATE INDEX IF NOT EXISTS idx_clima_loja ON clima (loja_id)",
     ]
 
 

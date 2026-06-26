@@ -110,11 +110,19 @@ TOOLS = [
         "papeis": ["admin", "rh"],
     },
     {
+        "id": "pulso",
+        "nome": "Pulso da semana",
+        "icone": "⚡",
+        "arquivo": "AVALIACAO_COLABORADOR_SWN.html",
+        "descricao": "Avaliação semanal rápida da equipe pelo líder.",
+        "papeis": ["admin", "rh", "supervisor", "gerente", "subgerente"],
+    },
+    {
         "id": "avaliacao",
-        "nome": "Avaliação do Colaborador",
+        "nome": "Avaliação mensal",
         "icone": "⭐",
         "arquivo": "AVALIACAO_COLABORADOR_SWN.html",
-        "descricao": "Avaliação com KPIs e nota — salva no banco, com histórico.",
+        "descricao": "Avaliação mensal com KPIs e nota — salva no banco, com histórico.",
         "papeis": ["admin", "rh", "supervisor", "gerente"],
     },
     {
