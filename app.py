@@ -17,6 +17,7 @@ import time
 import secrets
 import calendar
 import logging
+import unicodedata
 from datetime import datetime, date, timedelta
 
 from flask import (
@@ -71,6 +72,57 @@ def _csv_safe(v):
     if s and s[0] in ("=", "+", "-", "@", "\t", "\r"):
         return "'" + s
     return s
+
+
+# --- Importação de planilha (colaboradores via Excel/CSV) -------------------
+def _norm_txt(s):
+    """minúsculas, sem acento, sem espaços nas pontas — para casar cabeçalhos/lojas."""
+    s = "" if s is None else str(s)
+    s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode("ascii")
+    return s.strip().lower()
+
+
+# Aceita variações de cabeçalho -> chave interna.
+_IMPORT_COLS = {
+    "nome": "nome", "colaborador": "nome",
+    "cpf": "cpf",
+    "loja": "loja", "unidade": "loja",
+    "cargo": "cargo", "funcao": "cargo",
+    "admissao": "admissao", "data de admissao": "admissao", "data admissao": "admissao",
+    "contato": "contato", "telefone": "contato", "email": "contato", "e-mail": "contato",
+}
+
+
+def _parse_admissao_imp(v):
+    """Reconhece data de célula Excel (datetime) ou texto em vários formatos -> 'YYYY-MM-DD'."""
+    if v is None or v == "":
+        return ""
+    if isinstance(v, (datetime, date)):
+        return v.strftime("%Y-%m-%d")
+    s = str(v).strip()
+    for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%d/%m/%y", "%d.%m.%Y"):
+        try:
+            return datetime.strptime(s[:10] if fmt == "%Y-%m-%d" else s, fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+    return ""
+
+
+def _ler_planilha(file_storage):
+    """Lê .xlsx ou .csv -> lista de linhas (cada linha = lista de células)."""
+    nome = (file_storage.filename or "").lower()
+    if nome.endswith(".csv"):
+        raw = file_storage.read().decode("utf-8-sig", errors="replace")
+        primeira = raw.split("\n", 1)[0]
+        delim = ";" if primeira.count(";") >= primeira.count(",") else ","
+        return [list(r) for r in csv.reader(io.StringIO(raw), delimiter=delim)]
+    import openpyxl  # importado aqui para não pesar no boot
+    wb = openpyxl.load_workbook(file_storage, read_only=True, data_only=True)
+    ws = wb.active
+    linhas = []
+    for r in ws.iter_rows(values_only=True):
+        linhas.append(list(r))
+    return linhas
 
 
 # ----------------------------------------------------------------------------
@@ -226,6 +278,7 @@ GESTAO_HTML = r"""
     </tbody>
   </table>
 
+  <p style="margin-top:14px"><a href="{{ url_for('gestao_importar') }}" class="g-btn" style="text-decoration:none;background:var(--panel2);color:var(--txt);border:1px solid var(--line);padding:7px 13px;border-radius:9px">📥 Importar via Excel/CSV</a></p>
   <h2 style="margin-top:16px" id="form-colab">{{ '✏️ Editar colaborador' if edit_colab else '➕ Novo colaborador' }}</h2>
   <form class="g-form" method="post" action="{{ url_for('gestao_colab_add') }}">
     <input type="hidden" name="_csrf" value="{{ csrf_token }}">
@@ -271,6 +324,58 @@ GESTAO_HTML = r"""
     {% if edit_loja %}<a class="g-del" style="text-decoration:none" href="/gestao#lojas">cancelar</a>{% endif %}
   </form>
 </div>
+{% endblock %}
+"""
+
+
+# ----------------------------------------------------------------------------
+# Avaliações de desempenho — competências, helpers de nota e templates (Fase 3.2)
+# ----------------------------------------------------------------------------
+IMPORT_HTML = r"""
+{% extends "base.html" %}
+{% block title %}Importar colaboradores{% endblock %}
+{% block body %}
+<style>
+  .imp .passo{font-size:14px;margin:6px 0}
+  .imp code{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:12.5px}
+  .imp .up{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+  .imp input[type=file]{color:var(--txt);font-size:13px}
+  .g-btn{padding:9px 16px;border-radius:9px;border:0;background:var(--brand);color:#13270a;font-weight:800;cursor:pointer;font-size:14px}
+  .res{margin-top:16px}
+  .res .ok{background:rgba(46,204,113,.12);color:#7ee2a8;border:1px solid rgba(46,204,113,.3);padding:10px 12px;border-radius:10px;font-size:14px}
+  table.r{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+  table.r th,table.r td{border-bottom:1px solid var(--line);padding:7px 9px;text-align:left}
+  table.r th{color:var(--muted);font-size:11px;text-transform:uppercase}
+  @media(max-width:640px){table{display:block;overflow-x:auto;white-space:nowrap}}
+</style>
+<div class="card imp">
+  <p><a href="/gestao#colaboradores">← Voltar à Gestão</a></p>
+  <h1>Importar colaboradores por planilha</h1>
+  <p class="passo">1. Baixe o modelo: <a href="{{ url_for('gestao_modelo') }}">⬇ modelo_colaboradores.xlsx</a></p>
+  <p class="passo">2. Preencha as colunas: <code>Nome</code> (obrigatório), <code>CPF</code>, <code>Loja</code>, <code>Cargo</code>, <code>Admissão</code> (dd/mm/aaaa), <code>Contato</code>.</p>
+  <p class="passo">3. Suba o arquivo (.xlsx ou .csv). A loja é casada pelo nome — se não existir, é criada.</p>
+  <form class="up" method="post" enctype="multipart/form-data" action="{{ url_for('gestao_importar') }}">
+    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+    <input type="file" name="arquivo" accept=".xlsx,.csv" required>
+    <button class="g-btn" type="submit">Importar</button>
+  </form>
+</div>
+
+{% if resultado %}
+<div class="card res">
+  <div class="ok">✓ {{ resultado.importados }} colaborador(es) importado(s).{% if resultado.lojas_criadas %} {{ resultado.lojas_criadas|length }} loja(s) criada(s): {{ resultado.lojas_criadas|join(', ') }}.{% endif %}</div>
+  {% if resultado.ignorados %}
+    <p style="margin-top:12px;font-weight:600">Linhas ignoradas ({{ resultado.ignorados|length }}):</p>
+    <table class="r">
+      <thead><tr><th>Linha</th><th>Conteúdo</th><th>Motivo</th></tr></thead>
+      <tbody>
+      {% for ig in resultado.ignorados %}<tr><td>{{ ig.linha }}</td><td>{{ ig.conteudo }}</td><td>{{ ig.motivo }}</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+  <p style="margin-top:14px"><a href="/gestao#colaboradores">Ver colaboradores na Gestão →</a></p>
+</div>
+{% endif %}
 {% endblock %}
 """
 
@@ -1751,6 +1856,109 @@ def create_app():
             buf.getvalue(), mimetype="text/csv; charset=utf-8",
             headers={"Content-Disposition": "attachment; filename=colaboradores_swn.csv"},
         )
+
+    # ------------------------------------------------- Importar colaboradores
+    @app.route("/gestao/modelo")
+    @require_roles("admin", "rh")
+    def gestao_modelo():
+        import openpyxl
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Colaboradores"
+        ws.append(["Nome", "CPF", "Loja", "Cargo", "Admissão", "Contato"])
+        ws.append(["Maria da Silva", "000.000.000-00", "Colcci", "Vendedora", "10/01/2025", "maria@email.com"])
+        bio = io.BytesIO()
+        wb.save(bio)
+        bio.seek(0)
+        return Response(
+            bio.read(),
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": "attachment; filename=modelo_colaboradores.xlsx"},
+        )
+
+    @app.route("/gestao/importar", methods=["GET", "POST"])
+    @require_roles("admin", "rh")
+    def gestao_importar():
+        u = current_user()
+        resultado = None
+        if request.method == "POST":
+            fs = request.files.get("arquivo")
+            if not fs or not fs.filename:
+                return render_template_string(IMPORT_HTML, user=u, resultado={
+                    "importados": 0, "lojas_criadas": [], "ignorados": [
+                        {"linha": "—", "conteudo": "—", "motivo": "Nenhum arquivo enviado."}]})
+            try:
+                linhas = _ler_planilha(fs)
+            except Exception as e:
+                log.warning("Falha ao ler planilha: %s", e)
+                return render_template_string(IMPORT_HTML, user=u, resultado={
+                    "importados": 0, "lojas_criadas": [], "ignorados": [
+                        {"linha": "—", "conteudo": fs.filename, "motivo": "Arquivo inválido ou ilegível (use .xlsx ou .csv)."}]})
+
+            # localizar cabeçalho e mapear colunas
+            mapa, header_idx = {}, None
+            for i, linha in enumerate(linhas):
+                cols = {}
+                for j, cel in enumerate(linha):
+                    chave = _IMPORT_COLS.get(_norm_txt(cel))
+                    if chave:
+                        cols[chave] = j
+                if "nome" in cols:
+                    mapa, header_idx = cols, i
+                    break
+            if header_idx is None:
+                return render_template_string(IMPORT_HTML, user=u, resultado={
+                    "importados": 0, "lojas_criadas": [], "ignorados": [
+                        {"linha": "—", "conteudo": "—", "motivo": "Não encontrei uma coluna 'Nome'. Use o modelo."}]})
+
+            # lojas existentes (por nome normalizado)
+            lojas_map = {_norm_txt(l["nome"]): l["id"] for l in query("SELECT id, nome FROM lojas")}
+            lojas_criadas, ignorados, importados = [], [], 0
+
+            def _cel(linha, chave):
+                j = mapa.get(chave)
+                if j is None or j >= len(linha):
+                    return ""
+                v = linha[j]
+                return "" if v is None else (v if isinstance(v, (datetime, date)) else str(v).strip())
+
+            for n, linha in enumerate(linhas[header_idx + 1:], start=header_idx + 2):
+                if not any(str(c).strip() for c in linha if c is not None):
+                    continue  # linha em branco
+                nome = str(_cel(linha, "nome")).strip()
+                if not nome:
+                    ignorados.append({"linha": n, "conteudo": " | ".join(str(c) for c in linha if c)[:60],
+                                      "motivo": "Sem nome."})
+                    continue
+                if importados >= 2000:
+                    ignorados.append({"linha": n, "conteudo": nome, "motivo": "Limite de 2000 por importação."})
+                    continue
+                loja_nome = str(_cel(linha, "loja")).strip()
+                loja_id = None
+                if loja_nome:
+                    key = _norm_txt(loja_nome)
+                    loja_id = lojas_map.get(key)
+                    if loja_id is None:
+                        execute("INSERT INTO lojas (nome, cnpj, cidade_uf, ativo) VALUES (?, ?, ?, 1)",
+                                (loja_nome, "", ""))
+                        nova = query("SELECT id FROM lojas WHERE nome = ? ORDER BY id DESC", (loja_nome,), one=True)
+                        loja_id = nova["id"] if nova else None
+                        lojas_map[key] = loja_id
+                        lojas_criadas.append(loja_nome)
+                execute(
+                    "INSERT INTO colaboradores "
+                    "(nome, cpf, loja_id, cargo, admissao, desligamento, contato, criado_em, criado_por) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (nome, str(_cel(linha, "cpf")), loja_id, str(_cel(linha, "cargo")),
+                     _parse_admissao_imp(_cel(linha, "admissao")), "", str(_cel(linha, "contato")),
+                     _now(), u["id"]),
+                )
+                importados += 1
+
+            audit(u["id"], "gestao_importar", "%d importados, %d lojas novas, %d ignorados"
+                  % (importados, len(lojas_criadas), len(ignorados)))
+            resultado = {"importados": importados, "lojas_criadas": lojas_criadas, "ignorados": ignorados}
+        return render_template_string(IMPORT_HTML, user=u, resultado=resultado)
 
     # ------------------------------------------------- Avaliações (Fase 3.2: DB)
     def _avals_join(where="", params=()):
