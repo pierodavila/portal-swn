@@ -1215,6 +1215,244 @@ ESCALA_HTML = r"""
 """
 
 
+# --- Avaliação trimestral de desenvolvimento -------------------------------
+def _trimestre_de(d):
+    return "%d-T%d" % (d.year, (d.month - 1) // 3 + 1)
+
+
+def _trimestres_recentes(n=6):
+    d = _hoje().replace(day=1)
+    out = []
+    for _ in range(n):
+        out.append(_trimestre_de(d))
+        m, y = d.month - 3, d.year
+        while m < 1:
+            m += 12
+            y -= 1
+        d = d.replace(year=y, month=m)
+    return out
+
+
+TRI_PROMO = ["Ainda não", "Em desenvolvimento", "Pronto(a) para promoção"]
+
+TRI_HTML = r"""
+{% extends "base.html" %}
+{% block title %}Avaliação trimestral{% endblock %}
+{% block body %}
+<style>
+  table.t{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  @media(max-width:640px){table{display:block;overflow-x:auto;white-space:nowrap}}
+  table.t th,table.t td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left}
+  table.t th{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px}
+  .t-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:12px}
+  .t-form .f{display:flex;flex-direction:column;gap:4px}
+  .t-form label{font-size:11px;color:var(--muted);font-weight:600}
+  .t-form input,.t-form select,.t-form textarea{padding:8px 10px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--txt);font-size:14px;font-family:inherit}
+  .t-form textarea{min-height:64px;resize:vertical}
+  .full{grid-column:1/-1}
+  .g-btn{padding:9px 16px;border-radius:9px;border:0;background:var(--brand);color:#13270a;font-weight:800;cursor:pointer;font-size:14px}
+  .g-del{color:#f29a90;background:none;border:0;cursor:pointer;font-size:12.5px;padding:0}
+  .msg{padding:10px 12px;border-radius:10px;margin-bottom:12px;font-size:13.5px;background:rgba(46,204,113,.12);color:#7ee2a8;border:1px solid rgba(46,204,113,.3)}
+</style>
+<div class="card">
+  <h1>Avaliação trimestral · desenvolvimento</h1>
+  <p class="muted">A conversa de carreira: evolução no trimestre, plano de desenvolvimento e prontidão para crescer. Puxa as notas mensais do colaborador como base.</p>
+</div>
+{% if ok %}<div class="msg">{{ ok }}</div>{% endif %}
+
+<div class="card">
+  <h2>Histórico</h2>
+  <form method="get" action="{{ url_for('avaliacao_tri') }}" class="t-form" style="margin:0 0 8px">
+    <div class="f"><label>Filtrar por loja</label>
+      <select name="loja" onchange="this.form.submit()">
+        <option value="">Todas as lojas</option>
+        {% for l in lojas %}<option value="{{ l.id }}" {{ 'selected' if flt_loja==l.id|string else '' }}>{{ l.nome }}</option>{% endfor %}
+      </select></div>
+  </form>
+  <table class="t">
+    <thead><tr><th>Colaborador</th><th>Trimestre</th><th>Promoção</th><th>Ações</th></tr></thead>
+    <tbody>
+    {% for a in tris %}
+      <tr>
+        <td><b>{{ a.colab_nome or '—' }}</b><br><span class="muted" style="font-size:12px">{{ a.loja_nome or '' }}</span></td>
+        <td>{{ a.trimestre }}</td>
+        <td>{{ a.promocao or '—' }}</td>
+        <td style="white-space:nowrap">
+          <a href="{{ url_for('avaliacao_tri_ver', aid=a.id) }}">ver</a> ·
+          <a href="?edit={{ a.id }}#nova">editar</a> ·
+          <form method="post" style="display:inline" action="{{ url_for('avaliacao_tri_del', aid=a.id) }}" onsubmit="return confirm('Excluir?')"><input type="hidden" name="_csrf" value="{{ csrf_token }}"><button class="g-del">excluir</button></form>
+        </td>
+      </tr>
+    {% else %}<tr><td colspan="4" class="muted">Nenhuma avaliação trimestral{% if flt_loja %} para esta loja{% endif %}.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2 id="nova">{{ '✏️ Editar' if edit_tri else '➕ Nova avaliação trimestral' }}</h2>
+  {% if colabs %}
+  <form method="post" action="{{ url_for('avaliacao_tri_nova') }}">
+    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+    {% if edit_tri %}<input type="hidden" name="id" value="{{ edit_tri.id }}">{% endif %}
+    <div class="t-form">
+      <div class="f"><label>Colaborador *</label>
+        <select name="colaborador_id" required>
+          <option value="">—</option>
+          {% for c in colabs %}<option value="{{ c.id }}" {{ 'selected' if edit_tri and edit_tri.colaborador_id==c.id else '' }}>{{ c.nome }}{% if c.loja_nome %} · {{ c.loja_nome }}{% endif %}</option>{% endfor %}
+        </select></div>
+      <div class="f"><label>Trimestre *</label>
+        <select name="trimestre">{% for t in trimestres %}<option {{ 'selected' if edit_tri and edit_tri.trimestre==t else '' }}>{{ t }}</option>{% endfor %}</select></div>
+      <div class="f"><label>Prontidão p/ promoção</label>
+        <select name="promocao">{% for p in promo %}<option {{ 'selected' if edit_tri and edit_tri.promocao==p else '' }}>{{ p }}</option>{% endfor %}</select></div>
+    </div>
+    <div class="t-form" style="margin-top:12px">
+      <div class="f full"><label>Evolução no trimestre</label><textarea name="evolucao">{{ edit_tri.evolucao if edit_tri else '' }}</textarea></div>
+      <div class="f full"><label>Plano de desenvolvimento (PDI)</label><textarea name="pdi">{{ edit_tri.pdi if edit_tri else '' }}</textarea></div>
+      <div class="f full"><label>Metas do próximo trimestre</label><textarea name="metas_prox">{{ edit_tri.metas_prox if edit_tri else '' }}</textarea></div>
+    </div>
+    <div style="margin-top:12px"><button class="g-btn" type="submit">{{ 'Salvar' if edit_tri else 'Registrar' }}</button>
+      {% if edit_tri %}<a class="g-del" style="text-decoration:none;margin-left:10px" href="{{ url_for('avaliacao_tri') }}">cancelar</a>{% endif %}</div>
+  </form>
+  {% else %}<p class="muted">Cadastre colaboradores em <a href="/gestao#colaboradores">Gestão</a> antes.</p>{% endif %}
+</div>
+{% endblock %}
+"""
+
+
+TRI_VER_HTML = r"""
+{% extends "base.html" %}
+{% block title %}Trimestral — {{ a.colab_nome }}{% endblock %}
+{% block body %}
+<style>
+  table.t{width:100%;border-collapse:collapse;font-size:14px;margin-top:6px}
+  table.t th,table.t td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left}
+  table.t th{color:var(--muted);font-size:11.5px;text-transform:uppercase}
+  .blk{white-space:pre-wrap}
+  .tend{font-weight:800;color:var(--brand2)}
+</style>
+<div class="card">
+  <p><a href="{{ url_for('avaliacao_tri') }}">← Voltar</a></p>
+  <h1>{{ a.colab_nome or '—' }} · {{ a.trimestre }}</h1>
+  <p class="muted">{{ a.loja_nome or '' }} · prontidão p/ promoção: <b>{{ a.promocao or '—' }}</b></p>
+</div>
+<div class="card">
+  <h2>Base: últimas notas mensais</h2>
+  <table class="t"><thead><tr><th>Período</th><th>Nota final</th></tr></thead><tbody>
+    {% for n in notas %}<tr><td>{{ n.periodo or '—' }}</td><td>{{ n.nota_final }}</td></tr>
+    {% else %}<tr><td colspan="2" class="muted">Sem avaliações mensais ainda.</td></tr>{% endfor %}
+  </tbody></table>
+  <p style="margin-top:8px">Tendência: <span class="tend">{{ tendencia }}</span></p>
+</div>
+<div class="card">
+  <p class="muted">Evolução no trimestre</p><p class="blk">{{ a.evolucao or '—' }}</p>
+  <p class="muted" style="margin-top:12px">Plano de desenvolvimento</p><p class="blk">{{ a.pdi or '—' }}</p>
+  <p class="muted" style="margin-top:12px">Metas do próximo trimestre</p><p class="blk">{{ a.metas_prox or '—' }}</p>
+</div>
+{% endblock %}
+"""
+
+
+# --- Avaliação da empresa pelo colaborador (clima, anônima por loja) ---------
+CLIMA_ITENS = [("lideranca", "Liderança / gestão"), ("comunicacao", "Comunicação"),
+               ("condicoes", "Condições e ferramentas de trabalho"),
+               ("reconhecimento", "Reconhecimento"), ("ambiente", "Ambiente / equipe")]
+
+CLIMA_PUBLICO_HTML = r"""
+{% extends "base.html" %}
+{% block title %}Avaliação da empresa{% endblock %}
+{% block body %}
+<style>
+  .c-form .f{margin:14px 0}
+  .c-form label{display:block;font-size:14px;font-weight:600;margin-bottom:6px}
+  .opts{display:flex;gap:6px;flex-wrap:wrap}
+  .opts label{font-weight:400;font-size:13px;display:flex;align-items:center;gap:4px;background:var(--panel2);
+    border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer;margin:0}
+  textarea{width:100%;padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);color:var(--txt);font-size:14px;min-height:80px}
+  .g-btn{padding:10px 18px;border-radius:9px;border:0;background:var(--brand);color:#13270a;font-weight:800;cursor:pointer;font-size:15px}
+  .anon{background:linear-gradient(135deg,rgba(180,210,51,.08),rgba(27,60,134,.10));border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--muted);font-size:13px;margin-bottom:16px}
+</style>
+<div class="card">
+  <h1>Avaliação da empresa</h1>
+  <p class="muted">{{ loja_nome }} · {{ trimestre }}</p>
+</div>
+{% if enviado %}
+  <div class="card"><h2>✓ Obrigado!</h2><p class="muted">Sua resposta foi registrada de forma anônima. Sua opinião ajuda a SWN a melhorar.</p></div>
+{% else %}
+<div class="anon">🔒 Esta resposta é <b>anônima</b>. Ninguém consegue identificar quem respondeu — os resultados são vistos só de forma agregada, por loja.</div>
+<div class="card c-form">
+  <form method="post" action="{{ url_for('clima_responder') }}">
+    <input type="hidden" name="loja" value="{{ loja_id }}">
+    <input type="hidden" name="t" value="{{ trimestre }}">
+    {% for k, lbl in itens %}
+    <div class="f"><label>{{ lbl }}</label>
+      <div class="opts">
+        {% for n in [1,2,3,4,5] %}<label><input type="radio" name="{{ k }}" value="{{ n }}"> {{ n }}</label>{% endfor %}
+      </div></div>
+    {% endfor %}
+    <div class="f"><label>De 0 a 10, o quanto você recomendaria a SWN como lugar para trabalhar?</label>
+      <div class="opts">
+        {% for n in range(0,11) %}<label><input type="radio" name="enps" value="{{ n }}"> {{ n }}</label>{% endfor %}
+      </div></div>
+    <div class="f"><label>Sugestões (opcional)</label><textarea name="sugestao" placeholder="o que faria a SWN ser um lugar melhor para trabalhar?"></textarea></div>
+    <button class="g-btn" type="submit">Enviar resposta</button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}
+"""
+
+
+CLIMA_ADMIN_HTML = r"""
+{% extends "base.html" %}
+{% block title %}Clima · empresa{% endblock %}
+{% block body %}
+<style>
+  table.cl{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  @media(max-width:640px){table{display:block;overflow-x:auto;white-space:nowrap}}
+  table.cl th,table.cl td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left}
+  table.cl th{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px}
+  .enps{font-weight:800;color:var(--brand2)}
+  .c-form{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:6px 0}
+  .c-form select{padding:8px 10px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);color:var(--txt);font-size:14px}
+  .lk{font-size:12.5px;color:var(--muted)}
+  .sug{font-size:13px;border-left:3px solid var(--line);padding:4px 10px;margin:6px 0;color:var(--txt)}
+</style>
+<div class="card">
+  <h1>A SWN na visão do colaborador</h1>
+  <p class="muted">Respostas anônimas, agregadas por loja. Compartilhe o link de cada loja com a equipe (ou gere um QR).</p>
+</div>
+<div class="card">
+  <form method="get" action="{{ url_for('clima') }}" class="c-form">
+    <div><label class="lk">Trimestre</label><br>
+      <select name="t" onchange="this.form.submit()">{% for t in trimestres %}<option {{ 'selected' if sel_t==t else '' }}>{{ t }}</option>{% endfor %}</select>
+    </div>
+  </form>
+  <table class="cl">
+    <thead><tr><th>Loja</th><th>Respostas</th><th>Liderança</th><th>Comunic.</th><th>Condições</th><th>Reconhec.</th><th>Ambiente</th><th>eNPS</th><th>Link p/ equipe</th></tr></thead>
+    <tbody>
+    {% for r in linhas %}
+      <tr>
+        <td><b>{{ r.nome }}</b></td>
+        <td>{{ r.n }}</td>
+        <td>{{ r.lideranca }}</td><td>{{ r.comunicacao }}</td><td>{{ r.condicoes }}</td><td>{{ r.reconhecimento }}</td><td>{{ r.ambiente }}</td>
+        <td class="enps">{{ r.enps }}</td>
+        <td class="lk">{{ base_url }}/clima/responder?loja={{ r.id }}&amp;t={{ sel_t }}</td>
+      </tr>
+    {% else %}<tr><td colspan="9" class="muted">Cadastre lojas em <a href="/gestao#lojas">Gestão</a>.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% if sugestoes %}
+<div class="card">
+  <h2>Sugestões ({{ sugestoes|length }})</h2>
+  {% for s in sugestoes %}<div class="sug">{{ s }}</div>{% endfor %}
+</div>
+{% endif %}
+{% endblock %}
+"""
+
+
 # ----------------------------------------------------------------------------
 # Cockpit do dono — agrega os dados que o portal já tem por loja (Fase 3.4)
 # ----------------------------------------------------------------------------
@@ -1259,6 +1497,7 @@ COCKPIT_HTML = r"""
   <div class="k"><b>{{ rede.adv_mes }}</b><span>advertências no mês</span></div>
   <div class="k"><b>{{ rede.nota_media or '—' }}</b><span>nota média (avaliações)</span></div>
   <div class="k"><b>R$ {{ '%.0f'|format(rede.adi_mes) }}</b><span>adiantamentos no mês</span></div>
+  <div class="k"><b>{{ rede.enps if rede.enps is not none else '—' }}</b><span>eNPS (trimestre)</span></div>
 </div>
 
 <div class="loja-grid">
@@ -1276,6 +1515,7 @@ COCKPIT_HTML = r"""
       <div><b>{{ L.chk_ab }}</b><span>Abertura hoje</span></div>
       <div><b>{{ L.chk_fe }}</b><span>Fechamento hoje</span></div>
       <div><b>R$ {{ '%.0f'|format(L.adi_mes) }}</b><span>Vales no mês</span></div>
+      <div><b>{{ L.enps }}</b><span>eNPS trimestre</span></div>
     </div>
     {% for a in L.alertas %}<div class="alert warn">⚠️ {{ a }}</div>{% endfor %}
     {% if not L.alertas %}<div class="alert ok">✓ Sem alertas no momento</div>{% endif %}
@@ -1614,8 +1854,8 @@ def create_app():
         # Garante um token por sessão logada.
         if "uid" in session and not session.get("_csrf"):
             session["_csrf"] = secrets.token_urlsafe(32)
-        # Valida o token em qualquer POST (login é protegido por rate-limit).
-        if request.method == "POST" and request.path != url_for("login"):
+        # Valida o token em qualquer POST (login e o clima público são isentos).
+        if request.method == "POST" and request.path not in (url_for("login"), "/clima/responder"):
             if not session.get("_csrf") or request.form.get("_csrf") != session.get("_csrf"):
                 abort(400)
 
@@ -1729,6 +1969,10 @@ def create_app():
             return redirect("/escala")
         if tool_id == "pulso":
             return redirect("/pulso")
+        if tool_id == "avaliacao_tri":
+            return redirect("/avaliacoes-tri")
+        if tool_id == "clima":
+            return redirect("/clima")
         u = current_user()
         meta = catalog.get_tool(tool_id)
         if meta is None or not meta.get("arquivo"):
@@ -2741,6 +2985,152 @@ def create_app():
         audit(u["id"], "pulso_salvar", "loja=%s semana=%s (%d)" % (loja_id, semana, salvos))
         return redirect("/pulso?ok=Pulso salvo (%d colaborador(es))&loja=%s&semana=%s" % (salvos, loja_id, semana))
 
+    # ------------------------------------------------- Trimestral de desenvolvimento
+    TRI_ROLES = ("admin", "rh", "supervisor", "gerente")
+
+    def _tris_join(where="", params=()):
+        return query(
+            "SELECT t.*, c.nome AS colab_nome, c.loja_id AS loja_id, l.nome AS loja_nome "
+            "FROM avaliacoes_tri t "
+            "LEFT JOIN colaboradores c ON c.id = t.colaborador_id "
+            "LEFT JOIN lojas l ON l.id = c.loja_id "
+            + where + " ORDER BY t.id DESC", params,
+        )
+
+    def _tendencia(cid):
+        notas = query(
+            "SELECT nota_final, periodo FROM avaliacoes WHERE colaborador_id = ? "
+            "AND nota_final IS NOT NULL ORDER BY id DESC LIMIT 3", (cid,),
+        )
+        if len(notas) >= 2:
+            rec, ant = notas[0]["nota_final"], notas[-1]["nota_final"]
+            tend = "subindo ↑" if rec > ant else "caindo ↓" if rec < ant else "estável →"
+        else:
+            tend = "— (poucas mensais)"
+        return notas, tend
+
+    @app.route("/avaliacoes-tri")
+    @require_roles(*TRI_ROLES)
+    def avaliacao_tri():
+        tris = _tris_join()
+        flt_loja = request.args.get("loja")
+        if flt_loja:
+            tris = [t for t in tris if str(t.get("loja_id")) == flt_loja]
+        hoje = _hoje()
+        colabs = query(
+            "SELECT c.id, c.nome, c.admissao, c.desligamento, l.nome AS loja_nome "
+            "FROM colaboradores c LEFT JOIN lojas l ON l.id = c.loja_id ORDER BY c.nome"
+        )
+        colabs = [c for c in colabs if _situacao(c, hoje) != "Desligado"]
+        lojas = query("SELECT id, nome FROM lojas ORDER BY nome")
+        ev = request.args.get("edit")
+        edit_tri = query("SELECT * FROM avaliacoes_tri WHERE id = ?", (ev,), one=True) if ev else None
+        return render_template_string(
+            TRI_HTML, user=current_user(), tris=tris, colabs=colabs, lojas=lojas,
+            trimestres=_trimestres_recentes(), promo=TRI_PROMO, flt_loja=flt_loja,
+            edit_tri=edit_tri, ok=request.args.get("ok"),
+        )
+
+    @app.route("/avaliacoes-tri/nova", methods=["POST"])
+    @require_roles(*TRI_ROLES)
+    def avaliacao_tri_nova():
+        u = current_user()
+        tid = request.form.get("id")
+        cid = request.form.get("colaborador_id")
+        if not cid:
+            return redirect("/avaliacoes-tri?ok=Selecione o colaborador#nova")
+        campos = (cid, request.form.get("trimestre") or "", request.form.get("evolucao") or "",
+                  request.form.get("pdi") or "", request.form.get("promocao") or "",
+                  request.form.get("metas_prox") or "")
+        if tid:
+            execute("UPDATE avaliacoes_tri SET colaborador_id=?, trimestre=?, evolucao=?, pdi=?, promocao=?, metas_prox=? WHERE id=?",
+                    campos + (tid,))
+            audit(u["id"], "tri_edit", tid)
+            return redirect("/avaliacoes-tri?ok=Avaliação trimestral atualizada")
+        execute("INSERT INTO avaliacoes_tri (colaborador_id, trimestre, evolucao, pdi, promocao, metas_prox, criado_em, criado_por) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)", campos + (_now(), u["id"]))
+        audit(u["id"], "tri_nova", str(cid))
+        return redirect("/avaliacoes-tri?ok=Avaliação trimestral registrada")
+
+    @app.route("/avaliacoes-tri/<int:aid>/delete", methods=["POST"])
+    @require_roles(*TRI_ROLES)
+    def avaliacao_tri_del(aid):
+        u = current_user()
+        execute("DELETE FROM avaliacoes_tri WHERE id = ?", (aid,))
+        audit(u["id"], "tri_del", str(aid))
+        return redirect("/avaliacoes-tri?ok=Excluída")
+
+    @app.route("/avaliacoes-tri/<int:aid>")
+    @require_roles(*TRI_ROLES)
+    def avaliacao_tri_ver(aid):
+        rows = _tris_join("WHERE t.id = ?", (aid,))
+        if not rows:
+            abort(404)
+        a = rows[0]
+        notas, tend = _tendencia(a["colaborador_id"])
+        return render_template_string(TRI_VER_HTML, user=current_user(), a=a, notas=notas, tendencia=tend)
+
+    # ------------------------------------------------- Clima / empresa (anônima)
+    @app.route("/clima/responder", methods=["GET", "POST"])
+    def clima_responder():
+        loja_id = request.values.get("loja")
+        trimestre = request.values.get("t") or _trimestre_de(_hoje())
+        lj = query("SELECT nome FROM lojas WHERE id = ?", (loja_id,), one=True) if loja_id else None
+        if not lj:
+            return render_template("base.html", titulo="Link inválido",
+                                   conteudo="Link de avaliação inválido — confirme com o gestor.", user=None), 404
+        if request.method == "POST":
+            def _n(k):
+                v = request.form.get(k)
+                try:
+                    return int(v) if v not in (None, "") else None
+                except ValueError:
+                    return None
+            execute(
+                "INSERT INTO clima (loja_id, trimestre, lideranca, comunicacao, condicoes, reconhecimento, ambiente, enps, sugestao, criado_em) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (loja_id, trimestre, _n("lideranca"), _n("comunicacao"), _n("condicoes"),
+                 _n("reconhecimento"), _n("ambiente"), _n("enps"),
+                 (request.form.get("sugestao") or "").strip(), _now()),
+            )
+            return render_template_string(CLIMA_PUBLICO_HTML, user=None, enviado=True,
+                                          loja_nome=lj["nome"], loja_id=loja_id, trimestre=trimestre,
+                                          itens=CLIMA_ITENS)
+        return render_template_string(CLIMA_PUBLICO_HTML, user=None, enviado=False,
+                                      loja_nome=lj["nome"], loja_id=loja_id, trimestre=trimestre,
+                                      itens=CLIMA_ITENS)
+
+    @app.route("/clima")
+    @require_roles("admin", "rh")
+    def clima():
+        sel_t = request.args.get("t") or _trimestre_de(_hoje())
+        lojas = query("SELECT id, nome FROM lojas ORDER BY nome")
+        respostas = query("SELECT * FROM clima WHERE trimestre = ?", (sel_t,))
+        def _media(rows, campo):
+            vals = [r[campo] for r in rows if r.get(campo) is not None]
+            return round(sum(vals) / len(vals), 1) if vals else "—"
+        linhas = []
+        for l in lojas:
+            rs = [r for r in respostas if r["loja_id"] == l["id"]]
+            enps = "—"
+            ev = [r["enps"] for r in rs if r.get("enps") is not None]
+            if ev:
+                prom = sum(1 for x in ev if x >= 9)
+                det = sum(1 for x in ev if x <= 6)
+                enps = round((prom - det) / len(ev) * 100)
+            linhas.append({
+                "id": l["id"], "nome": l["nome"], "n": len(rs),
+                "lideranca": _media(rs, "lideranca"), "comunicacao": _media(rs, "comunicacao"),
+                "condicoes": _media(rs, "condicoes"), "reconhecimento": _media(rs, "reconhecimento"),
+                "ambiente": _media(rs, "ambiente"), "enps": enps,
+            })
+        sugestoes = [r["sugestao"] for r in respostas if (r.get("sugestao") or "").strip()]
+        base_url = request.url_root.rstrip("/")
+        return render_template_string(
+            CLIMA_ADMIN_HTML, user=current_user(), linhas=linhas, sugestoes=sugestoes,
+            trimestres=_trimestres_recentes(), sel_t=sel_t, base_url=base_url,
+        )
+
     # ------------------------------------------------- Cockpit do dono (Fase 3.4)
     @app.route("/cockpit")
     @require_roles("admin", "supervisor")
@@ -2760,7 +3150,14 @@ def create_app():
             "SELECT a.valor, a.data, c.loja_id FROM adiantamentos a "
             "LEFT JOIN colaboradores c ON c.id = a.colaborador_id"
         )
+        clima_rows = query("SELECT loja_id, enps FROM clima WHERE trimestre = ?", (_trimestre_de(hoje),))
         chk_map = _chk_hoje_por_loja(lojas_raw, hoje.isoformat())
+
+        def _enps(rows):
+            ev = [r["enps"] for r in rows if r.get("enps") is not None]
+            if not ev:
+                return None
+            return round((sum(1 for x in ev if x >= 9) - sum(1 for x in ev if x <= 6)) / len(ev) * 100)
         for c in colabs:
             c["situacao"] = _situacao(c, hoje)
 
@@ -2789,6 +3186,7 @@ def create_app():
                 alertas.append("Nota média de avaliação baixa (%s)" % nota_media)
             adi_mes = sum(_valor_float(a.get("valor")) for a in adis
                           if a.get("loja_id") == lid and _is_mes_atual(a.get("data"), hoje))
+            enps_loja = _enps([r for r in clima_rows if r["loja_id"] == lid])
             chk = chk_map.get(lid, {})
             ab = chk.get("abertura")
             fe = chk.get("fechamento")
@@ -2801,6 +3199,7 @@ def create_app():
                 "headcount": headcount, "pct_exper": pct_exper, "turnover": turnover,
                 "adv_mes": adv_mes, "adv_total": adv_total, "nota_media": nota_media,
                 "chk_ab": ab_txt, "chk_fe": fe_txt, "adi_mes": round(adi_mes, 2),
+                "enps": enps_loja if enps_loja is not None else "—",
                 "alertas": alertas,
             })
 
@@ -2812,6 +3211,7 @@ def create_app():
             "adv_mes": sum(1 for a in advs if _is_mes_atual(a.get("data_fato"), hoje)),
             "nota_media": round(sum(todas_notas) / len(todas_notas), 2) if todas_notas else None,
             "adi_mes": round(sum(_valor_float(a.get("valor")) for a in adis if _is_mes_atual(a.get("data"), hoje)), 2),
+            "enps": (_enps(clima_rows) if clima_rows else None),
         }
         return render_template_string(COCKPIT_HTML, user=current_user(), lojas=lojas, rede=rede)
 

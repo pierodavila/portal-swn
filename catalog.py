@@ -126,6 +126,22 @@ TOOLS = [
         "papeis": ["admin", "rh", "supervisor", "gerente"],
     },
     {
+        "id": "avaliacao_tri",
+        "nome": "Avaliação trimestral",
+        "icone": "📈",
+        "arquivo": "AVALIACAO_COLABORADOR_SWN.html",
+        "descricao": "Desenvolvimento e carreira — evolução, PDI e promoção.",
+        "papeis": ["admin", "rh", "supervisor", "gerente"],
+    },
+    {
+        "id": "clima",
+        "nome": "A SWN pelo colaborador",
+        "icone": "💬",
+        "arquivo": "NPS_SWN.html",
+        "descricao": "Avaliação anônima da empresa pelo colaborador (clima + eNPS).",
+        "papeis": ["admin", "rh"],
+    },
+    {
         "id": "adiantamento",
         "nome": "Adiantamento (vale)",
         "icone": "💵",
